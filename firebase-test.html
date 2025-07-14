@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase接続テスト</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #00ff00;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #333;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .success {
+            color: #00ff00;
+            border-color: #00ff00;
+        }
+        .error {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+        .warning {
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        button {
+            background: transparent;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+        }
+        button:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+        .log {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firebase接続テスト</h1>
+        
+        <div class="status" id="connection-status">
+            接続状態: 確認中...
+        </div>
+        
+        <div class="controls">
+            <button onclick="testConnection()">接続テスト</button>
+            <button onclick="testWrite()">書き込みテスト</button>
+            <button onclick="testRead()">読み取りテスト</button>
+            <button onclick="clearLog()">ログクリア</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getDatabase, ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
+            authDomain: "lastr-36807.firebaseapp.com",
+            databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+            projectId: "lastr-36807",
+            storageBucket: "lastr-36807.firebasestorage.app",
+            messagingSenderId: "1068261467238",
+            appId: "1:1068261467238:web:22c701f8879d6bb61c79a7",
+            measurementId: "G-1S8C9GC4GY"
+        };
+
+        let app, firestore, database;
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(message);
+            
+            if (type === 'error') {
+                console.error(message);
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('connection-status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // Firebase初期化
+        try {
+            log('Firebase初期化中...');
+            app = initializeApp(firebaseConfig);
+            firestore = getFirestore(app);
+            database = getDatabase(app);
+            log('Firebase初期化完了');
+            
+            // 接続状態を監視
+            const connectedRef = ref(database, '.info/connected');
+            onValue(connectedRef, (snapshot) => {
+                const connected = snapshot.val();
+                if (connected) {
+                    updateStatus('Realtime Database: 接続済み ✓', 'success');
+                    log('Realtime Database接続成功');
+                } else {
+                    updateStatus('Realtime Database: 接続失敗 ✗', 'error');
+                    log('Realtime Database接続失敗');
+                }
+            });
+            
+            // Firestore接続テスト
+            const testFirestoreRef = doc(firestore, 'test', 'connection');
+            setDoc(testFirestoreRef, { test: true, timestamp: new Date() })
+                .then(() => {
+                    log('Firestore初期接続テスト成功');
+                })
+                .catch((error) => {
+                    log('Firestore初期接続テスト失敗: ' + error.message, 'error');
+                });
+            
+        } catch (error) {
+            log('Firebase初期化エラー: ' + error.message, 'error');
+            updateStatus('初期化エラー: ' + error.message, 'error');
+        }
+
+        // テスト関数をグローバルに露出
+        window.testConnection = function() {
+            log('--- 接続テスト開始 ---');
+            
+            // Realtime Database接続テスト
+            try {
+                const testRef = ref(database, '.info/connected');
+                get(testRef).then((snapshot) => {
+                    const connected = snapshot.val();
+                    log('Realtime Database接続状態: ' + (connected ? '成功' : '失敗'));
+                }).catch((error) => {
+                    log('Realtime Database接続テストエラー: ' + error.message, 'error');
+                });
+            } catch (error) {
+                log('Realtime Database接続テスト例外: ' + error.message, 'error');
+            }
+            
+            // Firestore接続テスト
+            try {
+                const testFirestoreRef = doc(firestore, 'test', 'connection');
+                getDoc(testFirestoreRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        log('Firestore接続テスト成功');
+                    } else {
+                        log('Firestoreドキュメントが存在しません');
+                    }
+                }).catch((error) => {
+                    log('Firestore接続テストエラー: ' + error.message, 'error');
+                    log('エラーコード: ' + error.code, 'error');
+                });
+            } catch (error) {
+                log('Firestore接続テスト例外: ' + error.message, 'error');
+            }
+        };
+
+        window.testWrite = function() {
+            log('--- 書き込みテスト開始 ---');
+            
+            const testData = {
+                timestamp: Date.now(),
+                message: 'テストデータ',
+                test: true
+            };
+            
+            // Realtime Database書き込みテスト
+            try {
+                const testRef = ref(database, 'test');
+                set(testRef, testData).then(() => {
+                    log('Realtime Database書き込みテスト成功');
+                }).catch((error) => {
+                    log('Realtime Database書き込みテストエラー: ' + error.message, 'error');
+                    log('エラーコード: ' + error.code, 'error');
+                });
+            } catch (error) {
+                log('Realtime Database書き込みテスト例外: ' + error.message, 'error');
+            }
+            
+            // Firestore書き込みテスト
+            try {
+                const testFirestoreRef = doc(firestore, 'test', 'writeTest');
+                setDoc(testFirestoreRef, testData).then(() => {
+                    log('Firestore書き込みテスト成功');
+                }).catch((error) => {
+                    log('Firestore書き込みテストエラー: ' + error.message, 'error');
+                    log('エラーコード: ' + error.code, 'error');
+                });
+            } catch (error) {
+                log('Firestore書き込みテスト例外: ' + error.message, 'error');
+            }
+        };
+
+        window.testRead = function() {
+            log('--- 読み取りテスト開始 ---');
+            
+            // Realtime Database読み取りテスト
+            try {
+                const testRef = ref(database, 'test');
+                get(testRef).then((snapshot) => {
+                    const data = snapshot.val();
+                    log('Realtime Database読み取りテスト成功: ' + JSON.stringify(data));
+                }).catch((error) => {
+                    log('Realtime Database読み取りテストエラー: ' + error.message, 'error');
+                    log('エラーコード: ' + error.code, 'error');
+                });
+            } catch (error) {
+                log('Realtime Database読み取りテスト例外: ' + error.message, 'error');
+            }
+            
+            // Firestore読み取りテスト
+            try {
+                const testFirestoreRef = doc(firestore, 'test', 'writeTest');
+                getDoc(testFirestoreRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        log('Firestore読み取りテスト成功: ' + JSON.stringify(data));
+                    } else {
+                        log('Firestoreドキュメントが存在しません');
+                    }
+                }).catch((error) => {
+                    log('Firestore読み取りテストエラー: ' + error.message, 'error');
+                    log('エラーコード: ' + error.code, 'error');
+                });
+            } catch (error) {
+                log('Firestore読み取りテスト例外: ' + error.message, 'error');
+            }
+        };
+
+        window.clearLog = function() {
+            document.getElementById('log').textContent = '';
+        };
+    </script>
+</body>
+</html> 

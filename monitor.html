@@ -3,44 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>謎解き公演 - モニター画面</title>
+    <title>Defense System - Monitor</title>
     <link rel="stylesheet" href="monitor.css">
 </head>
 <body>
     <div class="terminal-container">
         <div class="terminal-header">
-            <div class="terminal-title">MYSTERY ESCAPE SYSTEM v2.0</div>
-            <div class="terminal-status">
-                <span id="connectionStatus">接続確認中...</span>
-            </div>
+            <div class="terminal-title">DEFENSE SYSTEM v2.0</div>
+            <div class="terminal-status">STATUS: STANDBY</div>
         </div>
         
         <div class="terminal-content">
             <div class="message-area" id="messageArea">
-                <div class="prompt">System&gt;</div>
-                <div class="message-text" id="messageText">システム待機中...</div>
+                <div class="prompt">DEFENSE&gt;</div>
+                <div class="message-container" id="messageContainer">
+                    <div class="message-line">Defense System Initializing...</div>
+                </div>
             </div>
             
             <div class="input-area" id="inputArea">
-                <div class="prompt">Input&gt;</div>
+                <div class="prompt">USER&gt;</div>
                 <div class="input-text" id="inputText"></div>
                 <div class="cursor" id="cursor">_</div>
             </div>
         </div>
         
-        <div class="terminal-footer">
-            <div class="instructions" id="instructions">
-                <span>システム待機中...</span>
-            </div>
-            <div class="back-to-main">
-                <button class="back-btn" onclick="goBack()">メインへ戻る</button>
-            </div>
-        </div>
+        <!-- 隠しボタン -->
+        <button class="hidden-button home-button" id="monitorHomeButton"></button>
+        <button class="hidden-button fullscreen-button" id="monitorFullscreenButton"></button>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="firebase-config.js"></script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
+            authDomain: "lastr-36807.firebaseapp.com",
+            databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+            projectId: "lastr-36807",
+            storageBucket: "lastr-36807.firebasestorage.app",
+            messagingSenderId: "1068261467238",
+            appId: "1:1068261467238:web:22c701f8879d6bb61c79a7",
+            measurementId: "G-1S8C9GC4GY"
+        };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            
+            // Cloud Firestore
+            const firestore = getFirestore(app);
+            
+            // Realtime Database
+            const database = getDatabase(app);
+
+            // グローバルにエクスポート
+            window.firestore = firestore;
+            window.database = database;
+            window.firestoreDoc = doc;
+            window.firestoreOnSnapshot = onSnapshot;
+            window.firestoreSetDoc = setDoc;
+            window.dbRef = ref;
+            window.dbOnValue = onValue;
+            window.dbSet = set;
+
+            // 接続テスト（両方を試す）
+            console.log('Testing Firebase connections...');
+            
+            // Firestore接続テスト
+            const testFirestoreRef = doc(firestore, 'test', 'connection');
+            const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
+                console.log('Firestore connection test successful');
+                const statusElement = document.querySelector('.terminal-status');
+                statusElement.textContent = 'STATUS: ACTIVE - Firestore Connected ✓';
+                window.useFirestore = true;
+                setTimeout(() => {
+                    window.initGame();
+                }, 500);
+                unsubscribe(); // 一度テストしたら解除
+            }, (firestoreError) => {
+                console.log('Firestore connection failed:', firestoreError);
+                
+                // Realtime Database接続テスト
+                const testRef = ref(database, '.info/connected');
+                onValue(testRef, (snapshot) => {
+                    const connected = snapshot.val();
+                    const statusElement = document.querySelector('.terminal-status');
+                    if (connected) {
+                        console.log('Realtime Database connection successful');
+                        statusElement.textContent = 'STATUS: ACTIVE - Realtime Database Connected ✓';
+                        window.useFirestore = false;
+                        setTimeout(() => {
+                            window.initGame();
+                        }, 500);
+                    } else {
+                        console.log('Both Firebase services failed');
+                        statusElement.textContent = 'STATUS: CONNECTION ERROR ✗';
+                    }
+                });
+            });
+            
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+            const statusElement = document.querySelector('.terminal-status');
+            statusElement.textContent = 'STATUS: INITIALIZATION ERROR ✗';
+        }
+    </script>
+
     <script src="monitor.js"></script>
 </body>
 </html> 

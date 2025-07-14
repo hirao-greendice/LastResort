@@ -4,44 +4,106 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>謎解き公演 - システム選択</title>
-    <link rel="stylesheet" href="main.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier Prime', monospace;
+            background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+            color: #00ff00;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .container {
+            text-align: center;
+            border: 2px solid #00ff00;
+            padding: 60px;
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+            border-radius: 10px;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 40px;
+            text-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        .subtitle {
+            font-size: 24px;
+            margin-bottom: 60px;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+        }
+        
+        .system-button {
+            padding: 20px 40px;
+            font-size: 28px;
+            font-weight: 700;
+            background: transparent;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .system-button:hover {
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .system-button:active {
+            transform: translateY(0);
+        }
+        
+        @keyframes glow {
+            0% {
+                text-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            }
+            100% {
+                text-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="header">
-            <h1 class="title">MYSTERY ESCAPE SYSTEM</h1>
-            <div class="version">v2.0</div>
+    <div class="container">
+        <div class="title">謎解き公演システム</div>
+        <div class="subtitle">MYSTERY ESCAPE CONTROL PANEL</div>
+        
+        <div class="button-container">
+            <a href="staff.html" class="system-button">STAFF</a>
+            <a href="monitor.html" class="system-button">モニター画面</a>
+            <a href="window.html" class="system-button">窓</a>
+            <a href="firebase-test.html" class="system-button" style="font-size: 20px; border-color: #ffff00; color: #ffff00;">Firebase接続テスト</a>
         </div>
         
-        <div class="content">
-            <div class="selection-area">
-                <h2 class="selection-title">システム選択</h2>
-                <div class="button-container">
-                    <button class="selection-btn staff-btn" onclick="goToStaff()">
-                        <div class="btn-icon">👥</div>
-                        <div class="btn-text">STAFF</div>
-                        <div class="btn-desc">進捗管理・操作画面</div>
-                    </button>
-                    
-                    <button class="selection-btn monitor-btn" onclick="goToMonitor()">
-                        <div class="btn-icon">🖥️</div>
-                        <div class="btn-text">モニター画面</div>
-                        <div class="btn-desc">プレイヤー表示画面</div>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <div class="status">
-                <span id="connectionStatus">接続確認中...</span>
-            </div>
+        <div style="margin-top: 40px; font-size: 14px; color: #888;">
+            <p>Firebase接続に問題がある場合は、上記のテストページをご利用ください。</p>
+            <p>デバッグ情報: Database URL設定済み</p>
         </div>
     </div>
-
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="firebase-config.js"></script>
-    <script src="main.js"></script>
 </body>
 </html> 

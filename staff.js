@@ -1,281 +1,575 @@
-// STAFF画面のJavaScript
+// グローバル変数
+let currentScenario = null;
+let scenarios = {};
 
-let gameConfigs = {};
-let systemStatus = {};
-let connectionStatus = false;
-
-// ページ遷移
-function goBack() {
-    window.location.href = 'index.html';
-}
-
-// 接続状態の更新
-function updateConnectionStatus(connected) {
-    const statusElement = document.getElementById('connectionStatus');
-    connectionStatus = connected;
-    
-    if (connected) {
-        statusElement.textContent = 'Firebase接続: 正常';
-        statusElement.className = 'connected';
-    } else {
-        statusElement.textContent = 'Firebase接続: 切断';
-        statusElement.className = 'disconnected';
+// デフォルトのシナリオデータ
+const defaultScenarios = {
+    1: {
+        target: "アンティークショップ",
+        command: "WEAK",
+        key: "A",
+        secondMessage: "ドリルを発射します。長押しで防御してください",
+        hideCommand: false,
+        hideKey: false
+    },
+    2: {
+        target: "クイーンズピザ",
+        command: "QUEEN",
+        key: "Q",
+        secondMessage: "ドリルを発射します。長押しで防御してください",
+        hideCommand: true,
+        hideKey: false
+    },
+    3: {
+        target: "スタジオ",
+        command: "STUDIO",
+        key: "S",
+        secondMessage: "ドリルを発射します。長押しで防御してください",
+        hideCommand: true,
+        hideKey: true,
+        completeMessage: "⚠ドリルにより、アンティークショップが破壊されました"
+    },
+    4: {
+        target: "ゾンビアクション",
+        command: "STEP",
+        key: "Z",
+        secondMessage: "ドリルを発射します。長押しで防御してください",
+        hideCommand: false,
+        hideKey: true,
+        completeMessage: "⚠エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください"
+    },
+    5: {
+        target: "ゾンビアトラクション",
+        command: "IDEA",
+        key: "Z",
+        secondMessage: "ドリルを発射します。長押しで防御してください",
+        hideCommand: true,
+        hideKey: true,
+        completeMessage: "⚠ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
     }
-}
-
-// ゲーム選択
-async function selectGame(gameId) {
-    if (!connectionStatus) {
-        alert('Firebase接続が必要です');
-        return;
-    }
-
-    try {
-        // 現在のゲームをクリア
-        clearActiveStates();
-        
-        // 選択したゲームをアクティブに
-        document.getElementById(gameId + 'Btn').classList.add('active');
-        
-        // Firebaseに現在のゲームを保存
-        const systemRef = window.firebaseDatabase.ref('system');
-        await systemRef.update({
-            currentGame: gameId,
-            lastUpdated: Date.now()
-        });
-        
-        // ゲームの状態をリセット
-        await resetGameState(gameId);
-        
-        console.log(`ゲーム${gameId}を選択しました`);
-        
-    } catch (error) {
-        console.error('ゲーム選択エラー:', error);
-        alert('ゲーム選択に失敗しました');
-    }
-}
-
-// ゲーム状態のリセット
-async function resetGameState(gameId) {
-    try {
-        const gameRef = window.firebaseDatabase.ref(`gameConfigs/${gameId}`);
-        await gameRef.update({
-            isActive: true,
-            completed: false,
-            currentStep: 'initial',
-            lastUpdated: Date.now()
-        });
-    } catch (error) {
-        console.error('ゲーム状態リセットエラー:', error);
-    }
-}
-
-// 現在のゲームをリセット
-async function resetCurrentGame() {
-    if (!connectionStatus) {
-        alert('Firebase接続が必要です');
-        return;
-    }
-
-    try {
-        const systemRef = window.firebaseDatabase.ref('system');
-        const systemSnapshot = await systemRef.once('value');
-        const system = systemSnapshot.val();
-        
-        if (system && system.currentGame) {
-            await resetGameState(system.currentGame);
-            console.log('現在のゲームをリセットしました');
-        } else {
-            alert('現在アクティブなゲームがありません');
-        }
-    } catch (error) {
-        console.error('ゲームリセットエラー:', error);
-        alert('ゲームリセットに失敗しました');
-    }
-}
-
-// モニターをクリア
-async function clearMonitor() {
-    if (!connectionStatus) {
-        alert('Firebase接続が必要です');
-        return;
-    }
-
-    try {
-        const systemRef = window.firebaseDatabase.ref('system');
-        await systemRef.update({
-            currentGame: null,
-            lastUpdated: Date.now()
-        });
-        
-        clearActiveStates();
-        console.log('モニターをクリアしました');
-        
-    } catch (error) {
-        console.error('モニタークリアエラー:', error);
-        alert('モニタークリアに失敗しました');
-    }
-}
-
-// アクティブ状態をクリア
-function clearActiveStates() {
-    document.querySelectorAll('.game-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-}
-
-// ゲーム設定の監視
-function setupGameConfigListener() {
-    const configRef = window.firebaseDatabase.ref('gameConfigs');
-    configRef.on('value', (snapshot) => {
-        const configs = snapshot.val();
-        if (configs) {
-            gameConfigs = configs;
-            updateGameButtons();
-            updateProgressCounts();
-        }
-    });
-}
-
-// システム状態の監視
-function setupSystemListener() {
-    const systemRef = window.firebaseDatabase.ref('system');
-    systemRef.on('value', (snapshot) => {
-        const system = snapshot.val();
-        if (system) {
-            systemStatus = system;
-            updateMonitorInfo();
-            updateActiveGame();
-        }
-    });
-}
-
-// ゲームボタンの更新
-function updateGameButtons() {
-    Object.keys(gameConfigs).forEach(gameId => {
-        const config = gameConfigs[gameId];
-        const statusElement = document.getElementById(gameId + 'Status');
-        const btnElement = document.getElementById(gameId + 'Btn');
-        
-        if (config.completed) {
-            statusElement.textContent = '完了';
-            btnElement.classList.add('completed');
-        } else if (config.isActive) {
-            statusElement.textContent = '進行中';
-            btnElement.classList.remove('completed');
-        } else {
-            statusElement.textContent = '待機中';
-            btnElement.classList.remove('completed');
-        }
-    });
-}
-
-// アクティブゲームの更新
-function updateActiveGame() {
-    clearActiveStates();
-    
-    if (systemStatus.currentGame) {
-        const activeBtn = document.getElementById(systemStatus.currentGame + 'Btn');
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-        }
-    }
-}
-
-// モニター情報の更新
-function updateMonitorInfo() {
-    const currentGameName = document.getElementById('currentGameName');
-    const gameProgress = document.getElementById('gameProgress');
-    const lastUpdate = document.getElementById('lastUpdate');
-    
-    if (systemStatus.currentGame && gameConfigs[systemStatus.currentGame]) {
-        const config = gameConfigs[systemStatus.currentGame];
-        currentGameName.textContent = config.name;
-        
-        if (config.completed) {
-            gameProgress.textContent = '完了';
-        } else if (config.isActive) {
-            gameProgress.textContent = '進行中';
-        } else {
-            gameProgress.textContent = '待機中';
-        }
-    } else {
-        currentGameName.textContent = 'なし';
-        gameProgress.textContent = '待機中';
-    }
-    
-    if (systemStatus.lastUpdated) {
-        const updateTime = new Date(systemStatus.lastUpdated);
-        lastUpdate.textContent = updateTime.toLocaleTimeString();
-    }
-}
-
-// 進捗カウントの更新
-function updateProgressCounts() {
-    const completedCount = document.getElementById('completedCount');
-    const activeCount = document.getElementById('activeCount');
-    const waitingCount = document.getElementById('waitingCount');
-    
-    let completed = 0;
-    let active = 0;
-    let waiting = 0;
-    
-    Object.values(gameConfigs).forEach(config => {
-        if (config.completed) {
-            completed++;
-        } else if (config.isActive) {
-            active++;
-        } else {
-            waiting++;
-        }
-    });
-    
-    completedCount.textContent = `${completed}/5`;
-    activeCount.textContent = active.toString();
-    waitingCount.textContent = waiting.toString();
-}
+};
 
 // 初期化
-document.addEventListener('DOMContentLoaded', async () => {
+function init() {
+    console.log('Initializing staff panel...');
+    scenarios = { ...defaultScenarios };
+    updateAllPreviews();
+    setupResetButton();
+    setupWindowToggleButton();
+    
+    // デフォルトシナリオを強制的にFirebaseに保存
+    setTimeout(() => {
+        forceUpdateDefaultScenarios();
+    }, 1000);
+}
+
+// デフォルトシナリオを強制的に保存
+function forceUpdateDefaultScenarios() {
+    console.log('Forcing update of default scenarios...');
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized for scenario update');
+        return;
+    }
+
     try {
-        // Firebase接続監視
-        if (window.firebaseUtils) {
-            window.firebaseUtils.monitorConnection(updateConnectionStatus);
+        if (window.useFirestore) {
+            // Firestore使用
+            const scenariosRef = window.firestoreDoc(window.firestore, 'gameData', 'scenarios');
+            window.firestoreSetDoc(scenariosRef, defaultScenarios)
+                .then(() => {
+                    console.log('Default scenarios force updated to Firestore');
+                    showNotification('シナリオデータを最新版に更新しました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error force updating scenarios to Firestore:', error);
+                });
+        } else {
+            // Realtime Database使用
+            window.dbSet(window.dbRef(window.database, 'scenarios'), defaultScenarios)
+                .then(() => {
+                    console.log('Default scenarios force updated to Database');
+                    showNotification('シナリオデータを最新版に更新しました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error force updating scenarios to Database:', error);
+                });
+        }
+    } catch (error) {
+        console.error('Error in forceUpdateDefaultScenarios:', error);
+    }
+}
+
+// リセットボタンの設定
+function setupResetButton() {
+    const resetBtn = document.getElementById('resetMonitorBtn');
+    
+    // 既存のイベントリスナーを削除して重複を防ぐ
+    if (resetBtn.hasSetupListener) {
+        console.log('Reset button already initialized');
+        return;
+    }
+    
+    resetBtn.addEventListener('click', resetMonitor);
+    resetBtn.hasSetupListener = true;
+    
+    console.log('Reset button initialized');
+}
+
+// モニターをリセットする関数
+function resetMonitor() {
+    console.log('Resetting monitor...');
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    const resetData = {
+        action: 'reset',
+        timestamp: Date.now()
+    };
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const currentScenarioRef = window.firestoreDoc(window.firestore, 'gameData', 'currentScenario');
+            window.firestoreSetDoc(currentScenarioRef, resetData)
+                .then(() => {
+                    console.log('Monitor reset signal sent via Firestore');
+                    showNotification('モニターをリセットしました', 'success');
+                    
+                    // 現在選択されているシナリオの表示を更新
+                    currentScenario = null;
+                    updateActiveButton();
+                })
+                .catch((error) => {
+                    console.error('Error resetting monitor via Firestore:', error);
+                    showNotification('リセット失敗: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const currentScenarioRef = window.dbRef(window.database, 'currentScenario');
+            window.dbSet(currentScenarioRef, resetData)
+                .then(() => {
+                    console.log('Monitor reset signal sent via Database');
+                    showNotification('モニターをリセットしました', 'success');
+                    
+                    // 現在選択されているシナリオの表示を更新
+                    currentScenario = null;
+                    updateActiveButton();
+                })
+                .catch((error) => {
+                    console.error('Error resetting monitor via Database:', error);
+                    showNotification('リセット失敗: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in resetMonitor:', error);
+        showNotification('リセット処理でエラーが発生しました', 'error');
+    }
+}
+
+// 窓変化ボタンの設定
+function setupWindowToggleButton() {
+    const windowToggleBtn = document.getElementById('windowToggleBtn');
+    
+    // 既存のイベントリスナーを削除して重複を防ぐ
+    if (windowToggleBtn.hasSetupListener) {
+        console.log('Window toggle button already initialized');
+        return;
+    }
+    
+    let isWindowChangeEnabled = false;
+    
+    const handleToggle = () => {
+        isWindowChangeEnabled = !isWindowChangeEnabled;
+        updateWindowToggleButton(isWindowChangeEnabled);
+        updateWindowControlInFirebase(isWindowChangeEnabled);
+    };
+    
+    windowToggleBtn.addEventListener('click', handleToggle);
+    windowToggleBtn.hasSetupListener = true;
+    
+    console.log('Window toggle button initialized');
+    
+    // 初期状態を設定
+    updateWindowToggleButton(isWindowChangeEnabled);
+    updateWindowControlInFirebase(isWindowChangeEnabled);
+}
+
+// 窓変化ボタンの表示を更新
+function updateWindowToggleButton(enabled) {
+    const windowToggleBtn = document.getElementById('windowToggleBtn');
+    
+    console.log('Updating window toggle button:', enabled);
+    
+    if (enabled) {
+        windowToggleBtn.textContent = '窓変化: ON';
+        windowToggleBtn.style.backgroundColor = '#28a745';
+        windowToggleBtn.innerHTML = '<i class="fas fa-window-restore"></i> 窓変化: ON';
+    } else {
+        windowToggleBtn.textContent = '窓変化: OFF';
+        windowToggleBtn.style.backgroundColor = '#6c757d';
+        windowToggleBtn.innerHTML = '<i class="fas fa-window-restore"></i> 窓変化: OFF';
+    }
+}
+
+// 窓変化状態をFirebaseに保存
+function updateWindowControlInFirebase(enabled) {
+    console.log('Updating window control in Firebase:', enabled);
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    const windowControlData = {
+        enabled: enabled,
+        isScrolling: false, // 初期状態は常にfalse
+        timestamp: Date.now()
+    };
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+            window.firestoreSetDoc(windowControlRef, windowControlData)
+                .then(() => {
+                    console.log('Window control updated in Firestore');
+                    showNotification(enabled ? '窓変化を有効にしました' : '窓変化を無効にしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating window control in Firestore:', error);
+                    showNotification('窓変化設定の更新に失敗しました: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const windowControlRef = window.dbRef(window.database, 'windowControl');
+            window.dbSet(windowControlRef, windowControlData)
+                .then(() => {
+                    console.log('Window control updated in Database');
+                    showNotification(enabled ? '窓変化を有効にしました' : '窓変化を無効にしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating window control in Database:', error);
+                    showNotification('窓変化設定の更新に失敗しました: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in updateWindowControlInFirebase:', error);
+        showNotification('窓変化設定の更新でエラーが発生しました', 'error');
+    }
+}
+
+// シナリオをFirebaseから読み込み
+function loadScenarios() {
+    console.log('Loading scenarios...');
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        init();
+        return;
+    }
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            console.log('Using Firestore');
+            loadScenariosFromFirestore();
+        } else {
+            // Realtime Database使用
+            console.log('Using Realtime Database');
+            loadScenariosFromDatabase();
+        }
+    } catch (error) {
+        console.error('Firebase setup error:', error);
+        showNotification('Firebase設定エラー: ' + error.message, 'error');
+        init();
+    }
+}
+
+// Firestoreからシナリオを読み込み
+function loadScenariosFromFirestore() {
+    const scenariosRef = window.firestoreDoc(window.firestore, 'gameData', 'scenarios');
+    
+    window.firestoreOnSnapshot(scenariosRef, (snapshot) => {
+        console.log('Firestore scenarios data received:', snapshot.exists());
+        
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            scenarios = { ...defaultScenarios, ...data };
+            console.log('Scenarios loaded successfully:', scenarios);
+        } else {
+            console.log('No scenarios data found, using defaults');
+            scenarios = { ...defaultScenarios };
+            // デフォルトデータをFirestoreに保存
+            console.log('Saving default scenarios to Firestore...');
+            window.firestoreSetDoc(scenariosRef, scenarios)
+                .then(() => {
+                    console.log('Default scenarios saved successfully');
+                })
+                .catch((error) => {
+                    console.error('Error saving default scenarios:', error);
+                });
+        }
+        updateAllPreviews();
+        // Firebase接続成功時に初期化を実行
+        init();
+    }, (error) => {
+        console.error('Error loading scenarios from Firestore:', error);
+        showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
+        init();
+    });
+
+    // 現在のシナリオを監視
+    const currentScenarioRef = window.firestoreDoc(window.firestore, 'gameData', 'currentScenario');
+    window.firestoreOnSnapshot(currentScenarioRef, (snapshot) => {
+        console.log('Firestore current scenario data received:', snapshot.exists());
+        
+        if (snapshot.exists()) {
+            const data = snapshot.data();
+            currentScenario = data.id || data;
+            console.log('Current scenario updated:', currentScenario);
+            updateActiveButton();
+        }
+    }, (error) => {
+        console.error('Error monitoring current scenario in Firestore:', error);
+        showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
+    });
+}
+
+// Realtime Databaseからシナリオを読み込み
+function loadScenariosFromDatabase() {
+    const scenariosRef = window.dbRef(window.database, 'scenarios');
+    window.dbOnValue(scenariosRef, (snapshot) => {
+        console.log('Database scenarios data received:', snapshot.val());
+        const data = snapshot.val();
+        if (data) {
+            scenarios = { ...defaultScenarios, ...data };
+            console.log('Scenarios loaded successfully:', scenarios);
+        } else {
+            console.log('No scenarios data found, using defaults');
+            scenarios = { ...defaultScenarios };
+            // デフォルトデータをRealtime Databaseに保存
+            console.log('Saving default scenarios to Database...');
+            window.dbSet(window.dbRef(window.database, 'scenarios'), scenarios)
+                .then(() => {
+                    console.log('Default scenarios saved successfully');
+                })
+                .catch((error) => {
+                    console.error('Error saving default scenarios:', error);
+                });
+        }
+        updateAllPreviews();
+        // Firebase接続成功時に初期化を実行
+        init();
+    }, (error) => {
+        console.error('Error loading scenarios from Database:', error);
+        showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
+        init();
+    });
+
+    // 現在のシナリオを監視
+    const currentScenarioRef = window.dbRef(window.database, 'currentScenario');
+    window.dbOnValue(currentScenarioRef, (snapshot) => {
+        console.log('Database current scenario data received:', snapshot.val());
+        const data = snapshot.val();
+        if (data) {
+            currentScenario = data.id || data;
+            console.log('Current scenario updated:', currentScenario);
+            updateActiveButton();
+        }
+    }, (error) => {
+        console.error('Error monitoring current scenario in Database:', error);
+        showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
+    });
+}
+
+// シナリオを選択
+function selectScenario(scenarioId) {
+    console.log('Selecting scenario:', scenarioId);
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    try {
+        currentScenario = scenarioId;
+        const scenarioData = {
+            id: scenarioId,
+            timestamp: Date.now(),
+            ...scenarios[scenarioId]
+        };
+
+        console.log('Saving scenario to Firebase:', scenarioData);
+
+        if (window.useFirestore) {
+            // Firestore使用
+            const currentScenarioRef = window.firestoreDoc(window.firestore, 'gameData', 'currentScenario');
+            window.firestoreSetDoc(currentScenarioRef, scenarioData)
+                .then(() => {
+                    console.log('Scenario saved successfully to Firestore');
+                    updateActiveButton();
+                    showNotification(`シナリオ ${scenarioId} がモニターに表示されました`, 'success');
+                })
+                .catch((error) => {
+                    console.error('Error saving scenario to Firestore:', error);
+                    showNotification('シナリオ保存エラー: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            window.dbSet(window.dbRef(window.database, 'currentScenario'), scenarioData)
+                .then(() => {
+                    console.log('Scenario saved successfully to Database');
+                    updateActiveButton();
+                    showNotification(`シナリオ ${scenarioId} がモニターに表示されました`, 'success');
+                })
+                .catch((error) => {
+                    console.error('Error saving scenario to Database:', error);
+                    showNotification('シナリオ保存エラー: ' + error.message, 'error');
+                });
         }
         
-        // データベース初期化を待つ
-        await window.firebaseUtils.initializeDatabase();
-        
-        // リスナーの設定
-        setupGameConfigListener();
-        setupSystemListener();
-        
-        console.log('STAFF画面が初期化されました');
-        
     } catch (error) {
-        console.error('初期化エラー:', error);
-        updateConnectionStatus(false);
+        console.error('Error selecting scenario:', error);
+        showNotification('シナリオ選択エラー: ' + error.message, 'error');
     }
+}
+
+// プレビューを更新
+function updateAllPreviews() {
+    for (let i = 1; i <= 5; i++) {
+        const scenario = scenarios[i];
+        const previewElement = document.getElementById(`preview${i}`);
+        if (scenario) {
+            const displayCommand = scenario.hideCommand ? "****" : scenario.command;
+            const displayKey = scenario.hideKey ? "#" : scenario.key;
+            
+            previewElement.innerHTML = `
+                【${scenario.target}】を攻撃するためには、<br>
+                ${displayCommand}を入力して、${displayKey}を長押ししてください
+            `;
+        }
+    }
+}
+
+// アクティブなボタンを更新
+function updateActiveButton() {
+    const buttons = document.querySelectorAll('.control-button');
+    buttons.forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    if (currentScenario) {
+        const activeButton = document.querySelector(`[onclick="selectScenario(${currentScenario})"]`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
+    }
+}
+
+// 通知を表示
+function showNotification(message, type = 'info') {
+    // 既存の通知を削除
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // 通知要素を作成
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    
+    // スタイルを適用
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        font-family: 'Courier Prime', monospace;
+        font-weight: 700;
+        font-size: 16px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    if (type === 'success') {
+        notification.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+        notification.style.border = '1px solid #00ff00';
+        notification.style.color = '#00ff00';
+    } else if (type === 'error') {
+        notification.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        notification.style.border = '1px solid #ff0000';
+        notification.style.color = '#ff0000';
+    } else {
+        notification.style.backgroundColor = 'rgba(255, 255, 0, 0.2)';
+        notification.style.border = '1px solid #ffff00';
+        notification.style.color = '#ffff00';
+    }
+    
+    document.body.appendChild(notification);
+    
+    // 3秒後に自動削除
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// スライドインアニメーション
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// ページロード時に初期化
+document.addEventListener('DOMContentLoaded', () => {
+    init();
 });
 
-// キーボードショートカット
-document.addEventListener('keydown', (e) => {
-    if (e.key >= '1' && e.key <= '5') {
-        const gameId = `game${e.key}`;
-        selectGame(gameId);
-    } else if (e.key === 'r' || e.key === 'R') {
-        resetCurrentGame();
-    } else if (e.key === 'c' || e.key === 'C') {
-        clearMonitor();
-    } else if (e.key === 'Escape') {
-        goBack();
-    }
+// DOM読み込み完了時の初期化
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, starting staff panel initialization...');
+    // Firebase接続完了を待つ前に、基本的な初期化を実行
+    setTimeout(() => {
+        if (document.getElementById('windowToggleBtn')) {
+            setupWindowToggleButton();
+        }
+        if (document.getElementById('resetMonitorBtn')) {
+            setupResetButton();
+        }
+    }, 100);
 });
 
-// ウィンドウが閉じられる前の処理
-window.addEventListener('beforeunload', () => {
-    // Firebase接続のクリーンアップ
-    if (window.firebaseDatabase) {
-        window.firebaseDatabase.goOffline();
+// エラーハンドリング
+window.addEventListener('error', (e) => {
+    console.error('JavaScript Error:', e);
+    showNotification('システムエラーが発生しました', 'error');
+});
+
+// Firebase接続エラーハンドリング
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Promise rejection:', e);
+    if (e.reason && e.reason.code) {
+        showNotification('Firebase接続エラーが発生しました', 'error');
     }
 }); 

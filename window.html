@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>窓画面</title>
+    <link rel="stylesheet" href="window.css">
+</head>
+<body>
+    <div class="window-container">
+        <div class="window-frame">
+            <div class="window-content" id="windowContent">
+                <img src="window.png" alt="窓の景色" id="windowImage">
+            </div>
+        </div>
+        
+        <!-- 隠しボタン -->
+        <button class="hidden-button hidden-button-left" id="homeButton"></button>
+        <button class="hidden-button hidden-button-right" id="settingsButton"></button>
+        <button class="hidden-button fullscreen-button" id="windowFullscreenButton"></button>
+        
+        <!-- コントロールパネル -->
+        <div class="control-panel" id="controlPanel">
+            <h3>画像設定</h3>
+            
+            <!-- プリセット設定 -->
+            <div class="control-group">
+                <label>プリセット</label>
+                <div class="preset-buttons">
+                    <button class="preset-btn" id="presetDefault">デフォルト</button>
+                    <button class="preset-btn" id="presetZoom">ズーム</button>
+                    <button class="preset-btn" id="presetFullScreen">全画面</button>
+                    <button class="preset-btn" id="presetCustom">カスタム</button>
+                </div>
+            </div>
+            
+            <!-- 画像サイズ -->
+            <div class="control-group">
+                <label for="imageWidth">画像幅 (%)</label>
+                <div class="input-group">
+                    <input type="range" id="imageWidth" min="10" max="500" step="5" value="100">
+                    <input type="number" id="imageWidthInput" min="10" max="500" step="5" value="100">
+                    <span id="imageWidthValue">100%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="imageHeight">画像高さ (%)</label>
+                <div class="input-group">
+                    <input type="range" id="imageHeight" min="10" max="500" step="5" value="100">
+                    <input type="number" id="imageHeightInput" min="10" max="500" step="5" value="100">
+                    <span id="imageHeightValue">100%</span>
+                </div>
+            </div>
+            
+            <!-- 画像位置 -->
+            <div class="control-group">
+                <label for="imageTop">上からの位置 (px)</label>
+                <div class="input-group">
+                    <input type="range" id="imageTop" min="-1000" max="1000" step="1" value="0">
+                    <input type="number" id="imageTopInput" min="-1000" max="1000" step="1" value="0">
+                    <span id="imageTopValue">0px</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="imageLeft">左からの位置 (px)</label>
+                <div class="input-group">
+                    <input type="range" id="imageLeft" min="-1000" max="1000" step="1" value="0">
+                    <input type="number" id="imageLeftInput" min="-1000" max="1000" step="1" value="0">
+                    <span id="imageLeftValue">0px</span>
+                </div>
+            </div>
+            
+            <!-- 新しい設定項目 -->
+            <div class="control-group">
+                <label for="imageRotation">回転 (度)</label>
+                <div class="input-group">
+                    <input type="range" id="imageRotation" min="-180" max="180" step="1" value="0">
+                    <input type="number" id="imageRotationInput" min="-180" max="180" step="1" value="0">
+                    <span id="imageRotationValue">0°</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="imageOpacity">透明度 (%)</label>
+                <div class="input-group">
+                    <input type="range" id="imageOpacity" min="0" max="100" step="5" value="100">
+                    <input type="number" id="imageOpacityInput" min="0" max="100" step="5" value="100">
+                    <span id="imageOpacityValue">100%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="imageZoom">ズーム (%)</label>
+                <div class="input-group">
+                    <input type="range" id="imageZoom" min="10" max="300" step="5" value="100">
+                    <input type="number" id="imageZoomInput" min="10" max="300" step="5" value="100">
+                    <span id="imageZoomValue">100%</span>
+                </div>
+            </div>
+            
+            <!-- スクロール設定 -->
+            <div class="control-group">
+                <label for="scrollDistance">スクロール距離 (%)</label>
+                <div class="input-group">
+                    <input type="range" id="scrollDistance" min="-200" max="100" step="1" value="-50">
+                    <input type="number" id="scrollDistanceInput" min="-200" max="100" step="1" value="-50">
+                    <span id="scrollDistanceValue">-50%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="scrollDuration">スクロール時間 (秒)</label>
+                <div class="input-group">
+                    <input type="range" id="scrollDuration" min="0.1" max="10" step="0.1" value="0.3">
+                    <input type="number" id="scrollDurationInput" min="0.1" max="10" step="0.1" value="0.3">
+                    <span id="scrollDurationValue">0.3s</span>
+                </div>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" id="savePresetButton">プリセット保存</button>
+                <button class="control-btn" id="resetButton">リセット</button>
+                <button class="control-btn close" id="closeButton">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
+            authDomain: "lastr-36807.firebaseapp.com",
+            databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+            projectId: "lastr-36807",
+            storageBucket: "lastr-36807.firebasestorage.app",
+            messagingSenderId: "1068261467238",
+            appId: "1:1068261467238:web:22c701f8879d6bb61c79a7",
+            measurementId: "G-1S8C9GC4GY"
+        };
+
+        try {
+            const app = initializeApp(firebaseConfig);
+            console.log('Firebase app initialized:', app);
+            
+            // Firestore を試行
+            try {
+                const firestore = getFirestore(app);
+                console.log('Firestore initialized successfully');
+                window.firestore = firestore;
+                window.firestoreDoc = doc;
+                window.firestoreOnSnapshot = onSnapshot;
+                window.useFirestore = true;
+            } catch (firestoreError) {
+                console.warn('Firestore initialization failed:', firestoreError);
+                window.useFirestore = false;
+            }
+            
+            // Database を試行
+            try {
+                const database = getDatabase(app);
+                console.log('Database initialized successfully');
+                window.database = database;
+                window.dbRef = ref;
+                window.dbOnValue = onValue;
+                
+                if (!window.useFirestore) {
+                    console.log('Using Database as primary storage');
+                }
+            } catch (dbError) {
+                console.warn('Database initialization failed:', dbError);
+                
+                if (!window.useFirestore) {
+                    console.error('Both Firestore and Database failed to initialize');
+                }
+            }
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+    </script>
+    
+    <script src="window.js"></script>
+</body>
+</html> 

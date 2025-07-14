@@ -1,105 +1,70 @@
-// モニター画面のJavaScript - Firebase連携版
-
 class MysteryMonitor {
     constructor() {
         this.currentInput = '';
-        this.gameState = 'waiting'; // waiting, playing, completed
-        this.currentGameConfig = null;
-        this.currentGameId = null;
-        this.connectionStatus = false;
-        
-        this.messageElement = document.getElementById('messageText');
+        this.gameState = 'waiting'; // waiting, waiting_weak, waiting_defense, processing, complete
+        this.messageContainer = document.getElementById('messageContainer');
         this.inputElement = document.getElementById('inputText');
-        this.instructionsElement = document.getElementById('instructions');
         this.inputArea = document.getElementById('inputArea');
         this.cursor = document.getElementById('cursor');
-        this.connectionElement = document.getElementById('connectionStatus');
         
         this.pressedKeys = new Set();
         this.longPressTimer = null;
         this.longPressDelay = 1000; // 1秒で長押し判定
+        this.isLongPressing = false; // 長押し中かどうか
+        
+        this.currentScenario = null;
+        this.maxMessages = 8; // 最大メッセージ数を増やす
+        
+        // 隠しボタンの要素
+        this.homeButton = document.getElementById('monitorHomeButton');
+        this.fullscreenButton = document.getElementById('monitorFullscreenButton');
+        this.homeClickCount = 0;
+        this.homeClickTimer = null;
+        this.isFullscreen = false;
         
         this.init();
     }
 
     init() {
         this.setupKeyboardListeners();
-        this.setupFirebaseListeners();
+        this.setupFirebaseListener();
+        this.setupHiddenButton();
+        this.setupFullscreenListener();
         this.showWaitingMessage();
     }
 
-    // Firebase接続状態の監視
-    setupFirebaseListeners() {
-        if (window.firebaseUtils) {
-            window.firebaseUtils.monitorConnection((connected) => {
-                this.updateConnectionStatus(connected);
-            });
-        }
-
-        // システム状態の監視
-        if (window.firebaseDatabase) {
-            const systemRef = window.firebaseDatabase.ref('system');
-            systemRef.on('value', (snapshot) => {
-                const system = snapshot.val();
-                if (system) {
-                    this.handleSystemUpdate(system);
-                }
-            });
-
-            // ゲーム設定の監視
-            const configRef = window.firebaseDatabase.ref('gameConfigs');
-            configRef.on('value', (snapshot) => {
-                const configs = snapshot.val();
-                if (configs) {
-                    this.handleConfigUpdate(configs);
-                }
-            });
-        }
-    }
-
-    // 接続状態の更新
-    updateConnectionStatus(connected) {
-        this.connectionStatus = connected;
-        
-        if (connected) {
-            this.connectionElement.textContent = 'STATUS: ONLINE';
-            this.connectionElement.className = 'connected';
-        } else {
-            this.connectionElement.textContent = 'STATUS: OFFLINE';
-            this.connectionElement.className = 'disconnected';
-        }
-    }
-
-    // システム状態の更新
-    handleSystemUpdate(system) {
-        if (system.currentGame && system.currentGame !== this.currentGameId) {
-            this.currentGameId = system.currentGame;
-            this.startGame();
-        } else if (!system.currentGame && this.currentGameId) {
-            this.currentGameId = null;
-            this.currentGameConfig = null;
-            this.showWaitingMessage();
-        }
-    }
-
-    // ゲーム設定の更新
-    handleConfigUpdate(configs) {
-        if (this.currentGameId && configs[this.currentGameId]) {
-            this.currentGameConfig = configs[this.currentGameId];
-            
-            // ゲーム状態に応じた処理
-            if (this.currentGameConfig.completed) {
-                this.completeGame();
-            } else if (this.currentGameConfig.isActive) {
-                this.updateGameDisplay();
+    setupFullscreenListener() {
+        // 全画面状態の変更を監視
+        document.addEventListener('fullscreenchange', () => {
+            this.isFullscreen = !!document.fullscreenElement;
+            if (this.isFullscreen) {
+                document.body.classList.add('fullscreen');
+            } else {
+                document.body.classList.remove('fullscreen');
             }
-        }
+        });
+        
+        // ベンダープレフィックス対応
+        document.addEventListener('webkitfullscreenchange', () => {
+            this.isFullscreen = !!document.webkitFullscreenElement;
+            if (this.isFullscreen) {
+                document.body.classList.add('fullscreen');
+            } else {
+                document.body.classList.remove('fullscreen');
+            }
+        });
     }
 
-    // キーボードイベントの設定
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
-            if (this.gameState === 'completed' || this.gameState === 'waiting') return;
+            // ENTERキーの処理（常に動作）
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleEnterPress();
+                return;
+            }
+            
+            if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
             const key = e.key.toUpperCase();
             
@@ -108,66 +73,312 @@ class MysteryMonitor {
                 this.pressedKeys.add(key);
                 
                 // 長押し検知の開始
-                if (this.gameState === 'waiting_defense' && this.currentGameConfig && key === this.currentGameConfig.actionKey) {
+                if (this.gameState === 'waiting_defense' && this.currentScenario && key === this.currentScenario.key) {
                     this.startLongPress();
-                } else if (this.gameState === 'waiting_input') {
+                } else if (this.gameState === 'waiting_weak') {
                     this.handleTextInput(key);
                 }
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            if (this.gameState === 'completed' || this.gameState === 'waiting') return;
+            // ENTERキーの処理（常に動作）
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleEnterRelease();
+                return;
+            }
+            
+            if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
             const key = e.key.toUpperCase();
             this.pressedKeys.delete(key);
             
             // 長押し検知の停止
-            if (this.currentGameConfig && key === this.currentGameConfig.actionKey && this.longPressTimer) {
+            if (this.currentScenario && key === this.currentScenario.key && this.longPressTimer) {
                 clearTimeout(this.longPressTimer);
                 this.longPressTimer = null;
+                this.isLongPressing = false;
+                // 長押し終了時にINPUTをクリア
+                this.updateInputDisplay('', false);
             }
         });
     }
 
-    // 長押し検知の開始
+    setupFirebaseListener() {
+        console.log('Setting up Firebase listener...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized');
+            this.showErrorMessage('Firebase未初期化');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                console.log('Using Firestore for monitoring');
+                this.setupFirestoreListener();
+            } else {
+                // Realtime Database使用
+                console.log('Using Realtime Database for monitoring');
+                this.setupDatabaseListener();
+            }
+        } catch (error) {
+            console.error('Firebase setup error:', error);
+            this.showErrorMessage('Firebase設定エラー: ' + error.message);
+        }
+    }
+
+    setupHiddenButton() {
+        // 左上の隠しボタン（5回クリックでメイン画面に戻る）
+        this.homeButton.addEventListener('click', () => {
+            this.homeClickCount++;
+            console.log('Monitor home button clicked:', this.homeClickCount);
+            
+            if (this.homeClickTimer) {
+                clearTimeout(this.homeClickTimer);
+            }
+            
+            if (this.homeClickCount >= 5) {
+                // 5回クリックでメイン画面に戻る
+                window.location.href = 'index.html';
+            } else {
+                // 3秒後にカウントをリセット
+                this.homeClickTimer = setTimeout(() => {
+                    this.homeClickCount = 0;
+                }, 3000);
+            }
+        });
+        
+        // 右下の全画面ボタン
+        this.fullscreenButton.addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+    }
+
+    toggleFullscreen() {
+        if (!this.isFullscreen) {
+            // 全画面にする
+            const element = document.documentElement;
+            if (element.requestFullscreen) {
+                element.requestFullscreen().then(() => {
+                    this.isFullscreen = true;
+                    document.body.classList.add('fullscreen');
+                    console.log('Monitor entered fullscreen');
+                }).catch(err => {
+                    console.error('Error entering fullscreen:', err);
+                });
+            } else if (element.webkitRequestFullscreen) {
+                element.webkitRequestFullscreen();
+                this.isFullscreen = true;
+                document.body.classList.add('fullscreen');
+            } else if (element.msRequestFullscreen) {
+                element.msRequestFullscreen();
+                this.isFullscreen = true;
+                document.body.classList.add('fullscreen');
+            }
+        } else {
+            // 全画面を解除
+            if (document.exitFullscreen) {
+                document.exitFullscreen().then(() => {
+                    this.isFullscreen = false;
+                    document.body.classList.remove('fullscreen');
+                    console.log('Monitor exited fullscreen');
+                }).catch(err => {
+                    console.error('Error exiting fullscreen:', err);
+                });
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+                this.isFullscreen = false;
+                document.body.classList.remove('fullscreen');
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+                this.isFullscreen = false;
+                document.body.classList.remove('fullscreen');
+            }
+        }
+    }
+
+    setupFirestoreListener() {
+        // 現在のシナリオを監視
+        const currentScenarioRef = window.firestoreDoc(window.firestore, 'gameData', 'currentScenario');
+        window.firestoreOnSnapshot(currentScenarioRef, (snapshot) => {
+            console.log('Firestore current scenario data received:', snapshot.exists());
+            
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                if (data.action === 'reset') {
+                    // リセット処理
+                    this.resetMonitor();
+                } else {
+                    this.currentScenario = data;
+                    console.log('Starting scenario:', this.currentScenario);
+                    this.startScenario();
+                }
+            } else {
+                console.log('No current scenario data, showing waiting message');
+                this.showWaitingMessage();
+            }
+        }, (error) => {
+            console.error('Error monitoring current scenario in Firestore:', error);
+            this.showErrorMessage('現在のシナリオ監視エラー: ' + error.message);
+        });
+    }
+
+    setupDatabaseListener() {
+        // 現在のシナリオを監視
+        const currentScenarioRef = window.dbRef(window.database, 'currentScenario');
+        window.dbOnValue(currentScenarioRef, (snapshot) => {
+            console.log('Database current scenario data received:', snapshot.val());
+            const data = snapshot.val();
+            if (data) {
+                if (data.action === 'reset') {
+                    // リセット処理
+                    this.resetMonitor();
+                } else {
+                    this.currentScenario = data;
+                    console.log('Starting scenario:', this.currentScenario);
+                    this.startScenario();
+                }
+            } else {
+                console.log('No current scenario data, showing waiting message');
+                this.showWaitingMessage();
+            }
+        }, (error) => {
+            console.error('Error monitoring current scenario in Database:', error);
+            this.showErrorMessage('現在のシナリオ監視エラー: ' + error.message);
+        });
+    }
+
+    resetMonitor() {
+        console.log('Resetting monitor...');
+        this.clearAllMessages();
+        this.gameState = 'waiting';
+        this.currentInput = '';
+        this.updateInputDisplay('');
+        this.isLongPressing = false;
+        this.currentScenario = null;
+        
+        // タイマーをクリア
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+        
+        this.showWaitingMessage();
+    }
+
     startLongPress() {
-        if (this.longPressTimer) return; // 既に開始済み
+        if (this.longPressTimer || this.isLongPressing) return; // 既に開始済み
+        
+        this.isLongPressing = true;
+        this.updateInputDisplay(this.currentScenario.key, true); // 長押し中のキーを表示
         
         this.longPressTimer = setTimeout(() => {
             this.handleLongPress();
         }, this.longPressDelay);
     }
 
-    // 長押し処理
     handleLongPress() {
-        if (this.gameState === 'waiting_defense' && this.currentGameConfig) {
-            this.updateGameProgress('completed');
+        if (this.gameState === 'waiting_defense') {
+            // 長押し完了時にのみログを表示
+            this.addMessage(`> ${this.currentScenario.key}`, false, true);
+            
+            // 1秒待ってから次のテキストを表示
+            setTimeout(() => {
+                this.completeGame();
+            }, 1000);
         }
     }
 
-    // テキスト入力処理
+    handleEnterPress() {
+        console.log('Enter pressed - updating window state');
+        this.updateWindowStateInFirebase(true);
+    }
+
+    handleEnterRelease() {
+        console.log('Enter released - updating window state');
+        this.updateWindowStateInFirebase(false);
+    }
+
+    updateWindowStateInFirebase(isScrolling) {
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized');
+            return;
+        }
+
+        const windowControlData = {
+            enabled: true, // 窓変化は有効として設定
+            isScrolling: isScrolling,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+                window.firestoreSetDoc(windowControlRef, windowControlData)
+                    .then(() => {
+                        console.log('Window control updated in Firestore:', isScrolling);
+                    })
+                    .catch((error) => {
+                        console.error('Error updating window control in Firestore:', error);
+                    });
+            } else {
+                // Realtime Database使用
+                const windowControlRef = window.dbRef(window.database, 'windowControl');
+                window.dbSet(windowControlRef, windowControlData)
+                    .then(() => {
+                        console.log('Window control updated in Database:', isScrolling);
+                    })
+                    .catch((error) => {
+                        console.error('Error updating window control in Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in updateWindowStateInFirebase:', error);
+        }
+    }
+
     handleTextInput(key) {
-        if (this.gameState !== 'waiting_input' || !this.currentGameConfig) return;
+        if (this.gameState !== 'waiting_weak' || !this.currentScenario) return;
+        
+        // 正解のコマンドの次の文字かチェック
+        const expectedKey = this.currentScenario.command[this.currentInput.length];
+        
+        // 正解以外のキーは無視
+        if (key !== expectedKey) {
+            return;
+        }
         
         this.currentInput += key;
         this.updateInputDisplay();
         
-        // 入力コマンドのチェック
-        if (this.currentInput === this.currentGameConfig.inputCommand) {
-            this.showSecondMessage();
-        } else if (this.currentInput.length > this.currentGameConfig.inputCommand.length || 
-                  !this.currentGameConfig.inputCommand.startsWith(this.currentInput)) {
-            // 間違った入力の場合、リセット
-            this.currentInput = '';
-            this.updateInputDisplay();
-            this.showError();
+        // コマンドの入力チェック
+        if (this.currentInput === this.currentScenario.command) {
+            // 正解の場合、プレイヤーの入力をメッセージエリアに表示
+            this.addMessage(`> ${this.currentInput}`, false, true);
+            
+            // 1秒待ってから次のステップへ
+            this.gameState = 'processing'; // 処理中状態にして追加入力を防ぐ
+            setTimeout(() => {
+                this.showDefenseMessage();
+            }, 1000);
         }
     }
 
-    // 入力表示の更新
-    updateInputDisplay() {
-        this.inputElement.textContent = this.currentInput;
+    updateInputDisplay(text = this.currentInput, isLongPress = false) {
+        if (isLongPress) {
+            // 長押し中は特別な表示
+            this.inputElement.textContent = text;
+            this.inputElement.style.color = '#ffff00'; // 黄色で表示
+        } else {
+            // 通常の入力表示
+            this.inputElement.textContent = text;
+            this.inputElement.style.color = '#00ff00'; // 緑色で表示
+        }
+        
         this.inputArea.classList.add('input-focus');
         
         setTimeout(() => {
@@ -175,173 +386,195 @@ class MysteryMonitor {
         }, 200);
     }
 
-    // エラー表示
-    showError() {
-        const originalText = this.messageElement.textContent;
-        const originalClass = this.messageElement.className;
-        
-        this.messageElement.textContent = 'エラー: 正しいコマンドを入力してください';
-        this.messageElement.className = 'error';
-        
-        setTimeout(() => {
-            this.messageElement.textContent = originalText;
-            this.messageElement.className = originalClass;
-        }, 2000);
-    }
-
-    // 待機メッセージの表示
-    showWaitingMessage() {
+    async showWaitingMessage() {
         this.gameState = 'waiting';
         this.currentInput = '';
         this.updateInputDisplay();
-        this.updateInstructions('システム待機中...');
         
-        this.messageElement.textContent = 'システム待機中...\n\nSTAFF画面からゲームを選択してください';
-        this.messageElement.className = 'waiting';
+        const message = 'システム待機中...\n\nスタッフ画面からシナリオを選択してください';
+        await this.typeMessage(message);
     }
 
-    // ゲーム開始
-    async startGame() {
-        if (!this.currentGameConfig) {
-            // 設定を取得
-            try {
-                const configRef = window.firebaseDatabase.ref(`gameConfigs/${this.currentGameId}`);
-                const snapshot = await configRef.once('value');
-                this.currentGameConfig = snapshot.val();
-            } catch (error) {
-                console.error('ゲーム設定取得エラー:', error);
-                return;
-            }
-        }
+    async showErrorMessage(errorMsg) {
+        this.gameState = 'error';
         
-        this.gameState = 'waiting_input';
+        const message = `システムエラーが発生しました\n\n${errorMsg}`;
+        const messageElement = this.addMessage(message);
+        messageElement.className = 'message-line error-message';
+    }
+
+    clearAllMessages() {
+        this.messageContainer.innerHTML = '';
+    }
+
+    async startScenario() {
+        if (!this.currentScenario) return;
+        
+        // 新しいシナリオが開始されたら全メッセージをクリア
+        this.clearAllMessages();
+        
+        this.gameState = 'waiting_weak';
         this.currentInput = '';
         this.updateInputDisplay();
-        this.updateInstructions(`${this.currentGameConfig.inputCommand}と入力してください`);
         
-        await this.typeMessage(this.currentGameConfig.initialMessage);
+        const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
+        const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
+        
+        const message = `【${this.currentScenario.target}】を攻撃するためには、\n<span class="highlight">${displayCommand}</span>を入力して、<span class="highlight">${displayKey}</span>を長押ししてください`;
+        await this.typeMessageWithHTML(message);
     }
 
-    // 2番目のメッセージを表示
-    async showSecondMessage() {
+    async showDefenseMessage() {
+        if (!this.currentScenario) return;
+        
         this.gameState = 'waiting_defense';
         this.currentInput = '';
         this.updateInputDisplay();
-        this.updateInstructions(`${this.currentGameConfig.actionKey}を長押しして実行してください`);
         
-        // 成功エフェクト
-        this.messageElement.classList.add('success');
-        await this.delay(1000);
-        this.messageElement.classList.remove('success');
-        
-        const message = `${this.currentGameConfig.secondMessage}\n\n>>> ${this.currentGameConfig.actionKey}`;
-        await this.typeMessage(message);
+        const message = `${this.currentScenario.secondMessage}`;
+        await this.typeMessageWithHTML(message);
     }
 
-    // ゲーム完了
     async completeGame() {
-        this.gameState = 'completed';
-        this.updateInstructions('任務完了！');
+        if (!this.currentScenario) return;
         
-        // 完了エフェクト
-        this.messageElement.classList.add('complete');
+        this.gameState = 'complete';
+        this.isLongPressing = false;
+        this.updateInputDisplay('');
         
-        const message = `${this.currentGameConfig.completeMessage}\n\n>>> システム: 任務完了`;
-        await this.typeMessage(message);
+        let message;
+        let isWarningMessage = false;
         
-        // 5秒後に待機状態に戻る
-        setTimeout(() => {
-            this.showWaitingMessage();
-        }, 5000);
-    }
-
-    // ゲーム進捗の更新
-    async updateGameProgress(status) {
-        if (!this.currentGameId || !this.connectionStatus) return;
+        if (this.currentScenario.id === 'scenario3') {
+            // シナリオ3: アンティークショップ破壊
+            message = 'ドリルにより、アンティークショップが破壊されました';
+            isWarningMessage = true;
+        } else if (this.currentScenario.id === 'scenario4') {
+            // シナリオ4: ドリル発射失敗
+            message = 'エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください';
+            isWarningMessage = true;
+        } else if (this.currentScenario.id === 'scenario5') {
+            // シナリオ5: エックス線研究所破壊
+            message = 'ドリルによりエックス線研究所が破壊されました\n建物倒壊によりゾンビアトラクションが一部破損しました';
+            isWarningMessage = true;
+        } else if (this.currentScenario.completeMessage) {
+            // 特別な完了メッセージがある場合
+            message = this.currentScenario.completeMessage;
+            isWarningMessage = message.includes('⚠');
+        } else {
+            // デフォルトの完了メッセージ
+            message = '実行されました！\n防御に成功しました\n\n>>> システム: 任務完了';
+        }
         
-        try {
-            const gameRef = window.firebaseDatabase.ref(`gameConfigs/${this.currentGameId}`);
-            const updates = {
-                lastUpdated: Date.now()
-            };
-            
-            if (status === 'completed') {
-                updates.completed = true;
-                updates.isActive = false;
-            }
-            
-            await gameRef.update(updates);
-            
-        } catch (error) {
-            console.error('ゲーム進捗更新エラー:', error);
+        const messageElement = this.addMessage(message);
+        if (isWarningMessage) {
+            messageElement.className = 'message-line error-message';
         }
     }
 
-    // ゲーム表示の更新
-    updateGameDisplay() {
-        if (!this.currentGameConfig) return;
+    addMessage(message, isHTML = false, isPlayerInput = false) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message-line';
         
-        if (this.currentGameConfig.completed) {
-            this.completeGame();
-        } else if (this.currentGameConfig.isActive) {
-            this.startGame();
+        if (isPlayerInput) {
+            messageElement.classList.add('player-input');
         }
+        
+        if (isHTML) {
+            messageElement.innerHTML = message;
+        } else {
+            messageElement.textContent = message;
+        }
+        
+        this.messageContainer.appendChild(messageElement);
+        
+        // 最大メッセージ数を超えた場合、古いメッセージを削除
+        const messages = this.messageContainer.querySelectorAll('.message-line');
+        if (messages.length > this.maxMessages) {
+            messages[0].remove();
+        }
+        
+        return messageElement;
     }
 
-    // タイピングアニメーション
     async typeMessage(message) {
-        this.messageElement.textContent = '';
-        this.messageElement.className = '';
+        const messageElement = this.addMessage('');
         
         for (let i = 0; i < message.length; i++) {
-            this.messageElement.textContent += message[i];
+            messageElement.textContent += message[i];
             await this.delay(50);
         }
     }
 
-    // 指示の更新
-    updateInstructions(text) {
-        this.instructionsElement.innerHTML = `<span>${text}</span>`;
+    async typeMessageWithHTML(message) {
+        const messageElement = this.addMessage('');
+        
+        // HTMLタグを考慮してメッセージを分割
+        const parts = message.split(/(<span class="highlight">.*?<\/span>)/);
+        
+        for (let part of parts) {
+            if (part.includes('<span class="highlight">')) {
+                // ハイライト部分
+                messageElement.innerHTML += part;
+            } else {
+                // 通常のテキスト部分
+                for (let i = 0; i < part.length; i++) {
+                    messageElement.innerHTML += part[i];
+                    await this.delay(50);
+                }
+            }
+        }
     }
 
-    // 遅延関数
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
-// ページ遷移
-function goBack() {
-    window.location.href = 'index.html';
-}
-
-// 初期化
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // Firebase初期化を待つ
-        if (window.firebaseUtils) {
-            await window.firebaseUtils.initializeDatabase();
+// モニター初期化関数
+window.initGame = () => {
+    const monitor = new MysteryMonitor();
+    
+    // デバッグ用のリセット機能（Escキーで待機状態に戻る）
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            monitor.showWaitingMessage();
         }
-        
-        // モニター開始
-        const monitor = new MysteryMonitor();
-        
-        // デバッグ用のリセット機能（Escキーでメインへ戻る）
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                goBack();
-            }
-        });
-        
-    } catch (error) {
-        console.error('モニター初期化エラー:', error);
-    }
-});
+    });
+};
 
 // ページが閉じられる前の処理
 window.addEventListener('beforeunload', () => {
-    // Firebase接続のクリーンアップ
-    if (window.firebaseDatabase) {
-        window.firebaseDatabase.goOffline();
+    // クリーンアップ処理
+    document.removeEventListener('keydown', () => {});
+    document.removeEventListener('keyup', () => {});
+});
+
+// エラーハンドリング
+window.addEventListener('error', (e) => {
+    console.error('JavaScript Error:', e);
+    // エラーメッセージを追加
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'message-line system-error';
+    errorMessage.textContent = 'システムエラーが発生しました\n詳細: ' + e.message;
+    
+    const messageContainer = document.getElementById('messageContainer');
+    if (messageContainer) {
+        messageContainer.appendChild(errorMessage);
+    }
+});
+
+// Firebase接続エラーハンドリング
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('Promise rejection:', e);
+    if (e.reason && e.reason.code) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message-line firebase-error';
+        errorMessage.textContent = 'Firebase接続エラーが発生しました\nエラーコード: ' + e.reason.code;
+        
+        const messageContainer = document.getElementById('messageContainer');
+        if (messageContainer) {
+            messageContainer.appendChild(errorMessage);
+        }
     }
 }); 

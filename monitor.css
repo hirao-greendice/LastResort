@@ -1,0 +1,292 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier Prime', monospace;
+    background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+    color: #00ff00;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+}
+
+.terminal-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #00ff00;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: rgba(0, 255, 0, 0.1);
+    border-bottom: 1px solid #00ff00;
+}
+
+.terminal-title {
+    font-size: 24px;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.terminal-status {
+    font-size: 16px;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+.connected {
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+}
+
+.disconnected {
+    color: #ff4444;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
+
+.terminal-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px;
+    min-height: 0;
+}
+
+.message-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.prompt {
+    font-size: 28px;
+    font-weight: 700;
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+    margin-bottom: 20px;
+}
+
+.message-text {
+    font-size: 36px;
+    line-height: 1.6;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+    max-width: 90%;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.input-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 255, 0, 0.05);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    min-height: 80px;
+}
+
+.input-text {
+    font-size: 32px;
+    font-weight: 700;
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+    margin-left: 20px;
+    margin-right: 10px;
+    letter-spacing: 2px;
+}
+
+.cursor {
+    font-size: 32px;
+    font-weight: 700;
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+    animation: blink 1s infinite;
+}
+
+.terminal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    background: rgba(0, 255, 0, 0.1);
+    border-top: 1px solid #00ff00;
+}
+
+.instructions {
+    font-size: 18px;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    flex: 1;
+    text-align: center;
+}
+
+.back-to-main {
+    display: flex;
+    align-items: center;
+}
+
+.back-btn {
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Courier Prime', monospace;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+    background: rgba(0, 255, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* アニメーション */
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
+@keyframes typewriter {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+@keyframes glow {
+    0% {
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+    }
+    100% {
+        text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 成功・完了時のエフェクト */
+.success {
+    animation: glow 2s ease-in-out;
+    color: #00ff00;
+}
+
+.complete {
+    color: #00ff00;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+}
+
+.error {
+    color: #ff4444;
+    text-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
+}
+
+/* 入力エリアのフォーカス効果 */
+.input-focus {
+    border-color: #00ff00;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+/* 待機中の点滅効果 */
+.waiting {
+    animation: glow 3s ease-in-out infinite;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .terminal-title {
+        font-size: 18px;
+    }
+    
+    .terminal-status {
+        font-size: 14px;
+    }
+    
+    .message-text {
+        font-size: 28px;
+    }
+    
+    .input-text {
+        font-size: 24px;
+    }
+    
+    .cursor {
+        font-size: 24px;
+    }
+    
+    .instructions {
+        font-size: 16px;
+    }
+    
+    .terminal-footer {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .back-to-main {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .terminal-content {
+        padding: 20px;
+    }
+    
+    .message-text {
+        font-size: 24px;
+    }
+    
+    .input-text {
+        font-size: 20px;
+    }
+    
+    .cursor {
+        font-size: 20px;
+    }
+    
+    .prompt {
+        font-size: 20px;
+    }
+} 

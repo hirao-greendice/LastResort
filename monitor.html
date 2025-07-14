@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>謎解き公演 - モニター画面</title>
+    <link rel="stylesheet" href="monitor.css">
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-title">MYSTERY ESCAPE SYSTEM v2.0</div>
+            <div class="terminal-status">
+                <span id="connectionStatus">接続確認中...</span>
+            </div>
+        </div>
+        
+        <div class="terminal-content">
+            <div class="message-area" id="messageArea">
+                <div class="prompt">System&gt;</div>
+                <div class="message-text" id="messageText">システム待機中...</div>
+            </div>
+            
+            <div class="input-area" id="inputArea">
+                <div class="prompt">Input&gt;</div>
+                <div class="input-text" id="inputText"></div>
+                <div class="cursor" id="cursor">_</div>
+            </div>
+        </div>
+        
+        <div class="terminal-footer">
+            <div class="instructions" id="instructions">
+                <span>システム待機中...</span>
+            </div>
+            <div class="back-to-main">
+                <button class="back-btn" onclick="goBack()">メインへ戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="monitor.js"></script>
+</body>
+</html> 

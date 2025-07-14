@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier Prime', monospace;
+    background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
+    color: #00ff00;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+}
+
+.main-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #00ff00;
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 40px;
+    background: rgba(0, 255, 0, 0.1);
+    border-bottom: 2px solid #00ff00;
+}
+
+.title {
+    font-size: 32px;
+    font-weight: 700;
+    text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+    letter-spacing: 2px;
+}
+
+.version {
+    font-size: 18px;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.selection-area {
+    text-align: center;
+    max-width: 800px;
+    width: 100%;
+}
+
+.selection-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 50px;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+    letter-spacing: 1px;
+}
+
+.button-container {
+    display: flex;
+    gap: 60px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.selection-btn {
+    background: rgba(0, 255, 0, 0.1);
+    border: 2px solid #00ff00;
+    border-radius: 15px;
+    padding: 40px 30px;
+    width: 280px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Courier Prime', monospace;
+    color: #00ff00;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.selection-btn:hover {
+    background: rgba(0, 255, 0, 0.2);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 255, 0, 0.5);
+    border-color: #00ff00;
+}
+
+.selection-btn:active {
+    transform: translateY(-2px);
+}
+
+.btn-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    filter: grayscale(100%) sepia(100%) hue-rotate(90deg) brightness(2);
+}
+
+.btn-text {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+    letter-spacing: 1px;
+}
+
+.btn-desc {
+    font-size: 14px;
+    opacity: 0.8;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    line-height: 1.4;
+}
+
+.staff-btn:hover {
+    animation: pulse 2s infinite;
+}
+
+.monitor-btn:hover {
+    animation: glow 2s infinite;
+}
+
+.footer {
+    padding: 20px 40px;
+    background: rgba(0, 255, 0, 0.1);
+    border-top: 1px solid #00ff00;
+    text-align: center;
+}
+
+.status {
+    font-size: 16px;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+.connected {
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+}
+
+.disconnected {
+    color: #ff4444;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.6);
+}
+
+/* アニメーション */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(0, 255, 0, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    }
+}
+
+@keyframes glow {
+    0% {
+        text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(0, 255, 0, 0.9);
+    }
+    100% {
+        text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.selection-area {
+    animation: fadeIn 1s ease-out;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .button-container {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .selection-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .title {
+        font-size: 24px;
+    }
+    
+    .selection-title {
+        font-size: 24px;
+    }
+    
+    .btn-text {
+        font-size: 20px;
+    }
+} 

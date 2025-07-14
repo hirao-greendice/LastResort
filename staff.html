@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>謎解き公演 - STAFF画面</title>
+    <link rel="stylesheet" href="staff.css">
+</head>
+<body>
+    <div class="staff-container">
+        <div class="header">
+            <h1 class="title">STAFF CONTROL PANEL</h1>
+            <div class="controls">
+                <button class="back-btn" onclick="goBack()">← メインへ</button>
+                <div class="connection-status">
+                    <span id="connectionStatus">接続確認中...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="game-controls">
+                <h2 class="section-title">ゲーム制御</h2>
+                <div class="game-buttons">
+                    <button class="game-btn" id="game1Btn" onclick="selectGame('game1')">
+                        <div class="game-info">
+                            <div class="game-name">アンティークショップ</div>
+                            <div class="game-key">キー: A</div>
+                            <div class="game-status" id="game1Status">待機中</div>
+                        </div>
+                    </button>
+                    
+                    <button class="game-btn" id="game2Btn" onclick="selectGame('game2')">
+                        <div class="game-info">
+                            <div class="game-name">ファクトリー</div>
+                            <div class="game-key">キー: B</div>
+                            <div class="game-status" id="game2Status">待機中</div>
+                        </div>
+                    </button>
+                    
+                    <button class="game-btn" id="game3Btn" onclick="selectGame('game3')">
+                        <div class="game-info">
+                            <div class="game-name">ラボラトリー</div>
+                            <div class="game-key">キー: C</div>
+                            <div class="game-status" id="game3Status">待機中</div>
+                        </div>
+                    </button>
+                    
+                    <button class="game-btn" id="game4Btn" onclick="selectGame('game4')">
+                        <div class="game-info">
+                            <div class="game-name">バンク</div>
+                            <div class="game-key">キー: D</div>
+                            <div class="game-status" id="game4Status">待機中</div>
+                        </div>
+                    </button>
+                    
+                    <button class="game-btn" id="game5Btn" onclick="selectGame('game5')">
+                        <div class="game-info">
+                            <div class="game-name">サーバー</div>
+                            <div class="game-key">キー: E</div>
+                            <div class="game-status" id="game5Status">待機中</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="monitor-info">
+                <h2 class="section-title">モニター状態</h2>
+                <div class="monitor-status">
+                    <div class="current-game">
+                        <strong>現在のゲーム:</strong> <span id="currentGameName">なし</span>
+                    </div>
+                    <div class="game-progress">
+                        <strong>進捗:</strong> <span id="gameProgress">待機中</span>
+                    </div>
+                    <div class="last-update">
+                        <strong>最終更新:</strong> <span id="lastUpdate">---</span>
+                    </div>
+                </div>
+                
+                <div class="quick-actions">
+                    <button class="action-btn reset-btn" onclick="resetCurrentGame()">
+                        ゲームリセット
+                    </button>
+                    <button class="action-btn clear-btn" onclick="clearMonitor()">
+                        モニタークリア
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="progress-panel">
+            <h2 class="section-title">全体進捗</h2>
+            <div class="progress-grid">
+                <div class="progress-item">
+                    <div class="progress-label">完了済み</div>
+                    <div class="progress-count" id="completedCount">0/5</div>
+                </div>
+                <div class="progress-item">
+                    <div class="progress-label">進行中</div>
+                    <div class="progress-count" id="activeCount">0</div>
+                </div>
+                <div class="progress-item">
+                    <div class="progress-label">待機中</div>
+                    <div class="progress-count" id="waitingCount">5</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="staff.js"></script>
+</body>
+</html> 

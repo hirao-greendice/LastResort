@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>謎解き公演 - システム選択</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1 class="title">MYSTERY ESCAPE SYSTEM</h1>
+            <div class="version">v2.0</div>
+        </div>
+        
+        <div class="content">
+            <div class="selection-area">
+                <h2 class="selection-title">システム選択</h2>
+                <div class="button-container">
+                    <button class="selection-btn staff-btn" onclick="goToStaff()">
+                        <div class="btn-icon">👥</div>
+                        <div class="btn-text">STAFF</div>
+                        <div class="btn-desc">進捗管理・操作画面</div>
+                    </button>
+                    
+                    <button class="selection-btn monitor-btn" onclick="goToMonitor()">
+                        <div class="btn-icon">🖥️</div>
+                        <div class="btn-text">モニター画面</div>
+                        <div class="btn-desc">プレイヤー表示画面</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="status">
+                <span id="connectionStatus">接続確認中...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="main.js"></script>
+</body>
+</html> 

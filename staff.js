@@ -1,6 +1,7 @@
 // グローバル変数
 let currentScenario = null;
 let scenarios = {};
+let keyboardConnected = true; // キーボードの接続状況
 
 // デフォルトのシナリオデータ
 const defaultScenarios = {
@@ -56,6 +57,7 @@ function init() {
     updateAllPreviews();
     setupResetButton();
     setupWindowToggleButton();
+    setupKeyboardToggleButton();
     
     // デフォルトシナリオを強制的にFirebaseに保存
     setTimeout(() => {
@@ -261,6 +263,90 @@ function updateWindowControlInFirebase(enabled) {
     } catch (error) {
         console.error('Error in updateWindowControlInFirebase:', error);
         showNotification('窓変化設定の更新でエラーが発生しました', 'error');
+    }
+}
+
+// キーボードトグルボタンの設定
+function setupKeyboardToggleButton() {
+    const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
+    
+    // 既存のイベントリスナーを削除して重複を防ぐ
+    if (keyboardToggleBtn.hasSetupListener) {
+        console.log('Keyboard toggle button already initialized');
+        return;
+    }
+    
+    keyboardToggleBtn.addEventListener('click', () => {
+        keyboardConnected = !keyboardConnected;
+        updateKeyboardToggleButton(keyboardConnected);
+        updateKeyboardStatusInFirebase(keyboardConnected);
+    });
+    
+    keyboardToggleBtn.hasSetupListener = true;
+    console.log('Keyboard toggle button initialized');
+}
+
+// キーボードボタンの表示を更新
+function updateKeyboardToggleButton(connected) {
+    const keyboardToggleBtn = document.getElementById('keyboardToggleBtn');
+    
+    console.log('Updating keyboard toggle button:', connected);
+    
+    if (connected) {
+        keyboardToggleBtn.textContent = 'キーボード: 接続';
+        keyboardToggleBtn.style.backgroundColor = '#28a745';
+        keyboardToggleBtn.innerHTML = '<i class="fas fa-keyboard"></i> キーボード: 接続';
+    } else {
+        keyboardToggleBtn.textContent = 'キーボード: 切断';
+        keyboardToggleBtn.style.backgroundColor = '#dc3545';
+        keyboardToggleBtn.innerHTML = '<i class="fas fa-keyboard"></i> キーボード: 切断';
+    }
+}
+
+// キーボード状態をFirebaseに保存
+function updateKeyboardStatusInFirebase(connected) {
+    console.log('Updating keyboard status in Firebase:', connected);
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    const keyboardStatusData = {
+        connected: connected,
+        timestamp: Date.now()
+    };
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const keyboardStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'keyboardStatus');
+            window.firestoreSetDoc(keyboardStatusRef, keyboardStatusData)
+                .then(() => {
+                    console.log('Keyboard status updated in Firestore');
+                    showNotification(connected ? 'キーボード接続状態に変更しました' : 'キーボード切断状態に変更しました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating keyboard status in Firestore:', error);
+                    showNotification('キーボード状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const keyboardStatusRef = window.dbRef(window.database, 'keyboardStatus');
+            window.dbSet(keyboardStatusRef, keyboardStatusData)
+                .then(() => {
+                    console.log('Keyboard status updated in Database');
+                    showNotification(connected ? 'キーボード接続状態に変更しました' : 'キーボード切断状態に変更しました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating keyboard status in Database:', error);
+                    showNotification('キーボード状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in updateKeyboardStatusInFirebase:', error);
+        showNotification('キーボード状態の更新でエラーが発生しました', 'error');
     }
 }
 

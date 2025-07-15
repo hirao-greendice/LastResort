@@ -14,6 +14,21 @@ class MysteryMonitor {
         
         this.currentScenario = null;
         this.maxMessages = 8; // 最大メッセージ数を増やす
+        this.keyboardConnected = true; // キーボード接続状況
+        
+        // 外部キーボード設定
+        this.externalKeyboardMode = false;
+        this.keyMapUpper = {
+            // 上段
+            'E': 'Q', 'R': 'W', 'T': 'E', 'Y': 'R', 'U': 'T',
+            'I': 'Y', 'O': 'U', 'P': 'I', '`': 'O', '[': 'P',
+            // 中段
+            'D': 'A', 'F': 'S', 'G': 'D', 'H': 'F', 'J': 'G',
+            'K': 'H', 'L': 'J', '=': 'K', ';': 'L', ']': ':',
+            // 下段
+            'C': 'Z', 'V': 'X', 'B': 'C', 'N': 'V', 'M': 'B',
+            ',': 'N', '.': 'M', '/': '?'
+        };
         
         // 隠しボタンの要素
         this.homeButton = document.getElementById('monitorHomeButton');
@@ -28,9 +43,85 @@ class MysteryMonitor {
     init() {
         this.setupKeyboardListeners();
         this.setupFirebaseListener();
+        this.setupKeyboardStatusListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
+        this.setupExternalKeyboardToggle();
+        this.loadExternalKeyboardMode();
         this.showWaitingMessage();
+    }
+
+    // 外部キーボードモードの切り替え機能
+    setupExternalKeyboardToggle() {
+        // Ctrl+Alt+K で外部キーボードモードを切り替え
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.altKey && e.key === 'k') {
+                e.preventDefault();
+                this.toggleExternalKeyboardMode();
+            }
+        });
+    }
+
+    // 外部キーボードモードの切り替え
+    toggleExternalKeyboardMode() {
+        this.externalKeyboardMode = !this.externalKeyboardMode;
+        console.log('External keyboard mode:', this.externalKeyboardMode ? 'ON' : 'OFF');
+        
+        // 状態を保存
+        localStorage.setItem('externalKeyboardMode', this.externalKeyboardMode);
+        
+        // 視覚的なフィードバック
+        this.showKeyboardModeMessage();
+        
+        // ヘッダーの表示を更新
+        this.updateHeaderDisplay();
+    }
+
+    // キーボードモードのメッセージを表示
+    showKeyboardModeMessage() {
+        const mode = this.externalKeyboardMode ? 'ON' : 'OFF';
+        const message = `外部キーボードモード: ${mode}`;
+        
+        // 一時的にメッセージを表示
+        const messageElement = this.addMessage(message);
+        messageElement.style.color = this.externalKeyboardMode ? '#ffff00' : '#888888';
+        
+        // 3秒後にメッセージを削除
+        setTimeout(() => {
+            if (messageElement.parentNode) {
+                messageElement.parentNode.removeChild(messageElement);
+            }
+        }, 3000);
+    }
+
+    // ヘッダーの表示を更新
+    updateHeaderDisplay() {
+        const statusElement = document.querySelector('.terminal-status');
+        if (statusElement) {
+            const baseText = 'STATUS: STANDBY';
+            const keyboardStatus = this.externalKeyboardMode ? ' [EXT-KB]' : '';
+            statusElement.textContent = baseText + keyboardStatus;
+            statusElement.style.color = this.externalKeyboardMode ? '#ffff00' : '#00ff00';
+        }
+    }
+
+    // キーを変換する関数
+    translateKey(key) {
+        if (!this.externalKeyboardMode) {
+            return key;
+        }
+        
+        const upperKey = key.toUpperCase();
+        return this.keyMapUpper[upperKey] || key;
+    }
+
+    // 保存された外部キーボードモードを読み込む
+    loadExternalKeyboardMode() {
+        const saved = localStorage.getItem('externalKeyboardMode');
+        if (saved !== null) {
+            this.externalKeyboardMode = saved === 'true';
+            this.updateHeaderDisplay();
+        }
     }
 
     setupFullscreenListener() {
@@ -64,19 +155,32 @@ class MysteryMonitor {
                 return;
             }
             
+            // キーボードが切断されている場合は入力を無効化
+            if (!this.keyboardConnected) {
+                console.log('Keyboard input blocked - disconnected');
+                return;
+            }
+            
             if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
-            const key = e.key.toUpperCase();
+            const originalKey = e.key.toUpperCase();
             
             // アルファベットのみ処理
-            if (key.length === 1 && key.match(/[A-Z]/)) {
-                this.pressedKeys.add(key);
+            if (originalKey.length === 1 && originalKey.match(/[A-Z]/)) {
+                // 外部キーボードマッピングを適用
+                const translatedKey = this.translateKey(originalKey);
+                this.pressedKeys.add(translatedKey);
+                
+                // デバッグ用ログ
+                if (this.externalKeyboardMode && originalKey !== translatedKey) {
+                    console.log(`Key mapping: ${originalKey} -> ${translatedKey}`);
+                }
                 
                 // 長押し検知の開始
-                if (this.gameState === 'waiting_defense' && this.currentScenario && key === this.currentScenario.key) {
+                if (this.gameState === 'waiting_defense' && this.currentScenario && translatedKey === this.currentScenario.key) {
                     this.startLongPress();
                 } else if (this.gameState === 'waiting_weak') {
-                    this.handleTextInput(key);
+                    this.handleTextInput(translatedKey);
                 }
             }
         });
@@ -89,13 +193,20 @@ class MysteryMonitor {
                 return;
             }
             
+            // キーボードが切断されている場合は入力を無効化
+            if (!this.keyboardConnected) {
+                console.log('Keyboard input blocked - disconnected');
+                return;
+            }
+            
             if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
-            const key = e.key.toUpperCase();
-            this.pressedKeys.delete(key);
+            const originalKey = e.key.toUpperCase();
+            const translatedKey = this.translateKey(originalKey);
+            this.pressedKeys.delete(translatedKey);
             
             // 長押し検知の停止
-            if (this.currentScenario && key === this.currentScenario.key && this.longPressTimer) {
+            if (this.currentScenario && translatedKey === this.currentScenario.key && this.longPressTimer) {
                 clearTimeout(this.longPressTimer);
                 this.longPressTimer = null;
                 this.isLongPressing = false;
@@ -127,6 +238,69 @@ class MysteryMonitor {
         } catch (error) {
             console.error('Firebase setup error:', error);
             this.showErrorMessage('Firebase設定エラー: ' + error.message);
+        }
+    }
+
+    setupKeyboardStatusListener() {
+        console.log('Setting up keyboard status listener...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for keyboard status');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                console.log('Using Firestore for keyboard status monitoring');
+                const keyboardStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'keyboardStatus');
+                window.firestoreOnSnapshot(keyboardStatusRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        console.log('Keyboard status updated via Firestore:', data);
+                        this.updateKeyboardStatus(data.connected);
+                    } else {
+                        console.log('No keyboard status document found in Firestore');
+                        this.updateKeyboardStatus(true); // デフォルトは接続状態
+                    }
+                });
+            } else {
+                // Realtime Database使用
+                console.log('Using Realtime Database for keyboard status monitoring');
+                const keyboardStatusRef = window.dbRef(window.database, 'keyboardStatus');
+                window.dbOnValue(keyboardStatusRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        console.log('Keyboard status updated via Database:', data);
+                        this.updateKeyboardStatus(data.connected);
+                    } else {
+                        console.log('No keyboard status data found in Database');
+                        this.updateKeyboardStatus(true); // デフォルトは接続状態
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up keyboard status listener:', error);
+            this.updateKeyboardStatus(true); // エラー時はデフォルトで接続状態
+        }
+    }
+
+    updateKeyboardStatus(connected) {
+        this.keyboardConnected = connected;
+        console.log('Keyboard connection status updated:', connected);
+        
+        if (!connected) {
+            // キーボードが切断されている場合、入力をクリア
+            this.currentInput = '';
+            this.updateInputDisplay('');
+            this.pressedKeys.clear();
+            
+            // 長押し処理を停止
+            if (this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+                this.longPressTimer = null;
+                this.isLongPressing = false;
+            }
         }
     }
 
@@ -399,8 +573,9 @@ class MysteryMonitor {
         this.gameState = 'error';
         
         const message = `システムエラーが発生しました\n\n${errorMsg}`;
-        const messageElement = this.addMessage(message);
-        messageElement.className = 'message-line error-message';
+        
+        // 統一されたタイピングアニメーション関数を使用
+        await this.typeMessageUnified(message, true);
     }
 
     clearAllMessages() {
@@ -438,37 +613,61 @@ class MysteryMonitor {
     async completeGame() {
         if (!this.currentScenario) return;
         
+        console.log('Starting completeGame - typing animation');
+        console.log('Current scenario:', this.currentScenario);
+        console.log('Current scenario ID:', this.currentScenario.id);
+        console.log('Current scenario ID type:', typeof this.currentScenario.id);
+        
         this.gameState = 'complete';
         this.isLongPressing = false;
         this.updateInputDisplay('');
         
-        let message;
-        let isWarningMessage = false;
+        // デフォルトの完了メッセージ
+        const defaultMessage = '実行されました！\n防御に成功しました\n\n>>> システム: 任務完了';
         
-        if (this.currentScenario.id === 'scenario3') {
-            // シナリオ3: アンティークショップ破壊
-            message = 'ドリルにより、アンティークショップが破壊されました';
-            isWarningMessage = true;
-        } else if (this.currentScenario.id === 'scenario4') {
-            // シナリオ4: ドリル発射失敗
-            message = 'エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください';
-            isWarningMessage = true;
-        } else if (this.currentScenario.id === 'scenario5') {
-            // シナリオ5: エックス線研究所破壊
-            message = 'ドリルによりエックス線研究所が破壊されました\n建物倒壊によりゾンビアトラクションが一部破損しました';
-            isWarningMessage = true;
+        const scenarioId = parseInt(this.currentScenario.id);
+        console.log('Parsed scenario ID:', scenarioId);
+        
+        if (scenarioId === 3) {
+            // シナリオ3: まずデフォルトメッセージを表示
+            console.log('Scenario 3: Showing default message first');
+            await this.typeMessageUnified(defaultMessage, false);
+            
+            // 追加メッセージを即座に表示（タイプアニメーションなし）
+            const additionalMessage = 'ドリルにより、アンティークショップが破壊されました';
+            console.log('Scenario 3: Showing additional message instantly');
+            const errorElement = this.addMessage(additionalMessage);
+            errorElement.className = 'message-line error-message';
+            
+        } else if (scenarioId === 4) {
+            // シナリオ4: ドリル発射失敗（エラーメッセージのみ、即座に表示）
+            const errorMessage = 'エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください';
+            console.log('Scenario 4: Showing error message instantly');
+            const errorElement = this.addMessage(errorMessage);
+            errorElement.className = 'message-line error-message';
+            
+        } else if (scenarioId === 5) {
+            // シナリオ5: まずデフォルトメッセージを表示
+            console.log('Scenario 5: Showing default message first');
+            await this.typeMessageUnified(defaultMessage, false);
+            
+            // 追加メッセージを即座に表示（タイプアニメーションなし）
+            const additionalMessage = 'ドリルによりエックス線研究所が破壊されました\n建物倒壊によりゾンビアトラクションが一部破損しました';
+            console.log('Scenario 5: Showing additional message instantly');
+            const errorElement = this.addMessage(additionalMessage);
+            errorElement.className = 'message-line error-message';
+            
         } else if (this.currentScenario.completeMessage) {
             // 特別な完了メッセージがある場合
-            message = this.currentScenario.completeMessage;
-            isWarningMessage = message.includes('⚠');
+            const message = this.currentScenario.completeMessage;
+            const isWarningMessage = message.includes('⚠');
+            console.log('Custom complete message:', message);
+            await this.typeMessageUnified(message, isWarningMessage);
+            
         } else {
             // デフォルトの完了メッセージ
-            message = '実行されました！\n防御に成功しました\n\n>>> システム: 任務完了';
-        }
-        
-        const messageElement = this.addMessage(message);
-        if (isWarningMessage) {
-            messageElement.className = 'message-line error-message';
+            console.log('Default complete message');
+            await this.typeMessageUnified(defaultMessage, false);
         }
     }
 
@@ -528,6 +727,27 @@ class MysteryMonitor {
 
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 統一されたタイピングアニメーション関数
+    async typeMessageUnified(message, isError = false) {
+        const messageElement = this.addMessage('');
+        
+        if (isError) {
+            messageElement.className = 'message-line error-message';
+        }
+        
+        console.log('Starting unified typing animation for:', message);
+        
+        // 一文字ずつタイピングアニメーションで表示
+        for (let i = 0; i < message.length; i++) {
+            messageElement.textContent += message[i];
+            await this.delay(50);
+        }
+        
+        console.log('Unified typing animation completed');
+        
+        return messageElement;
     }
 }
 

@@ -86,9 +86,330 @@
                 text-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
             }
         }
+        
+        /* 説明ボタン */
+        .help-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ff00;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .help-button:hover {
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: scale(1.05);
+        }
+        
+        /* ポップアップモーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-content {
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .modal-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00ff00;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        .close-button {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ff0000;
+            background: transparent;
+            color: #ff0000;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 700;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-button:hover {
+            background: rgba(255, 0, 0, 0.1);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+        }
+        
+        .modal-body {
+            line-height: 1.6;
+            color: #00ff00;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #ffff00;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+        }
+        
+        .section-content {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .button-desc {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .button-name {
+            font-weight: 700;
+            color: #ffff00;
+            font-size: 18px;
+        }
+        
+        .key-combo {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffff00;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .warning {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid #ff0000;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #ff0000;
+        }
+        
+        .info {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #00ffff;
+        }
     </style>
 </head>
 <body>
+    <!-- 説明ボタン -->
+    <button class="help-button" id="helpButton">?</button>
+    
+    <!-- ポップアップモーダル -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">謎解き公演システム 使い方</div>
+                <button class="close-button" id="closeButton">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="section">
+                    <div class="section-title">📋 システム概要</div>
+                    <div class="section-content">
+                        このシステムは謎解き公演で使用するリアルタイム制御システムです。<br>
+                        Firebase を使用してスタッフ画面、モニター画面、窓画面を連携させます。
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🖥️ 各画面の説明</div>
+                    
+                    <div class="button-desc">
+                        <div class="button-name">STAFF</div>
+                        スタッフ操作画面です。シナリオの選択、モニター制御、窓変化の制御を行います。
+                        <ul style="margin-top: 10px;">
+                            <li>5つのシナリオカードでゲーム進行を管理</li>
+                            <li>モニター画面の表示内容を制御</li>
+                            <li>窓画面のスクロール機能ON/OFF</li>
+                            <li>リアルタイムでFirebaseと同期</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="button-desc">
+                        <div class="button-name">モニター画面</div>
+                        プレイヤー向けの端末画面です。コマンド入力とキー長押しでゲームを進行します。
+                        <ul style="margin-top: 10px;">
+                            <li>ターミナル風のデザイン</li>
+                            <li>コマンド入力（キーボード）</li>
+                            <li>特定キーの長押し判定</li>
+                            <li>ENTERキーで窓画面制御</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="button-desc">
+                        <div class="button-name">窓</div>
+                        窓からの景色を表示する画面です。ENTERキーでスクロール動作を行います。
+                        <ul style="margin-top: 10px;">
+                            <li>窓から見える景色の表示</li>
+                            <li>ENTERキーでスクロール</li>
+                            <li>詳細な画像調整機能</li>
+                            <li>全画面表示対応</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="button-desc">
+                        <div class="button-name">Firebase接続テスト</div>
+                        Firebase接続の確認とデバッグを行います。接続に問題がある場合に使用してください。
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">⌨️ 操作方法</div>
+                    
+                    <div class="key-combo">
+                        <strong>モニター画面での操作</strong><br>
+                        • 文字入力: キーボード（アルファベット）<br>
+                        • 長押し: 特定のキーを1秒以上長押し<br>
+                        • 窓制御: ENTERキーを押している間<br>
+                        • 外部キーボード切り替え: Ctrl + Alt + K
+                    </div>
+                    
+                    <div class="key-combo">
+                        <strong>窓画面での操作</strong><br>
+                        • スクロール: ENTERキーを押している間<br>
+                        • 設定パネル: 右上の隠しボタンをクリック<br>
+                        • 全画面: 右下の隠しボタンをクリック<br>
+                        • メイン画面に戻る: 左上を5回クリック
+                    </div>
+                    
+                    <div class="key-combo">
+                        <strong>スタッフ画面での操作</strong><br>
+                        • シナリオ選択: 各カードの「選択」ボタン<br>
+                        • 窓変化制御: 「窓変化 ON/OFF」ボタン<br>
+                        • リセット: 「モニターをリセット」ボタン
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🎮 ゲームシナリオ</div>
+                    <div class="section-content">
+                        <div class="info">
+                            <strong>シナリオ1: アンティークショップ</strong><br>
+                            コマンド: WEAK → キー: A<br>
+                            完了メッセージ: アンティークショップが破壊されました
+                        </div>
+                        
+                        <div class="info">
+                            <strong>シナリオ2: クイーンズピザ</strong><br>
+                            コマンド: QUEEN（隠し） → キー: Q<br>
+                            通常の完了メッセージ
+                        </div>
+                        
+                        <div class="info">
+                            <strong>シナリオ3: スタジオ</strong><br>
+                            コマンド: STUDIO（隠し） → キー: S（隠し）<br>
+                            通常の完了メッセージ
+                        </div>
+                        
+                        <div class="info">
+                            <strong>シナリオ4: ゾンビアクション</strong><br>
+                            コマンド: STEP → キー: Z（隠し）<br>
+                            エラーメッセージ: ドリルが発射されませんでした
+                        </div>
+                        
+                        <div class="info">
+                            <strong>シナリオ5: ゾンビアトラクション</strong><br>
+                            コマンド: IDEA（隠し） → キー: Z（隠し）<br>
+                            完了メッセージ: エックス線研究所が破壊されました
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">⌨️ 外部キーボード対応</div>
+                    <div class="section-content">
+                        システムは改良された外部キーボードに対応しています。
+                        <div class="info">
+                            <strong>外部キーボードモード切り替え:</strong><br>
+                            モニター画面で <strong>Ctrl + Alt + K</strong> を押すことで切り替えできます。<br>
+                            ヘッダーに [EXT-KB] と表示されている時は外部キーボードモードです。
+                        </div>
+                        
+                        <div class="key-combo">
+                            <strong>キーマッピング（外部キーボード → 通常キー）:</strong><br>
+                            上段: E→Q, R→W, T→E, Y→R, U→T, I→Y, O→U, P→I<br>
+                            中段: D→A, F→S, G→D, H→F, J→G, K→H, L→J<br>
+                            下段: C→Z, V→X, B→C, N→V, M→B<br>
+                            ※ 設定は自動的に保存されます
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">⚠️ 注意事項</div>
+                    <div class="warning">
+                        <strong>重要:</strong><br>
+                        • Firebase接続が必要です<br>
+                        • 複数のデバイスで同期します<br>
+                        • スタッフ画面で必ず窓変化をONにしてください<br>
+                        • 正確なコマンドとキーの組み合わせが必要です<br>
+                        • 外部キーボード使用時は事前にモードを切り替えてください
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <div class="section-title">🔧 トラブルシューティング</div>
+                    <div class="section-content">
+                        <strong>接続エラーの場合:</strong><br>
+                        1. Firebase接続テストページで確認<br>
+                        2. ブラウザのキャッシュをクリア<br>
+                        3. ページを再読み込み<br><br>
+                        
+                        <strong>動作しない場合:</strong><br>
+                        1. スタッフ画面で適切なシナリオが選択されているか確認<br>
+                        2. 窓変化がONになっているか確認<br>
+                        3. コマンドとキーが正確に入力されているか確認
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="container">
         <div class="title">謎解き公演システム</div>
         <div class="subtitle">MYSTERY ESCAPE CONTROL PANEL</div>
@@ -105,5 +426,42 @@
             <p>デバッグ情報: Database URL設定済み</p>
         </div>
     </div>
+    
+    <script>
+        // ポップアップの制御
+        document.addEventListener('DOMContentLoaded', function() {
+            const helpButton = document.getElementById('helpButton');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const closeButton = document.getElementById('closeButton');
+            
+            // ヘルプボタンクリック
+            helpButton.addEventListener('click', function() {
+                modalOverlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // スクロールを無効化
+            });
+            
+            // 閉じるボタンクリック
+            closeButton.addEventListener('click', function() {
+                modalOverlay.style.display = 'none';
+                document.body.style.overflow = 'auto'; // スクロールを有効化
+            });
+            
+            // モーダル外側クリック
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    modalOverlay.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+            
+            // ESCキーで閉じる
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modalOverlay.style.display === 'flex') {
+                    modalOverlay.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+    </script>
 </body>
 </html> 

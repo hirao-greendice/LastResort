@@ -33,11 +33,6 @@ class MysteryMonitor {
         // 隠しボタンの要素
         this.homeButton = document.getElementById('monitorHomeButton');
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
-        
-        // キーマッピングボタンの要素
-        this.keyboardMappingBtn = document.getElementById('keyboardMappingBtn');
-        this.keyboardMappingIcon = document.getElementById('keyboardMappingIcon');
-        this.keyboardMappingText = document.getElementById('keyboardMappingText');
         this.homeClickCount = 0;
         this.homeClickTimer = null;
         this.isFullscreen = false;
@@ -49,10 +44,10 @@ class MysteryMonitor {
         this.setupKeyboardListeners();
         this.setupFirebaseListener();
         this.setupKeyboardStatusListener();
+        this.setupKeyMappingListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupExternalKeyboardToggle();
-        this.setupKeyboardMappingButton();
         this.loadExternalKeyboardMode();
         this.showWaitingMessage();
     }
@@ -68,14 +63,7 @@ class MysteryMonitor {
         });
     }
 
-    // キーマッピングボタンのセットアップ
-    setupKeyboardMappingButton() {
-        if (this.keyboardMappingBtn) {
-            this.keyboardMappingBtn.addEventListener('click', () => {
-                this.toggleExternalKeyboardMode();
-            });
-        }
-    }
+
 
     // 外部キーボードモードの切り替え
     toggleExternalKeyboardMode() {
@@ -118,28 +106,6 @@ class MysteryMonitor {
             const keyboardStatus = this.externalKeyboardMode ? ' [EXT-KB]' : '';
             statusElement.textContent = baseText + keyboardStatus;
             statusElement.style.color = this.externalKeyboardMode ? '#ffff00' : '#00ff00';
-        }
-        
-        // キーマッピングボタンの表示も更新
-        this.updateKeyboardMappingButton();
-    }
-
-    // キーマッピングボタンの表示を更新
-    updateKeyboardMappingButton() {
-        if (this.keyboardMappingBtn && this.keyboardMappingIcon && this.keyboardMappingText) {
-            if (this.externalKeyboardMode) {
-                // キーマッピングが有効な場合
-                this.keyboardMappingBtn.classList.remove('inactive');
-                this.keyboardMappingBtn.classList.add('active');
-                this.keyboardMappingIcon.textContent = '🔄';
-                this.keyboardMappingText.textContent = 'キーマップ: ON';
-            } else {
-                // キーマッピングが無効な場合
-                this.keyboardMappingBtn.classList.remove('active');
-                this.keyboardMappingBtn.classList.add('inactive');
-                this.keyboardMappingIcon.textContent = '❌';
-                this.keyboardMappingText.textContent = 'キーマップ: OFF';
-            }
         }
     }
 
@@ -341,6 +307,61 @@ class MysteryMonitor {
                 this.isLongPressing = false;
             }
         }
+    }
+
+    setupKeyMappingListener() {
+        console.log('Setting up key mapping listener...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for key mapping');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                console.log('Using Firestore for key mapping monitoring');
+                const keyMappingRef = window.firestoreDoc(window.firestore, 'gameData', 'keyMapping');
+                window.firestoreOnSnapshot(keyMappingRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        console.log('Key mapping status updated via Firestore:', data);
+                        this.updateKeyMappingStatus(data.enabled);
+                    } else {
+                        console.log('No key mapping document found in Firestore');
+                        this.updateKeyMappingStatus(true); // デフォルトは有効状態
+                    }
+                });
+            } else {
+                // Realtime Database使用
+                console.log('Using Realtime Database for key mapping monitoring');
+                const keyMappingRef = window.dbRef(window.database, 'keyMapping');
+                window.dbOnValue(keyMappingRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        console.log('Key mapping status updated via Database:', data);
+                        this.updateKeyMappingStatus(data.enabled);
+                    } else {
+                        console.log('No key mapping data found in Database');
+                        this.updateKeyMappingStatus(true); // デフォルトは有効状態
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up key mapping listener:', error);
+            this.updateKeyMappingStatus(true); // エラー時はデフォルトで有効状態
+        }
+    }
+
+    updateKeyMappingStatus(enabled) {
+        this.externalKeyboardMode = enabled;
+        console.log('Key mapping status updated:', enabled);
+        
+        // ローカルストレージにも保存
+        localStorage.setItem('externalKeyboardMode', enabled);
+        
+        // ヘッダー表示を更新
+        this.updateHeaderDisplay();
     }
 
     setupHiddenButton() {

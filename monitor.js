@@ -34,6 +34,19 @@ class MysteryMonitor {
             ',': 'N', '.': 'M', '/': '?'
         };
         
+        // KeyCodeベースのマッピング（より正確なキー検出用）
+        this.keyMapByCode = {
+            // 上段
+            'KeyE': 'Q', 'KeyR': 'W', 'KeyT': 'E', 'KeyY': 'R', 'KeyU': 'T',
+            'KeyI': 'Y', 'KeyO': 'U', 'KeyP': 'I', 'Backquote': 'O', 'BracketLeft': 'P',
+            // 中段
+            'KeyD': 'A', 'KeyF': 'S', 'KeyG': 'D', 'KeyH': 'F', 'KeyJ': 'G',
+            'KeyK': 'H', 'KeyL': 'J', 'Equal': 'K', 'Semicolon': 'L', 'BracketRight': ':',
+            // 下段
+            'KeyC': 'Z', 'KeyV': 'X', 'KeyB': 'C', 'KeyN': 'V', 'KeyM': 'B',
+            'Comma': 'N', 'Period': 'M', 'Slash': '?'
+        };
+        
         // 隠しボタンの要素
         this.homeButton = document.getElementById('monitorHomeButton');
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
@@ -88,18 +101,31 @@ class MysteryMonitor {
     showKeyboardModeMessage() {
         const mode = this.externalKeyboardMode ? 'ON' : 'OFF';
         const icon = this.externalKeyboardMode ? '🔄' : '❌';
-        const message = `${icon} キーマッピング: ${mode}`;
+        let message = `${icon} キーマッピング: ${mode}`;
+        
+        if (this.externalKeyboardMode) {
+            message += '\n\n外部キーボード用マッピング有効\n';
+            message += 'WAKE入力例: R-D-=-T\n';
+            message += 'HEAD入力例: K-T-D-G\n';
+            message += 'IDEA入力例: P-G-T-D\n';
+            message += 'PLAN入力例: [-;-D-,\n';
+            message += '※パソコンキーボードは通常通り';
+        } else {
+            message += '\n\n通常キーボードモード\n';
+            message += 'そのまま入力してください';
+        }
         
         // 一時的にメッセージを表示
         const messageElement = this.addMessage(message);
         messageElement.style.color = this.externalKeyboardMode ? '#ffff00' : '#888888';
+        messageElement.style.whiteSpace = 'pre-line';
         
-        // 3秒後にメッセージを削除
+        // 5秒後にメッセージを削除
         setTimeout(() => {
             if (messageElement.parentNode) {
                 messageElement.parentNode.removeChild(messageElement);
             }
-        }, 3000);
+        }, 5000);
     }
 
     // ヘッダーの表示を更新
@@ -113,14 +139,27 @@ class MysteryMonitor {
         }
     }
 
-    // キーを変換する関数
-    translateKey(key) {
+    // キーを変換する関数（改善版）
+    translateKey(key, keyCode = null) {
         if (!this.externalKeyboardMode) {
+            console.log(`[DEBUG] External keyboard mode OFF, key: ${key} -> ${key}`);
             return key;
         }
         
-        const upperKey = key.toUpperCase();
-        return this.keyMapUpper[upperKey] || key;
+        let translatedKey = key;
+        
+        // KeyCodeベースでの変換を優先
+        if (keyCode && this.keyMapByCode[keyCode]) {
+            translatedKey = this.keyMapByCode[keyCode];
+            console.log(`[DEBUG] KeyCode mapping: ${key} (${keyCode}) -> ${translatedKey}`);
+        } else {
+            // フォールバック: 従来のkey名ベース変換
+            const upperKey = key.toUpperCase();
+            translatedKey = this.keyMapUpper[upperKey] || key;
+            console.log(`[DEBUG] Key mapping: ${key} -> ${translatedKey}`);
+        }
+        
+        return translatedKey;
     }
 
     // 保存された外部キーボードモードを読み込む
@@ -157,6 +196,8 @@ class MysteryMonitor {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
+            console.log(`[DEBUG] KeyDown - key: "${e.key}", code: "${e.code}", keyCode: ${e.keyCode}`);
+            
             // ENTERキーの処理（常に動作）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -172,29 +213,33 @@ class MysteryMonitor {
             
             if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
-            const originalKey = e.key.toUpperCase();
+            // キーの検出を改善（特殊キーを含む）
+            let originalKey = e.key;
             
-            // アルファベットのみ処理
-            if (originalKey.length === 1 && originalKey.match(/[A-Z]/)) {
-                // 外部キーボードマッピングを適用
-                const translatedKey = this.translateKey(originalKey);
+            // アルファベットや特殊文字を処理
+            if (originalKey.length === 1 || ['=', ';', ',', '.', '/', '`', '[', ']'].includes(originalKey)) {
+                originalKey = originalKey.toUpperCase();
+                
+                // 外部キーボードマッピングを適用（keyCodeも渡す）
+                const translatedKey = this.translateKey(originalKey, e.code);
                 this.pressedKeys.add(translatedKey);
                 
-                // デバッグ用ログ
-                if (this.externalKeyboardMode && originalKey !== translatedKey) {
-                    console.log(`Key mapping: ${originalKey} -> ${translatedKey}`);
-                }
+                console.log(`[DEBUG] Game State: ${this.gameState}, Original: ${originalKey}, Translated: ${translatedKey}`);
                 
                 // 長押し検知の開始
                 if (this.gameState === 'waiting_defense' && this.currentScenario && translatedKey === this.currentScenario.key) {
+                    console.log(`[DEBUG] Starting long press for key: ${translatedKey}`);
                     this.startLongPress();
                 } else if (this.gameState === 'waiting_weak') {
+                    console.log(`[DEBUG] Handling text input for key: ${translatedKey}`);
                     this.handleTextInput(translatedKey);
                 }
             }
         });
 
         document.addEventListener('keyup', (e) => {
+            console.log(`[DEBUG] KeyUp - key: "${e.key}", code: "${e.code}"`);
+            
             // ENTERキーの処理（常に動作）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -210,17 +255,25 @@ class MysteryMonitor {
             
             if (this.gameState === 'complete' || this.gameState === 'waiting' || this.gameState === 'processing') return;
             
-            const originalKey = e.key.toUpperCase();
-            const translatedKey = this.translateKey(originalKey);
-            this.pressedKeys.delete(translatedKey);
+            // キーの検出を改善（keydownと同じロジック）
+            let originalKey = e.key;
             
-            // 長押し検知の停止
-            if (this.currentScenario && translatedKey === this.currentScenario.key && this.longPressTimer) {
-                clearTimeout(this.longPressTimer);
-                this.longPressTimer = null;
-                this.isLongPressing = false;
-                // 長押し終了時にINPUTをクリア
-                this.updateInputDisplay('', false);
+            if (originalKey.length === 1 || ['=', ';', ',', '.', '/', '`', '[', ']'].includes(originalKey)) {
+                originalKey = originalKey.toUpperCase();
+                const translatedKey = this.translateKey(originalKey, e.code);
+                this.pressedKeys.delete(translatedKey);
+                
+                console.log(`[DEBUG] KeyUp - Original: ${originalKey}, Translated: ${translatedKey}`);
+                
+                // 長押し検知の停止
+                if (this.currentScenario && translatedKey === this.currentScenario.key && this.longPressTimer) {
+                    console.log(`[DEBUG] Stopping long press for key: ${translatedKey}`);
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                    this.isLongPressing = false;
+                    // 長押し終了時にINPUTをクリア
+                    this.updateInputDisplay('', false);
+                }
             }
         });
     }

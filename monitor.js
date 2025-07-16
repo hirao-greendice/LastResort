@@ -18,7 +18,6 @@ class MysteryMonitor {
         
         // キーマッピング機能
         this.externalKeyboardMode = true; // デフォルトは有効
-        this.keyDebugMode = false; // キーデバッグモード
         this.keyMapping = {
             // 上段
             'KeyE': 'Q',
@@ -29,8 +28,8 @@ class MysteryMonitor {
             'KeyI': 'Y',
             'KeyO': 'U',
             'KeyP': 'I',
-            'Backquote': 'P',
-            'BracketLeft': 'O',
+            'Backquote': 'L',
+            'BracketLeft': 'L',
 
             // 中段
             'KeyD': 'A',
@@ -41,8 +40,8 @@ class MysteryMonitor {
             'KeyK': 'H',
             'KeyL': 'J',
             'Semicolon': 'K',      // ;キーがK
-            'BracketRight': 'L',   // ]キーがL（:の位置）
-            'Quote': ':',          // 'キーが:（実際のコロン位置）
+            'BracketRight': 'P',   // ]キーがL（:の位置）
+            'Quote': 'L',          // 'キーが:（実際のコロン位置）
             
             // 下段
             'KeyC': 'Z',
@@ -78,7 +77,6 @@ class MysteryMonitor {
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupKeyMappingListener();
-        this.setupKeyDebugButton();
         this.showWaitingMessage();
     }
 
@@ -139,7 +137,7 @@ class MysteryMonitor {
             if (this.externalKeyboardMode) {
                 console.log('External keyboard mode - Key pressed:', e.code, 'Key:', e.key, 'Location:', e.location);
                 
-                // デバッグモードの時のみキー情報を画面に表示
+                // デバッグ: キー情報を画面に一時表示
                 this.showKeyDebugInfo(e.code, e.key, e.location);
                 
                 const mappedKey = this.keyMapping[e.code];
@@ -777,65 +775,7 @@ class MysteryMonitor {
         return messageElement;
         }
 
-    setupKeyDebugButton() {
-        // 左上に隠しボタンを作成
-        const debugButton = document.createElement('button');
-        debugButton.id = 'keyDebugButton';
-        debugButton.textContent = '🔍';
-        debugButton.style.cssText = `
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #00ff00;
-            color: #00ff00;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 50%;
-            z-index: 1000;
-            opacity: 0.3;
-            transition: all 0.3s ease;
-        `;
-        
-        debugButton.addEventListener('click', () => {
-            this.keyDebugMode = !this.keyDebugMode;
-            if (this.keyDebugMode) {
-                debugButton.style.background = 'rgba(0, 255, 0, 0.2)';
-                debugButton.style.opacity = '1';
-                debugButton.textContent = '🔍✓';
-                console.log('キーデバッグモード: ON');
-            } else {
-                debugButton.style.background = 'rgba(0, 0, 0, 0.8)';
-                debugButton.style.opacity = '0.3';
-                debugButton.textContent = '🔍';
-                console.log('キーデバッグモード: OFF');
-                // デバッグ表示を削除
-                const debugDiv = document.getElementById('keyDebugInfo');
-                if (debugDiv && debugDiv.parentNode) {
-                    debugDiv.parentNode.removeChild(debugDiv);
-                }
-            }
-        });
-        
-        debugButton.addEventListener('mouseenter', () => {
-            debugButton.style.opacity = '1';
-        });
-        
-        debugButton.addEventListener('mouseleave', () => {
-            if (!this.keyDebugMode) {
-                debugButton.style.opacity = '0.3';
-            }
-        });
-        
-        document.body.appendChild(debugButton);
-    }
-
     showKeyDebugInfo(code, key, location) {
-        // デバッグモードがOFFの場合は何もしない
-        if (!this.keyDebugMode) return;
-        
         // デバッグ情報を画面上に一時表示
         let debugDiv = document.getElementById('keyDebugInfo');
         if (!debugDiv) {
@@ -873,6 +813,13 @@ class MysteryMonitor {
                 試してみてください: = - + キーなど
             </div>
         `;
+        
+        // 3秒後に自動で消去
+        setTimeout(() => {
+            if (debugDiv && debugDiv.parentNode) {
+                debugDiv.parentNode.removeChild(debugDiv);
+            }
+        }, 3000);
     }
 
     setupKeyMappingListener() {

@@ -373,19 +373,16 @@
             // 接続テスト（両方を試す）
             console.log('Testing Firebase connections...');
             
-            // Firestore接続テスト
-            const testFirestoreRef = doc(firestore, 'test', 'connection');
-            setDoc(testFirestoreRef, { 
-                test: true, 
-                timestamp: new Date(),
-                type: 'firestore' 
-            }).then(() => {
+            // Firestore接続テスト（読み取り専用）
+            const testFirestoreRef = doc(firestore, 'gameData', 'scenarios');
+            const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
                 console.log('Firestore connection successful');
                 document.getElementById('connectionStatus').textContent = 'Firebase接続状態: Firestore接続済み ✓';
                 document.getElementById('connectionStatus').style.color = '#00ff00';
                 window.useFirestore = true;
                 loadScenarios();
-            }).catch((firestoreError) => {
+                unsubscribe(); // 一度テストしたら解除
+            }, (firestoreError) => {
                 console.log('Firestore connection failed:', firestoreError);
                 
                 // Realtime Database接続テスト

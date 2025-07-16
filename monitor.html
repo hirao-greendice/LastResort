@@ -72,8 +72,8 @@
             // 接続テスト（両方を試す）
             console.log('Testing Firebase connections...');
             
-            // Firestore接続テスト
-            const testFirestoreRef = doc(firestore, 'test', 'connection');
+            // Firestore接続テスト（読み取り専用）
+            const testFirestoreRef = doc(firestore, 'gameData', 'currentScenario');
             const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
                 console.log('Firestore connection test successful');
                 const statusElement = document.querySelector('.terminal-status');

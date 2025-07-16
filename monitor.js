@@ -16,6 +16,10 @@ class MysteryMonitor {
         this.maxMessages = 8; // 最大メッセージ数を増やす
         this.keyboardConnected = true; // キーボード接続状況
         
+        // 通信最適化用
+        this.lastWindowState = null; // 前回の窓制御状態
+        this.windowUpdateTimer = null; // 書き込み制限タイマー
+        
         // 外部キーボード設定
         this.externalKeyboardMode = true; // デフォルトで有効
         this.keyMapUpper = {
@@ -537,42 +541,58 @@ class MysteryMonitor {
     }
 
     updateWindowStateInFirebase(isScrolling) {
-        if (!window.firestore && !window.database) {
-            console.error('Firebase not initialized');
+        // 状態が変わっていない場合は通信しない
+        if (this.lastWindowState === isScrolling) {
             return;
         }
-
-        const windowControlData = {
-            enabled: true, // 窓変化は有効として設定
-            isScrolling: isScrolling,
-            timestamp: Date.now()
-        };
-
-        try {
-            if (window.useFirestore) {
-                // Firestore使用
-                const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
-                window.firestoreSetDoc(windowControlRef, windowControlData)
-                    .then(() => {
-                        console.log('Window control updated in Firestore:', isScrolling);
-                    })
-                    .catch((error) => {
-                        console.error('Error updating window control in Firestore:', error);
-                    });
-            } else {
-                // Realtime Database使用
-                const windowControlRef = window.dbRef(window.database, 'windowControl');
-                window.dbSet(windowControlRef, windowControlData)
-                    .then(() => {
-                        console.log('Window control updated in Database:', isScrolling);
-                    })
-                    .catch((error) => {
-                        console.error('Error updating window control in Database:', error);
-                    });
-            }
-        } catch (error) {
-            console.error('Error in updateWindowStateInFirebase:', error);
+        
+        // 頻繁な更新を防ぐ（100ms以内の連続更新は無視）
+        if (this.windowUpdateTimer) {
+            clearTimeout(this.windowUpdateTimer);
         }
+        
+        this.windowUpdateTimer = setTimeout(() => {
+            if (!window.firestore && !window.database) {
+                console.error('Firebase not initialized');
+                return;
+            }
+
+            const windowControlData = {
+                enabled: true, // 窓変化は有効として設定
+                isScrolling: isScrolling,
+                timestamp: Date.now()
+            };
+
+            try {
+                if (window.useFirestore) {
+                    // Firestore使用
+                    const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+                    window.firestoreSetDoc(windowControlRef, windowControlData)
+                        .then(() => {
+                            console.log('Window control updated in Firestore:', isScrolling);
+                            this.lastWindowState = isScrolling; // 成功時のみ状態を更新
+                        })
+                        .catch((error) => {
+                            console.error('Error updating window control in Firestore:', error);
+                        });
+                } else {
+                    // Realtime Database使用
+                    const windowControlRef = window.dbRef(window.database, 'windowControl');
+                    window.dbSet(windowControlRef, windowControlData)
+                        .then(() => {
+                            console.log('Window control updated in Database:', isScrolling);
+                            this.lastWindowState = isScrolling; // 成功時のみ状態を更新
+                        })
+                        .catch((error) => {
+                            console.error('Error updating window control in Database:', error);
+                        });
+                }
+            } catch (error) {
+                console.error('Error in updateWindowStateInFirebase:', error);
+            }
+            
+            this.windowUpdateTimer = null;
+        }, 100); // 100ms後に実行
     }
 
     handleTextInput(key) {

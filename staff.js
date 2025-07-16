@@ -4,11 +4,16 @@ let scenarios = {};
 let keyboardConnected = true; // キーボードの接続状況
 let externalKeyboardMode = true; // キーマッピングの状態（デフォルトで有効）
 
+// 通信最適化用
+let lastWindowControlState = null;
+let lastKeyboardState = null;
+let lastKeyMappingState = null;
+
 // デフォルトのシナリオデータ
 const defaultScenarios = {
     1: {
         target: "アンティークショップ",
-        command: "WEAK",
+        command: "WAKE",
         key: "A",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
@@ -16,24 +21,24 @@ const defaultScenarios = {
     },
     2: {
         target: "クイーンズピザ",
-        command: "QUEEN",
+        command: "HEAD",
         key: "Q",
         secondMessage: "ドリルを発射します。長押しで防御してください",
-        hideCommand: true,
+        hideCommand: false,
         hideKey: false
     },
     3: {
         target: "スタジオ",
-        command: "STUDIO",
+        command: "IDEA",
         key: "S",
         secondMessage: "ドリルを発射します。長押しで防御してください",
-        hideCommand: true,
+        hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ドリルにより、アンティークショップが破壊されました"
     },
     4: {
         target: "ゾンビアクション",
-        command: "STEP",
+        command: "WING",
         key: "Z",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
@@ -42,10 +47,10 @@ const defaultScenarios = {
     },
     5: {
         target: "ゾンビアトラクション",
-        command: "IDEA",
+        command: "PLAN",
         key: "Z",
         secondMessage: "ドリルを発射します。長押しで防御してください",
-        hideCommand: true,
+        hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
     }
@@ -60,49 +65,9 @@ function init() {
     setupWindowToggleButton();
     setupKeyboardToggleButton();
     setupKeyMappingToggleButton();
-    
-    // デフォルトシナリオを強制的にFirebaseに保存
-    setTimeout(() => {
-        forceUpdateDefaultScenarios();
-    }, 1000);
 }
 
-// デフォルトシナリオを強制的に保存
-function forceUpdateDefaultScenarios() {
-    console.log('Forcing update of default scenarios...');
-    
-    if (!window.firestore && !window.database) {
-        console.error('Firebase not initialized for scenario update');
-        return;
-    }
 
-    try {
-        if (window.useFirestore) {
-            // Firestore使用
-            const scenariosRef = window.firestoreDoc(window.firestore, 'gameData', 'scenarios');
-            window.firestoreSetDoc(scenariosRef, defaultScenarios)
-                .then(() => {
-                    console.log('Default scenarios force updated to Firestore');
-                    showNotification('シナリオデータを最新版に更新しました', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error force updating scenarios to Firestore:', error);
-                });
-        } else {
-            // Realtime Database使用
-            window.dbSet(window.dbRef(window.database, 'scenarios'), defaultScenarios)
-                .then(() => {
-                    console.log('Default scenarios force updated to Database');
-                    showNotification('シナリオデータを最新版に更新しました', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error force updating scenarios to Database:', error);
-                });
-        }
-    } catch (error) {
-        console.error('Error in forceUpdateDefaultScenarios:', error);
-    }
-}
 
 // リセットボタンの設定
 function setupResetButton() {
@@ -224,6 +189,12 @@ function updateWindowToggleButton(enabled) {
 function updateWindowControlInFirebase(enabled) {
     console.log('Updating window control in Firebase:', enabled);
     
+    // 状態が変わっていない場合は通信しない
+    if (lastWindowControlState === enabled) {
+        console.log('Window control state unchanged, skipping update');
+        return;
+    }
+    
     if (!window.firestore && !window.database) {
         console.error('Firebase not initialized');
         showNotification('Firebase未初期化', 'error');
@@ -243,6 +214,7 @@ function updateWindowControlInFirebase(enabled) {
             window.firestoreSetDoc(windowControlRef, windowControlData)
                 .then(() => {
                     console.log('Window control updated in Firestore');
+                    lastWindowControlState = enabled; // 成功時のみ状態を保存
                     showNotification(enabled ? '窓変化を有効にしました' : '窓変化を無効にしました', 'success');
                 })
                 .catch((error) => {
@@ -255,6 +227,7 @@ function updateWindowControlInFirebase(enabled) {
             window.dbSet(windowControlRef, windowControlData)
                 .then(() => {
                     console.log('Window control updated in Database');
+                    lastWindowControlState = enabled; // 成功時のみ状態を保存
                     showNotification(enabled ? '窓変化を有効にしました' : '窓変化を無効にしました', 'success');
                 })
                 .catch((error) => {
@@ -309,6 +282,12 @@ function updateKeyboardToggleButton(connected) {
 function updateKeyboardStatusInFirebase(connected) {
     console.log('Updating keyboard status in Firebase:', connected);
     
+    // 状態が変わっていない場合は通信しない
+    if (lastKeyboardState === connected) {
+        console.log('Keyboard state unchanged, skipping update');
+        return;
+    }
+    
     if (!window.firestore && !window.database) {
         console.error('Firebase not initialized');
         showNotification('Firebase未初期化', 'error');
@@ -327,6 +306,7 @@ function updateKeyboardStatusInFirebase(connected) {
             window.firestoreSetDoc(keyboardStatusRef, keyboardStatusData)
                 .then(() => {
                     console.log('Keyboard status updated in Firestore');
+                    lastKeyboardState = connected; // 成功時のみ状態を保存
                     showNotification(connected ? 'キーボード接続状態に変更しました' : 'キーボード切断状態に変更しました', 'success');
                 })
                 .catch((error) => {
@@ -339,6 +319,7 @@ function updateKeyboardStatusInFirebase(connected) {
             window.dbSet(keyboardStatusRef, keyboardStatusData)
                 .then(() => {
                     console.log('Keyboard status updated in Database');
+                    lastKeyboardState = connected; // 成功時のみ状態を保存
                     showNotification(connected ? 'キーボード接続状態に変更しました' : 'キーボード切断状態に変更しました', 'success');
                 })
                 .catch((error) => {
@@ -394,11 +375,12 @@ function loadScenariosFromFirestore() {
         } else {
             console.log('No scenarios data found, using defaults');
             scenarios = { ...defaultScenarios };
-            // デフォルトデータをFirestoreに保存
-            console.log('Saving default scenarios to Firestore...');
+            // デフォルトデータをFirestoreに保存（初回のみ）
+            console.log('Saving default scenarios to Firestore (first time only)...');
             window.firestoreSetDoc(scenariosRef, scenarios)
                 .then(() => {
                     console.log('Default scenarios saved successfully');
+                    showNotification('初期シナリオデータを作成しました', 'success');
                 })
                 .catch((error) => {
                     console.error('Error saving default scenarios:', error);
@@ -442,11 +424,12 @@ function loadScenariosFromDatabase() {
         } else {
             console.log('No scenarios data found, using defaults');
             scenarios = { ...defaultScenarios };
-            // デフォルトデータをRealtime Databaseに保存
-            console.log('Saving default scenarios to Database...');
+            // デフォルトデータをRealtime Databaseに保存（初回のみ）
+            console.log('Saving default scenarios to Database (first time only)...');
             window.dbSet(window.dbRef(window.database, 'scenarios'), scenarios)
                 .then(() => {
                     console.log('Default scenarios saved successfully');
+                    showNotification('初期シナリオデータを作成しました', 'success');
                 })
                 .catch((error) => {
                     console.error('Error saving default scenarios:', error);
@@ -701,6 +684,12 @@ function updateKeyMappingToggleButton(enabled) {
 function updateKeyMappingInFirebase(enabled) {
     console.log('Updating key mapping in Firebase:', enabled);
     
+    // 状態が変わっていない場合は通信しない
+    if (lastKeyMappingState === enabled) {
+        console.log('Key mapping state unchanged, skipping update');
+        return;
+    }
+    
     if (!window.firestore && !window.database) {
         console.error('Firebase not initialized');
         showNotification('Firebase未初期化', 'error');
@@ -719,6 +708,7 @@ function updateKeyMappingInFirebase(enabled) {
             window.firestoreSetDoc(keyMappingRef, keyMappingData)
                 .then(() => {
                     console.log('Key mapping updated in Firestore');
+                    lastKeyMappingState = enabled; // 成功時のみ状態を保存
                     showNotification(enabled ? 'キーマッピングを有効にしました' : 'キーマッピングを無効にしました', 'success');
                 })
                 .catch((error) => {
@@ -731,6 +721,7 @@ function updateKeyMappingInFirebase(enabled) {
             window.dbSet(keyMappingRef, keyMappingData)
                 .then(() => {
                     console.log('Key mapping updated in Database');
+                    lastKeyMappingState = enabled; // 成功時のみ状態を保存
                     showNotification(enabled ? 'キーマッピングを有効にしました' : 'キーマッピングを無効にしました', 'success');
                 })
                 .catch((error) => {

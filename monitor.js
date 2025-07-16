@@ -17,7 +17,7 @@ class MysteryMonitor {
         this.keyboardConnected = true; // キーボード接続状況
         
         // 外部キーボード設定
-        this.externalKeyboardMode = false;
+        this.externalKeyboardMode = true; // デフォルトで有効
         this.keyMapUpper = {
             // 上段
             'E': 'Q', 'R': 'W', 'T': 'E', 'Y': 'R', 'U': 'T',
@@ -33,6 +33,11 @@ class MysteryMonitor {
         // 隠しボタンの要素
         this.homeButton = document.getElementById('monitorHomeButton');
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
+        
+        // キーマッピングボタンの要素
+        this.keyboardMappingBtn = document.getElementById('keyboardMappingBtn');
+        this.keyboardMappingIcon = document.getElementById('keyboardMappingIcon');
+        this.keyboardMappingText = document.getElementById('keyboardMappingText');
         this.homeClickCount = 0;
         this.homeClickTimer = null;
         this.isFullscreen = false;
@@ -47,6 +52,7 @@ class MysteryMonitor {
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupExternalKeyboardToggle();
+        this.setupKeyboardMappingButton();
         this.loadExternalKeyboardMode();
         this.showWaitingMessage();
     }
@@ -60,6 +66,15 @@ class MysteryMonitor {
                 this.toggleExternalKeyboardMode();
             }
         });
+    }
+
+    // キーマッピングボタンのセットアップ
+    setupKeyboardMappingButton() {
+        if (this.keyboardMappingBtn) {
+            this.keyboardMappingBtn.addEventListener('click', () => {
+                this.toggleExternalKeyboardMode();
+            });
+        }
     }
 
     // 外部キーボードモードの切り替え
@@ -80,7 +95,8 @@ class MysteryMonitor {
     // キーボードモードのメッセージを表示
     showKeyboardModeMessage() {
         const mode = this.externalKeyboardMode ? 'ON' : 'OFF';
-        const message = `外部キーボードモード: ${mode}`;
+        const icon = this.externalKeyboardMode ? '🔄' : '❌';
+        const message = `${icon} キーマッピング: ${mode}`;
         
         // 一時的にメッセージを表示
         const messageElement = this.addMessage(message);
@@ -103,6 +119,28 @@ class MysteryMonitor {
             statusElement.textContent = baseText + keyboardStatus;
             statusElement.style.color = this.externalKeyboardMode ? '#ffff00' : '#00ff00';
         }
+        
+        // キーマッピングボタンの表示も更新
+        this.updateKeyboardMappingButton();
+    }
+
+    // キーマッピングボタンの表示を更新
+    updateKeyboardMappingButton() {
+        if (this.keyboardMappingBtn && this.keyboardMappingIcon && this.keyboardMappingText) {
+            if (this.externalKeyboardMode) {
+                // キーマッピングが有効な場合
+                this.keyboardMappingBtn.classList.remove('inactive');
+                this.keyboardMappingBtn.classList.add('active');
+                this.keyboardMappingIcon.textContent = '🔄';
+                this.keyboardMappingText.textContent = 'キーマップ: ON';
+            } else {
+                // キーマッピングが無効な場合
+                this.keyboardMappingBtn.classList.remove('active');
+                this.keyboardMappingBtn.classList.add('inactive');
+                this.keyboardMappingIcon.textContent = '❌';
+                this.keyboardMappingText.textContent = 'キーマップ: OFF';
+            }
+        }
     }
 
     // キーを変換する関数
@@ -120,8 +158,9 @@ class MysteryMonitor {
         const saved = localStorage.getItem('externalKeyboardMode');
         if (saved !== null) {
             this.externalKeyboardMode = saved === 'true';
-            this.updateHeaderDisplay();
         }
+        // 初期表示を更新（デフォルト値またはローカルストレージの値）
+        this.updateHeaderDisplay();
     }
 
     setupFullscreenListener() {

@@ -46,7 +46,6 @@ body {
     top: 0;
     left: 0;
     transition: transform 0.3s ease-in-out;
-    border: 1px solid red; /* デバッグ用 */
 }
 
 /* スクロール効果はJavaScriptで制御されるため削除 */

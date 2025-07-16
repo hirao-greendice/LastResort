@@ -34,6 +34,51 @@ body {
     border-bottom: 1px solid #00ff00;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.keyboard-toggle-btn {
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    padding: 8px 15px;
+    border-radius: 5px;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+}
+
+.keyboard-toggle-btn:hover {
+    background: rgba(0, 255, 0, 0.2);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+    transform: translateY(-2px);
+}
+
+.keyboard-toggle-btn.active {
+    background: rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.keyboard-toggle-btn.inactive {
+    background: rgba(128, 128, 128, 0.1);
+    border-color: #888888;
+    color: #888888;
+}
+
+.keyboard-toggle-btn.inactive:hover {
+    background: rgba(128, 128, 128, 0.2);
+    box-shadow: 0 0 10px rgba(128, 128, 128, 0.3);
+}
+
 .terminal-title {
     font-size: clamp(13px, 2.4vw, 19px);
     font-weight: 700;
@@ -402,6 +447,18 @@ body {
         padding: 15px;
         padding-left: 20px;
     }
+    
+    .keyboard-toggle-btn {
+        padding: 6px 10px;
+        font-size: 10px;
+        gap: 3px;
+    }
+    
+    .terminal-header {
+        padding: 10px 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -421,5 +478,19 @@ body {
     
     .message-container {
         gap: 5px;
+    }
+    
+    .keyboard-toggle-btn {
+        padding: 4px 8px;
+        font-size: 9px;
+        gap: 2px;
+    }
+    
+    #keyboardMappingText {
+        display: none;
+    }
+    
+    .terminal-header {
+        padding: 8px 15px;
     }
 } 

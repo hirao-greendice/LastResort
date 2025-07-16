@@ -17,7 +17,8 @@ class MysteryMonitor {
         this.keyboardConnected = true; // キーボード接続状況
         
         // キーマッピング機能
-        this.externalKeyboardMode = false; // デフォルトは無効
+        this.externalKeyboardMode = true; // デフォルトは有効
+        this.keyDebugMode = false; // キーデバッグモード
         this.keyMapping = {
             // 上段
             'KeyE': 'Q',
@@ -28,8 +29,8 @@ class MysteryMonitor {
             'KeyI': 'Y',
             'KeyO': 'U',
             'KeyP': 'I',
-            'Backquote': 'O',
-            'BracketLeft': 'P',
+            'Backquote': 'P',
+            'BracketLeft': 'O',
 
             // 中段
             'KeyD': 'A',
@@ -39,9 +40,9 @@ class MysteryMonitor {
             'KeyJ': 'G',
             'KeyK': 'H',
             'KeyL': 'J',
-            'Equal': 'K',
-            'Semicolon': 'L',
-            'BracketRight': ':',
+            'Semicolon': 'K',      // ;キーがK
+            'BracketRight': 'L',   // ]キーがL（:の位置）
+            'Quote': ':',          // 'キーが:（実際のコロン位置）
             
             // 下段
             'KeyC': 'Z',
@@ -49,9 +50,10 @@ class MysteryMonitor {
             'KeyB': 'C',
             'KeyN': 'V',
             'KeyM': 'B',
-            'Comma': 'N',
-            'Period': 'M',
-            'Slash': '?'
+            'Comma': 'N',         // ,キーがN
+            'Period': 'M',        // .キーがM
+            'Slash': '?',         // /キーが?
+            'IntlRo': 'M'         // ろキーがM
         };
         
         // 通信最適化用
@@ -69,12 +71,14 @@ class MysteryMonitor {
     }
 
     init() {
+        console.log('Monitor initialized - Key mapping mode:', this.externalKeyboardMode ? 'ON' : 'OFF');
         this.setupKeyboardListeners();
         this.setupFirebaseListener();
         this.setupKeyboardStatusListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupKeyMappingListener();
+        this.setupKeyDebugButton();
         this.showWaitingMessage();
     }
 
@@ -133,21 +137,31 @@ class MysteryMonitor {
             
             // キーマッピングモードの場合
             if (this.externalKeyboardMode) {
+                console.log('External keyboard mode - Key pressed:', e.code, 'Key:', e.key, 'Location:', e.location);
+                
+                // デバッグモードの時のみキー情報を画面に表示
+                this.showKeyDebugInfo(e.code, e.key, e.location);
+                
                 const mappedKey = this.keyMapping[e.code];
                 if (mappedKey) {
                     e.preventDefault(); // ブラウザのデフォルト動作を防止
                     inputKey = mappedKey;
+                    console.log('Mapped:', e.code, '→', mappedKey);
                 } else {
+                    console.log('Key not mapped:', e.code, '- Available mappings:', Object.keys(this.keyMapping));
                     // マッピングされていないキーは無視
                     return;
                 }
             } else {
                 // 通常モード（見たまま入力）
+                console.log('Normal mode - Key pressed:', e.code, 'Key:', e.key);
                 const key = e.key.toUpperCase();
                 // アルファベットのみ処理
                 if (key.length === 1 && key.match(/[A-Z]/)) {
                     inputKey = key;
+                    console.log('Normal input:', key);
                 } else {
+                    console.log('Key not alphabetic:', e.key);
                     return;
                 }
             }
@@ -763,6 +777,104 @@ class MysteryMonitor {
         return messageElement;
         }
 
+    setupKeyDebugButton() {
+        // 左上に隠しボタンを作成
+        const debugButton = document.createElement('button');
+        debugButton.id = 'keyDebugButton';
+        debugButton.textContent = '🔍';
+        debugButton.style.cssText = `
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 50%;
+            z-index: 1000;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        `;
+        
+        debugButton.addEventListener('click', () => {
+            this.keyDebugMode = !this.keyDebugMode;
+            if (this.keyDebugMode) {
+                debugButton.style.background = 'rgba(0, 255, 0, 0.2)';
+                debugButton.style.opacity = '1';
+                debugButton.textContent = '🔍✓';
+                console.log('キーデバッグモード: ON');
+            } else {
+                debugButton.style.background = 'rgba(0, 0, 0, 0.8)';
+                debugButton.style.opacity = '0.3';
+                debugButton.textContent = '🔍';
+                console.log('キーデバッグモード: OFF');
+                // デバッグ表示を削除
+                const debugDiv = document.getElementById('keyDebugInfo');
+                if (debugDiv && debugDiv.parentNode) {
+                    debugDiv.parentNode.removeChild(debugDiv);
+                }
+            }
+        });
+        
+        debugButton.addEventListener('mouseenter', () => {
+            debugButton.style.opacity = '1';
+        });
+        
+        debugButton.addEventListener('mouseleave', () => {
+            if (!this.keyDebugMode) {
+                debugButton.style.opacity = '0.3';
+            }
+        });
+        
+        document.body.appendChild(debugButton);
+    }
+
+    showKeyDebugInfo(code, key, location) {
+        // デバッグモードがOFFの場合は何もしない
+        if (!this.keyDebugMode) return;
+        
+        // デバッグ情報を画面上に一時表示
+        let debugDiv = document.getElementById('keyDebugInfo');
+        if (!debugDiv) {
+            debugDiv = document.createElement('div');
+            debugDiv.id = 'keyDebugInfo';
+            debugDiv.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(0, 0, 0, 0.9);
+                color: #00ff00;
+                padding: 10px;
+                border: 1px solid #00ff00;
+                font-family: monospace;
+                font-size: 12px;
+                z-index: 9999;
+                max-width: 300px;
+            `;
+            document.body.appendChild(debugDiv);
+        }
+        
+        const mappedChar = this.keyMapping[code];
+        const kMappings = Object.keys(this.keyMapping).filter(k => this.keyMapping[k] === 'K');
+        
+        debugDiv.innerHTML = `
+            <div><strong>キー押下情報:</strong></div>
+            <div>Code: ${code}</div>
+            <div>Key: ${key}</div>
+            <div>Location: ${location}</div>
+            <div>Mapped to: ${mappedChar || '未マップ'}</div>
+            <div style="font-size: 10px; margin-top: 5px; color: #888;">
+                Kにマップされるキー: ${kMappings.join(', ')}
+            </div>
+            <div style="font-size: 10px; color: #888;">
+                試してみてください: = - + キーなど
+            </div>
+        `;
+    }
+
     setupKeyMappingListener() {
         // キーマッピング状態をFirebaseで監視
         if (window.useFirestore && window.firestore) {
@@ -772,7 +884,7 @@ class MysteryMonitor {
                     if (doc.exists) {
                         const data = doc.data();
                         this.externalKeyboardMode = data.enabled || false;
-                        console.log('Key mapping mode:', this.externalKeyboardMode ? 'ON' : 'OFF');
+                        console.log('Key mapping mode updated from Firebase:', this.externalKeyboardMode ? 'ON' : 'OFF');
                     }
                 }, (error) => {
                     console.error('Key mapping listener error:', error);
@@ -783,7 +895,7 @@ class MysteryMonitor {
                 const data = snapshot.val();
                 if (data) {
                     this.externalKeyboardMode = data.enabled || false;
-                    console.log('Key mapping mode:', this.externalKeyboardMode ? 'ON' : 'OFF');
+                    console.log('Key mapping mode updated from Firebase:', this.externalKeyboardMode ? 'ON' : 'OFF');
                 }
             }, (error) => {
                 console.error('Key mapping listener error:', error);

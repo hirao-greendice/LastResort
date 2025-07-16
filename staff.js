@@ -8,7 +8,7 @@ let lastWindowControlState = null;
 let lastKeyboardState = null;
 
 // キーマッピング関連
-let keyMappingEnabled = false;
+let keyMappingEnabled = true; // デフォルトでON
 let keyMappingButton = null;
 
 // デフォルトのシナリオデータ

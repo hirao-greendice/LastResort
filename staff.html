@@ -251,6 +251,40 @@
             background: rgba(255, 255, 0, 0.1);
             box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
         }
+        
+        .key-mapping-controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .key-mapping-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            background: transparent;
+            border: 2px solid #0099ff;
+            color: #0099ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Courier Prime', monospace;
+            border-radius: 5px;
+        }
+        
+        .key-mapping-button:hover {
+            background: rgba(0, 153, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 153, 255, 0.5);
+        }
+        
+        .key-mapping-button.disabled {
+            border-color: #666;
+            color: #666;
+            cursor: not-allowed;
+        }
+        
+        .key-mapping-button.disabled:hover {
+            background: transparent;
+            box-shadow: none;
+        }
     </style>
 </head>
 <body>
@@ -258,6 +292,11 @@
         <div class="header">
             <div class="title">STAFF CONTROL PANEL</div>
             <div class="subtitle">モニター画面コントロール</div>
+            <div class="key-mapping-controls">
+                <button id="keyMappingToggle" class="key-mapping-button" onclick="toggleKeyMapping()">
+                    🔄 キーマップ: OFF
+                </button>
+            </div>
             <div class="status" id="connectionStatus">Firebase接続状態: 接続中...</div>
         </div>
         
@@ -318,10 +357,6 @@
                 <button id="keyboardToggleBtn" class="control-btn keyboard-toggle-btn" style="margin-top: 10px; background-color: #28a745;">
                     <i class="fas fa-keyboard"></i>
                     キーボード: 接続
-                </button>
-                <button id="keyMappingToggleBtn" class="control-btn key-mapping-toggle-btn" style="margin-top: 10px; background-color: #17a2b8;">
-                    <i class="fas fa-exchange-alt"></i>
-                    <span id="keyMappingText">キーマップ: ON</span>
                 </button>
             </div>
         </div>

@@ -2,12 +2,14 @@
 let currentScenario = null;
 let scenarios = {};
 let keyboardConnected = true; // キーボードの接続状況
-let externalKeyboardMode = true; // キーマッピングの状態（デフォルトで有効）
 
 // 通信最適化用
 let lastWindowControlState = null;
 let lastKeyboardState = null;
-let lastKeyMappingState = null;
+
+// キーマッピング関連
+let keyMappingEnabled = false;
+let keyMappingButton = null;
 
 // デフォルトのシナリオデータ
 const defaultScenarios = {
@@ -64,7 +66,6 @@ function init() {
     setupResetButton();
     setupWindowToggleButton();
     setupKeyboardToggleButton();
-    setupKeyMappingToggleButton();
 }
 
 
@@ -612,6 +613,99 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// キーマッピング切り替え機能
+function toggleKeyMapping() {
+    keyMappingEnabled = !keyMappingEnabled;
+    updateKeyMappingButton();
+    saveKeyMappingToFirebase();
+}
+
+function updateKeyMappingButton() {
+    if (keyMappingButton) {
+        if (keyMappingEnabled) {
+            keyMappingButton.textContent = '🔄 キーマップ: ON';
+            keyMappingButton.classList.remove('disabled');
+        } else {
+            keyMappingButton.textContent = '❌ キーマップ: OFF';
+            keyMappingButton.classList.add('disabled');
+        }
+    }
+}
+
+function saveKeyMappingToFirebase() {
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        return;
+    }
+
+    const keyMappingData = {
+        enabled: keyMappingEnabled,
+        timestamp: new Date().toISOString()
+    };
+
+    if (window.useFirestore && window.firestore) {
+        // Firestore使用
+        window.firestore.collection('gameControl').doc('keyMapping')
+            .set(keyMappingData)
+            .then(() => {
+                console.log('Key mapping setting saved:', keyMappingEnabled);
+                showNotification(`キーマッピング: ${keyMappingEnabled ? 'ON' : 'OFF'}`, 'success');
+            })
+            .catch((error) => {
+                console.error('Error saving key mapping:', error);
+                showNotification('キーマッピング設定の保存に失敗しました', 'error');
+            });
+    } else if (window.database) {
+        // Realtime Database使用
+        window.database.ref('gameControl/keyMapping')
+            .set(keyMappingData)
+            .then(() => {
+                console.log('Key mapping setting saved:', keyMappingEnabled);
+                showNotification(`キーマッピング: ${keyMappingEnabled ? 'ON' : 'OFF'}`, 'success');
+            })
+            .catch((error) => {
+                console.error('Error saving key mapping:', error);
+                showNotification('キーマッピング設定の保存に失敗しました', 'error');
+            });
+    }
+}
+
+function setupKeyMappingButton() {
+    keyMappingButton = document.getElementById('keyMappingToggle');
+    if (keyMappingButton) {
+        updateKeyMappingButton();
+        
+        // Firebase から現在の状態を読み込み
+        if (window.useFirestore && window.firestore) {
+            window.firestore.collection('gameControl').doc('keyMapping')
+                .get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        keyMappingEnabled = data.enabled || false;
+                        updateKeyMappingButton();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error loading key mapping state:', error);
+                });
+        } else if (window.database) {
+            window.database.ref('gameControl/keyMapping')
+                .once('value')
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        keyMappingEnabled = data.enabled || false;
+                        updateKeyMappingButton();
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error loading key mapping state:', error);
+                });
+        }
+    }
+}
+
 // ページロード時に初期化
 document.addEventListener('DOMContentLoaded', () => {
     init();
@@ -628,112 +722,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (document.getElementById('resetMonitorBtn')) {
             setupResetButton();
         }
+        if (document.getElementById('keyMappingToggle')) {
+            setupKeyMappingButton();
+        }
     }, 100);
 });
 
-// キーマッピングトグルボタンの設定
-function setupKeyMappingToggleButton() {
-    const keyMappingToggleBtn = document.getElementById('keyMappingToggleBtn');
-    
-    // 既存のイベントリスナーを削除して重複を防ぐ
-    if (keyMappingToggleBtn.hasSetupListener) {
-        console.log('Key mapping toggle button already initialized');
-        return;
-    }
-    
-    // ローカルストレージから状態を読み込み
-    const saved = localStorage.getItem('externalKeyboardMode');
-    if (saved !== null) {
-        externalKeyboardMode = saved === 'true';
-    }
-    
-    keyMappingToggleBtn.addEventListener('click', () => {
-        externalKeyboardMode = !externalKeyboardMode;
-        updateKeyMappingToggleButton(externalKeyboardMode);
-        updateKeyMappingInFirebase(externalKeyboardMode);
-        
-        // ローカルストレージに保存
-        localStorage.setItem('externalKeyboardMode', externalKeyboardMode);
-    });
-    
-    keyMappingToggleBtn.hasSetupListener = true;
-    console.log('Key mapping toggle button initialized');
-    
-    // 初期状態を表示
-    updateKeyMappingToggleButton(externalKeyboardMode);
-    updateKeyMappingInFirebase(externalKeyboardMode);
-}
 
-// キーマッピングボタンの表示を更新
-function updateKeyMappingToggleButton(enabled) {
-    const keyMappingToggleBtn = document.getElementById('keyMappingToggleBtn');
-    const keyMappingText = document.getElementById('keyMappingText');
-    
-    console.log('Updating key mapping toggle button:', enabled);
-    
-    if (enabled) {
-        keyMappingToggleBtn.style.backgroundColor = '#17a2b8'; // 青色
-        keyMappingText.textContent = 'キーマップ: ON';
-    } else {
-        keyMappingToggleBtn.style.backgroundColor = '#6c757d'; // グレー
-        keyMappingText.textContent = 'キーマップ: OFF';
-    }
-}
-
-// キーマッピング状態をFirebaseに保存
-function updateKeyMappingInFirebase(enabled) {
-    console.log('Updating key mapping in Firebase:', enabled);
-    
-    // 状態が変わっていない場合は通信しない
-    if (lastKeyMappingState === enabled) {
-        console.log('Key mapping state unchanged, skipping update');
-        return;
-    }
-    
-    if (!window.firestore && !window.database) {
-        console.error('Firebase not initialized');
-        showNotification('Firebase未初期化', 'error');
-        return;
-    }
-
-    const keyMappingData = {
-        enabled: enabled,
-        timestamp: Date.now()
-    };
-
-    try {
-        if (window.useFirestore) {
-            // Firestore使用
-            const keyMappingRef = window.firestoreDoc(window.firestore, 'gameData', 'keyMapping');
-            window.firestoreSetDoc(keyMappingRef, keyMappingData)
-                .then(() => {
-                    console.log('Key mapping updated in Firestore');
-                    lastKeyMappingState = enabled; // 成功時のみ状態を保存
-                    showNotification(enabled ? 'キーマッピングを有効にしました' : 'キーマッピングを無効にしました', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error updating key mapping in Firestore:', error);
-                    showNotification('キーマッピング設定の更新に失敗しました: ' + error.message, 'error');
-                });
-        } else {
-            // Realtime Database使用
-            const keyMappingRef = window.dbRef(window.database, 'keyMapping');
-            window.dbSet(keyMappingRef, keyMappingData)
-                .then(() => {
-                    console.log('Key mapping updated in Database');
-                    lastKeyMappingState = enabled; // 成功時のみ状態を保存
-                    showNotification(enabled ? 'キーマッピングを有効にしました' : 'キーマッピングを無効にしました', 'success');
-                })
-                .catch((error) => {
-                    console.error('Error updating key mapping in Database:', error);
-                    showNotification('キーマッピング設定の更新に失敗しました: ' + error.message, 'error');
-                });
-        }
-    } catch (error) {
-        console.error('Error in updateKeyMappingInFirebase:', error);
-        showNotification('キーマッピング設定の更新でエラーが発生しました', 'error');
-    }
-}
 
 // エラーハンドリング
 window.addEventListener('error', (e) => {

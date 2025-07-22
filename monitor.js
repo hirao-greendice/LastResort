@@ -15,6 +15,7 @@ class MysteryMonitor {
         this.currentScenario = null;
         this.maxMessages = 8; // 最大メッセージ数を増やす
         this.keyboardConnected = true; // キーボード接続状況
+        this.windowControlEnabled = false; // 窓制御のON/OFF状態
         
         // キーマッピング機能
         this.externalKeyboardMode = true; // デフォルトは有効
@@ -74,6 +75,7 @@ class MysteryMonitor {
         this.setupKeyboardListeners();
         this.setupFirebaseListener();
         this.setupKeyboardStatusListener();
+        this.setupWindowControlListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupKeyMappingListener();
@@ -311,6 +313,50 @@ class MysteryMonitor {
         }
     }
 
+    setupWindowControlListener() {
+        console.log('Setting up window control listener...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for window control monitoring');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                console.log('Using Firestore for window control monitoring');
+                const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+                window.firestoreOnSnapshot(windowControlRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        this.windowControlEnabled = data.enabled || false;
+                        console.log('Window control status updated via Firestore:', this.windowControlEnabled);
+                    } else {
+                        console.log('No window control document found in Firestore');
+                        this.windowControlEnabled = false;
+                    }
+                });
+            } else {
+                // Realtime Database使用
+                console.log('Using Realtime Database for window control monitoring');
+                const windowControlRef = window.dbRef(window.database, 'windowControl');
+                window.dbOnValue(windowControlRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        this.windowControlEnabled = data.enabled || false;
+                        console.log('Window control status updated via Database:', this.windowControlEnabled);
+                    } else {
+                        console.log('No window control data found in Database');
+                        this.windowControlEnabled = false;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up window control listener:', error);
+            this.windowControlEnabled = false;
+        }
+    }
+
 
 
     setupHiddenButton() {
@@ -476,13 +522,21 @@ class MysteryMonitor {
     }
 
     handleEnterPress() {
-        console.log('Enter pressed - updating window state');
-        this.updateWindowStateInFirebase(true);
+        console.log('Enter pressed - window control enabled:', this.windowControlEnabled);
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(true);
+        } else {
+            console.log('Window control disabled - ignoring Enter press');
+        }
     }
 
     handleEnterRelease() {
-        console.log('Enter released - updating window state');
-        this.updateWindowStateInFirebase(false);
+        console.log('Enter released - window control enabled:', this.windowControlEnabled);
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(false);
+        } else {
+            console.log('Window control disabled - ignoring Enter release');
+        }
     }
 
     updateWindowStateInFirebase(isScrolling) {

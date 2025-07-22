@@ -14,8 +14,8 @@ let keyMappingButton = null;
 // デフォルトのシナリオデータ
 const defaultScenarios = {
     1: {
-        target: "アンティークショップ",
-        command: "WAKE",
+        target: "アロハみやげ館",
+        command: "LAND",
         key: "A",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
@@ -23,15 +23,15 @@ const defaultScenarios = {
     },
     2: {
         target: "クイーンズピザ",
-        command: "HEAD",
+        command: "FLAG",
         key: "Q",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
         hideKey: false
     },
     3: {
-        target: "スタジオ",
-        command: "IDEA",
+        target: "ストリートライブハウス",
+        command: "EDIT",
         key: "S",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
@@ -39,8 +39,8 @@ const defaultScenarios = {
         completeMessage: "⚠ドリルにより、アンティークショップが破壊されました"
     },
     4: {
-        target: "ゾンビアクション",
-        command: "WING",
+        target: "ゾンビアトラクション",
+        command: "UNIT",
         key: "Z",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,
@@ -49,7 +49,7 @@ const defaultScenarios = {
     },
     5: {
         target: "ゾンビアトラクション",
-        command: "PLAN",
+        command: "VIEW",
         key: "Z",
         secondMessage: "ドリルを発射します。長押しで防御してください",
         hideCommand: false,

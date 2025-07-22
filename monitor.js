@@ -713,7 +713,7 @@ class MysteryMonitor {
             await this.typeMessageUnified(defaultMessage, false);
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = 'ドリルにより、アンティークショップが破壊されました';
+            const additionalMessage = 'ドリルにより、アロハみやげ館が破壊されました';
             console.log('Scenario 3: Showing additional message instantly');
             const errorElement = this.addMessage(additionalMessage);
             errorElement.className = 'message-line error-message';

@@ -334,6 +334,61 @@ body {
     right: 10px;
 }
 
+/* フォントサイズボタン（右上） */
+.hidden-button.font-size-button {
+    top: 10px;
+    right: 10px;
+}
+
+.hidden-button.font-size-button:hover {
+    background: rgba(255, 255, 0, 0.2);
+}
+
+/* 画像サイズボタン（左下） */
+.hidden-button.image-size-button {
+    bottom: 10px;
+    left: 10px;
+}
+
+.hidden-button.image-size-button:hover {
+    background: rgba(0, 255, 255, 0.2);
+}
+
+/* フォントサイズボタンのアイコン表示 */
+.hidden-button.font-size-button::before {
+    content: "A";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ffff00;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    font-weight: bold;
+}
+
+.hidden-button.font-size-button:hover::before {
+    opacity: 0.7;
+}
+
+/* 画像サイズボタンのアイコン表示 */
+.hidden-button.image-size-button::before {
+    content: "🖼";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    color: #00ffff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button.image-size-button:hover::before {
+    opacity: 0.7;
+}
+
 .hidden-button.fullscreen-button:hover {
     background: rgba(0, 255, 0, 0.2);
 }
@@ -371,6 +426,32 @@ body {
     padding: 40px;
 }
 
+/* エラー画像のスタイル */
+.error-image {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: auto;
+    z-index: 99999;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    pointer-events: none;
+    object-fit: contain;
+    border: 2px solid red; /* デバッグ用 - 後で削除可能 */
+    background: rgba(255, 0, 0, 0.1); /* デバッグ用 - 後で削除可能 */
+}
+
+.error-image.show {
+    opacity: 1;
+}
+
+/* 全画面時のエラー画像調整 */
+.fullscreen .error-image {
+    height: 100vh;
+    right: 0;
+}
+
 /* 待機中のエフェクト */
 .waiting {
     animation: pulse 2s ease-in-out infinite;
@@ -383,6 +464,125 @@ body {
     50% {
         opacity: 1;
     }
+}
+
+/* フォントサイズプリセット */
+.font-size-smaller .terminal-title {
+    font-size: clamp(10px, 1.8vw, 14px);
+}
+
+.font-size-smaller .terminal-status {
+    font-size: clamp(9px, 1.5vw, 11px);
+}
+
+.font-size-smaller .prompt {
+    font-size: clamp(10px, 1.8vw, 14px);
+}
+
+.font-size-smaller .message-line {
+    font-size: clamp(11px, 2.4vw, 18px);
+}
+
+.font-size-smaller .input-area .prompt {
+    font-size: clamp(11px, 2.1vw, 16px);
+}
+
+.font-size-smaller .input-text, .font-size-smaller .cursor {
+    font-size: clamp(12px, 2.4vw, 18px);
+}
+
+.font-size-small .terminal-title {
+    font-size: clamp(11px, 2.1vw, 16px);
+}
+
+.font-size-small .terminal-status {
+    font-size: clamp(10px, 1.8vw, 12px);
+}
+
+.font-size-small .prompt {
+    font-size: clamp(11px, 2.1vw, 16px);
+}
+
+.font-size-small .message-line {
+    font-size: clamp(12px, 2.8vw, 22px);
+}
+
+.font-size-small .input-area .prompt {
+    font-size: clamp(12px, 2.4vw, 18px);
+}
+
+.font-size-small .input-text, .font-size-small .cursor {
+    font-size: clamp(14px, 2.8vw, 22px);
+}
+
+/* デフォルト（medium）は既存のスタイルを使用 */
+
+.font-size-large .terminal-title {
+    font-size: clamp(16px, 3.2vw, 24px);
+}
+
+.font-size-large .terminal-status {
+    font-size: clamp(14px, 2.8vw, 18px);
+}
+
+.font-size-large .prompt {
+    font-size: clamp(16px, 3.2vw, 24px);
+}
+
+.font-size-large .message-line {
+    font-size: clamp(18px, 4.0vw, 32px);
+}
+
+.font-size-large .input-area .prompt {
+    font-size: clamp(18px, 3.6vw, 28px);
+}
+
+.font-size-large .input-text, .font-size-large .cursor {
+    font-size: clamp(20px, 4.0vw, 32px);
+}
+
+.font-size-larger .terminal-title {
+    font-size: clamp(18px, 3.6vw, 28px);
+}
+
+.font-size-larger .terminal-status {
+    font-size: clamp(16px, 3.2vw, 22px);
+}
+
+.font-size-larger .prompt {
+    font-size: clamp(18px, 3.6vw, 28px);
+}
+
+.font-size-larger .message-line {
+    font-size: clamp(22px, 4.8vw, 38px);
+}
+
+.font-size-larger .input-area .prompt {
+    font-size: clamp(22px, 4.4vw, 34px);
+}
+
+.font-size-larger .input-text, .font-size-larger .cursor {
+    font-size: clamp(24px, 4.8vw, 38px);
+}
+
+/* 画像サイズプリセット */
+.image-size-tiny .error-image {
+    height: 30vh;
+}
+
+.image-size-small .error-image {
+    height: 50vh;
+}
+
+.image-size-medium .error-image {
+    height: 70vh;
+}
+
+/* デフォルト（large）は既存の100vhを使用 */
+
+.image-size-huge .error-image {
+    height: 120vh;
+    width: auto;
 }
 
 /* レスポンシブ対応 */

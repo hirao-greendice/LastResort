@@ -63,9 +63,28 @@ class MysteryMonitor {
         // 隠しボタンの要素
         this.homeButton = document.getElementById('monitorHomeButton');
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
+        this.fontSizeButton = document.getElementById('monitorFontSizeButton');
+        this.imageSizeButton = document.getElementById('monitorImageSizeButton');
         this.homeClickCount = 0;
         this.homeClickTimer = null;
         this.isFullscreen = false;
+        
+        // エラー画像要素
+        this.errorImage = document.getElementById('errorImage');
+        this.setupErrorImageHandlers();
+        
+        // 画像表示制御（シナリオ2用）
+        this.imageDisplayEnabled = false;
+        
+        // フォントサイズ管理
+        this.fontSizes = ['smaller', 'small', 'medium', 'large', 'larger'];
+        this.currentFontSizeIndex = 2; // デフォルトはmedium
+        this.loadFontSizeSettings();
+        
+        // 画像サイズ管理
+        this.imageSizes = ['tiny', 'small', 'medium', 'large', 'huge'];
+        this.currentImageSizeIndex = 3; // デフォルトはlarge (100vh)
+        this.loadImageSizeSettings();
         
         this.init();
     }
@@ -76,6 +95,7 @@ class MysteryMonitor {
         this.setupFirebaseListener();
         this.setupKeyboardStatusListener();
         this.setupWindowControlListener();
+        this.setupImageDisplayListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
         this.setupKeyMappingListener();
@@ -122,6 +142,13 @@ class MysteryMonitor {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.handleEnterPress();
+                return;
+            }
+            
+            // Pキーの処理（常に動作）
+            if (e.key === 'p' || e.key === 'P') {
+                e.preventDefault();
+                this.handlePPress();
                 return;
             }
             
@@ -181,6 +208,13 @@ class MysteryMonitor {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.handleEnterRelease();
+                return;
+            }
+            
+            // Pキーの処理（常に動作）
+            if (e.key === 'p' || e.key === 'P') {
+                e.preventDefault();
+                this.handlePRelease();
                 return;
             }
             
@@ -357,6 +391,76 @@ class MysteryMonitor {
         }
     }
 
+    setupImageDisplayListener() {
+        console.log('Setting up image display listener...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for image display monitoring');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                // Firestore使用
+                console.log('Using Firestore for image display monitoring');
+                const imageDisplayRef = window.firestoreDoc(window.firestore, 'gameData', 'imageDisplay');
+                window.firestoreOnSnapshot(imageDisplayRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        this.imageDisplayEnabled = data.enabled || false;
+                        console.log('Image display status updated via Firestore:', this.imageDisplayEnabled);
+                        this.updateImageDisplayForCurrentScenario();
+                    } else {
+                        console.log('No image display document found in Firestore');
+                        this.imageDisplayEnabled = false;
+                        this.updateImageDisplayForCurrentScenario();
+                    }
+                });
+            } else {
+                // Realtime Database使用
+                console.log('Using Realtime Database for image display monitoring');
+                const imageDisplayRef = window.dbRef(window.database, 'imageDisplay');
+                window.dbOnValue(imageDisplayRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        this.imageDisplayEnabled = data.enabled || false;
+                        console.log('Image display status updated via Database:', this.imageDisplayEnabled);
+                        this.updateImageDisplayForCurrentScenario();
+                    } else {
+                        console.log('No image display data found in Database');
+                        this.imageDisplayEnabled = false;
+                        this.updateImageDisplayForCurrentScenario();
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error setting up image display listener:', error);
+            this.imageDisplayEnabled = false;
+        }
+    }
+
+    updateImageDisplayForCurrentScenario() {
+        if (!this.currentScenario) {
+            return;
+        }
+        
+        const scenarioId = parseInt(this.currentScenario.id);
+        console.log('Updating image display for current scenario:', scenarioId, 'Display enabled:', this.imageDisplayEnabled);
+        
+        if (scenarioId === 2) {
+            // シナリオ2の場合、スタッフ画面の設定に従って画像を表示/非表示
+            if (this.imageDisplayEnabled) {
+                console.log('Scenario 2: Showing image due to staff setting');
+                this.showErrorImage();
+            } else {
+                console.log('Scenario 2: Hiding image due to staff setting');
+                this.hideErrorImage();
+            }
+        }
+        // シナリオ3、4、5は既存の動作（常に表示）を維持
+        // シナリオ1は既存の動作（表示しない）を維持
+    }
+
 
 
     setupHiddenButton() {
@@ -383,6 +487,16 @@ class MysteryMonitor {
         // 右下の全画面ボタン
         this.fullscreenButton.addEventListener('click', () => {
             this.toggleFullscreen();
+        });
+        
+        // 右上のフォントサイズボタン
+        this.fontSizeButton.addEventListener('click', () => {
+            this.cycleFontSize();
+        });
+        
+        // 左下の画像サイズボタン
+        this.imageSizeButton.addEventListener('click', () => {
+            this.cycleImageSize();
         });
     }
 
@@ -495,6 +609,9 @@ class MysteryMonitor {
             this.longPressTimer = null;
         }
         
+        // エラー画像を非表示
+        this.hideErrorImage();
+        
         this.showWaitingMessage();
     }
 
@@ -524,7 +641,7 @@ class MysteryMonitor {
     handleEnterPress() {
         console.log('Enter pressed - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(true);
+            this.updateWindowStateInFirebase(true, false);
         } else {
             console.log('Window control disabled - ignoring Enter press');
         }
@@ -533,15 +650,34 @@ class MysteryMonitor {
     handleEnterRelease() {
         console.log('Enter released - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false);
+            this.updateWindowStateInFirebase(false, false);
         } else {
             console.log('Window control disabled - ignoring Enter release');
         }
     }
 
-    updateWindowStateInFirebase(isScrolling) {
-        // 状態が変わっていない場合は通信しない
-        if (this.lastWindowState === isScrolling) {
+    handlePPress() {
+        console.log('P pressed - window control enabled:', this.windowControlEnabled);
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(false, true);
+        } else {
+            console.log('Window control disabled - ignoring P press');
+        }
+    }
+
+    handlePRelease() {
+        console.log('P released - window control enabled:', this.windowControlEnabled);
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(false, false);
+        } else {
+            console.log('Window control disabled - ignoring P release');
+        }
+    }
+
+    updateWindowStateInFirebase(isScrolling, isPPressed) {
+        // 상태가 변하지 않은 경우는 통신하지 않음
+        const currentState = `${isScrolling}-${isPPressed}`;
+        if (this.lastWindowState === currentState) {
             return;
         }
         
@@ -559,6 +695,7 @@ class MysteryMonitor {
             const windowControlData = {
                 enabled: true, // 窓変化は有効として設定
                 isScrolling: isScrolling,
+                isPPressed: isPPressed,
                 timestamp: Date.now()
             };
 
@@ -568,8 +705,8 @@ class MysteryMonitor {
                     const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
                     window.firestoreSetDoc(windowControlRef, windowControlData)
                         .then(() => {
-                            console.log('Window control updated in Firestore:', isScrolling);
-                            this.lastWindowState = isScrolling; // 成功時のみ状態を更新
+                            console.log('Window control updated in Firestore - ENTER:', isScrolling, 'P:', isPPressed);
+                            this.lastWindowState = currentState; // 성공 시에만 상태를 업데이트
                         })
                         .catch((error) => {
                             console.error('Error updating window control in Firestore:', error);
@@ -579,8 +716,8 @@ class MysteryMonitor {
                     const windowControlRef = window.dbRef(window.database, 'windowControl');
                     window.dbSet(windowControlRef, windowControlData)
                         .then(() => {
-                            console.log('Window control updated in Database:', isScrolling);
-                            this.lastWindowState = isScrolling; // 成功時のみ状態を更新
+                            console.log('Window control updated in Database - ENTER:', isScrolling, 'P:', isPPressed);
+                            this.lastWindowState = currentState; // 성공 시에만 상태를 업데이트
                         })
                         .catch((error) => {
                             console.error('Error updating window control in Database:', error);
@@ -644,6 +781,9 @@ class MysteryMonitor {
         this.currentInput = '';
         this.updateInputDisplay();
         
+        // エラー画像を非表示（待機状態時）
+        this.hideErrorImage();
+        
         const message = 'システム待機中...\n\nスタッフ画面からシナリオを選択してください';
         await this.typeMessage(message);
     }
@@ -667,6 +807,27 @@ class MysteryMonitor {
         // 新しいシナリオが開始されたら全メッセージをクリア
         this.clearAllMessages();
         
+        // 画像表示制御
+        const scenarioId = parseInt(this.currentScenario.id);
+        if (scenarioId === 2) {
+            // シナリオ2の場合、スタッフ画面の設定に従って画像を表示/非表示
+            if (this.imageDisplayEnabled) {
+                console.log(`Scenario ${scenarioId}: Showing error image (staff enabled)`);
+                this.showErrorImage();
+            } else {
+                console.log(`Scenario ${scenarioId}: Hiding error image (staff disabled)`);
+                this.hideErrorImage();
+            }
+        } else if (scenarioId === 3 || scenarioId === 4 || scenarioId === 5) {
+            // シナリオ3、4、5の場合は常に画像を表示
+            console.log(`Scenario ${scenarioId}: Showing error image (always)`);
+            this.showErrorImage();
+        } else {
+            // シナリオ1の場合は画像を表示しない
+            console.log(`Scenario ${scenarioId}: Hiding error image (never)`);
+            this.hideErrorImage();
+        }
+        
         this.gameState = 'waiting_weak';
         this.currentInput = '';
         this.updateInputDisplay();
@@ -674,7 +835,7 @@ class MysteryMonitor {
         const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
         const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
         
-        const message = `【${this.currentScenario.target}】を攻撃するためには、\n<span class="highlight">${displayCommand}</span>を入力して、<span class="highlight">${displayKey}</span>を長押ししてください`;
+        const message = `【${this.currentScenario.target}】を攻撃するためには、<span class="highlight">${displayCommand}</span>を入力して、<span class="highlight">${displayKey}</span>を長押ししてください`;
         await this.typeMessageWithHTML(message);
     }
 
@@ -827,7 +988,294 @@ class MysteryMonitor {
         console.log('Unified typing animation completed');
         
         return messageElement;
+    }
+
+    // エラー画像の初期化とイベントハンドラー設定
+    setupErrorImageHandlers() {
+        if (this.errorImage) {
+            console.log('Setting up error image handlers');
+            console.log('Initial error image state:', {
+                src: this.errorImage.src,
+                complete: this.errorImage.complete,
+                naturalWidth: this.errorImage.naturalWidth,
+                naturalHeight: this.errorImage.naturalHeight
+            });
+
+            this.errorImage.addEventListener('load', () => {
+                console.log('Error image loaded successfully:', {
+                    naturalWidth: this.errorImage.naturalWidth,
+                    naturalHeight: this.errorImage.naturalHeight,
+                    src: this.errorImage.src
+                });
+            });
+
+            this.errorImage.addEventListener('error', (e) => {
+                console.error('Error image failed to load:', e);
+                console.error('Error image src:', this.errorImage.src);
+                console.error('Full error event:', e);
+            });
+
+            // 既に読み込み済みの場合
+            if (this.errorImage.complete) {
+                if (this.errorImage.naturalWidth > 0) {
+                    console.log('Error image already loaded');
+                } else {
+                    console.error('Error image loaded but with error (naturalWidth is 0)');
+                }
+            }
+        } else {
+            console.error('Error image element not found during setup!');
         }
+    }
+
+    // フォントサイズ関連のメソッド
+    loadFontSizeSettings() {
+        try {
+            const savedIndex = localStorage.getItem('monitor-font-size-index');
+            if (savedIndex !== null) {
+                this.currentFontSizeIndex = parseInt(savedIndex);
+                if (this.currentFontSizeIndex < 0 || this.currentFontSizeIndex >= this.fontSizes.length) {
+                    this.currentFontSizeIndex = 2; // デフォルトに戻す
+                }
+            }
+            this.applyFontSize();
+            console.log('Font size loaded:', this.fontSizes[this.currentFontSizeIndex]);
+        } catch (error) {
+            console.error('Failed to load font size settings:', error);
+            this.currentFontSizeIndex = 2; // デフォルトに戻す
+            this.applyFontSize();
+        }
+    }
+
+    saveFontSizeSettings() {
+        try {
+            localStorage.setItem('monitor-font-size-index', this.currentFontSizeIndex.toString());
+            console.log('Font size saved:', this.fontSizes[this.currentFontSizeIndex]);
+        } catch (error) {
+            console.error('Failed to save font size settings:', error);
+        }
+    }
+
+    cycleFontSize() {
+        this.currentFontSizeIndex = (this.currentFontSizeIndex + 1) % this.fontSizes.length;
+        this.applyFontSize();
+        this.saveFontSizeSettings();
+        
+        // フィードバックメッセージを短時間表示
+        this.showFontSizeFeedback();
+        
+        console.log('Font size changed to:', this.fontSizes[this.currentFontSizeIndex]);
+    }
+
+    applyFontSize() {
+        // 既存のフォントサイズクラスを削除
+        document.body.classList.remove('font-size-smaller', 'font-size-small', 'font-size-medium', 'font-size-large', 'font-size-larger');
+        
+        // 新しいフォントサイズクラスを追加（mediumは何も追加しない）
+        const currentSize = this.fontSizes[this.currentFontSizeIndex];
+        if (currentSize !== 'medium') {
+            document.body.classList.add(`font-size-${currentSize}`);
+        }
+    }
+
+    showFontSizeFeedback() {
+        // フィードバック表示用の一時的な要素を作成
+        let feedbackDiv = document.getElementById('fontSizeFeedback');
+        if (!feedbackDiv) {
+            feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'fontSizeFeedback';
+            feedbackDiv.style.cssText = `
+                position: fixed;
+                top: 70px;
+                right: 10px;
+                background: rgba(255, 255, 0, 0.9);
+                color: #000;
+                padding: 8px 12px;
+                border: 1px solid #ffff00;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            document.body.appendChild(feedbackDiv);
+        }
+        
+        const sizeNames = {
+            'smaller': '極小',
+            'small': '小',
+            'medium': '標準',
+            'large': '大',
+            'larger': '極大'
+        };
+        
+        feedbackDiv.textContent = `フォント: ${sizeNames[this.fontSizes[this.currentFontSizeIndex]]}`;
+        feedbackDiv.style.opacity = '1';
+        
+        // 2秒後に非表示
+        setTimeout(() => {
+            feedbackDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (feedbackDiv && feedbackDiv.parentNode) {
+                    feedbackDiv.parentNode.removeChild(feedbackDiv);
+                }
+            }, 300);
+                 }, 2000);
+    }
+
+    // 画像サイズ関連のメソッド
+    loadImageSizeSettings() {
+        try {
+            const savedIndex = localStorage.getItem('monitor-image-size-index');
+            if (savedIndex !== null) {
+                this.currentImageSizeIndex = parseInt(savedIndex);
+                if (this.currentImageSizeIndex < 0 || this.currentImageSizeIndex >= this.imageSizes.length) {
+                    this.currentImageSizeIndex = 3; // デフォルトに戻す (large)
+                }
+            }
+            this.applyImageSize();
+            console.log('Image size loaded:', this.imageSizes[this.currentImageSizeIndex]);
+        } catch (error) {
+            console.error('Failed to load image size settings:', error);
+            this.currentImageSizeIndex = 3; // デフォルトに戻す
+            this.applyImageSize();
+        }
+    }
+
+    saveImageSizeSettings() {
+        try {
+            localStorage.setItem('monitor-image-size-index', this.currentImageSizeIndex.toString());
+            console.log('Image size saved:', this.imageSizes[this.currentImageSizeIndex]);
+        } catch (error) {
+            console.error('Failed to save image size settings:', error);
+        }
+    }
+
+    cycleImageSize() {
+        this.currentImageSizeIndex = (this.currentImageSizeIndex + 1) % this.imageSizes.length;
+        this.applyImageSize();
+        this.saveImageSizeSettings();
+        
+        // フィードバックメッセージを短時間表示
+        this.showImageSizeFeedback();
+        
+        console.log('Image size changed to:', this.imageSizes[this.currentImageSizeIndex]);
+    }
+
+    applyImageSize() {
+        // 既存の画像サイズクラスを削除
+        document.body.classList.remove('image-size-tiny', 'image-size-small', 'image-size-medium', 'image-size-large', 'image-size-huge');
+        
+        // 新しい画像サイズクラスを追加（largeは何も追加しない）
+        const currentSize = this.imageSizes[this.currentImageSizeIndex];
+        if (currentSize !== 'large') {
+            document.body.classList.add(`image-size-${currentSize}`);
+        }
+    }
+
+    showImageSizeFeedback() {
+        // フィードバック表示用の一時的な要素を作成
+        let feedbackDiv = document.getElementById('imageSizeFeedback');
+        if (!feedbackDiv) {
+            feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'imageSizeFeedback';
+            feedbackDiv.style.cssText = `
+                position: fixed;
+                bottom: 70px;
+                left: 10px;
+                background: rgba(0, 255, 255, 0.9);
+                color: #000;
+                padding: 8px 12px;
+                border: 1px solid #00ffff;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            document.body.appendChild(feedbackDiv);
+        }
+        
+        const sizeNames = {
+            'tiny': '極小',
+            'small': '小',
+            'medium': '中',
+            'large': '大',
+            'huge': '極大'
+        };
+        
+        feedbackDiv.textContent = `画像: ${sizeNames[this.imageSizes[this.currentImageSizeIndex]]}`;
+        feedbackDiv.style.opacity = '1';
+        
+        // 2秒後に非表示
+        setTimeout(() => {
+            feedbackDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (feedbackDiv && feedbackDiv.parentNode) {
+                    feedbackDiv.parentNode.removeChild(feedbackDiv);
+                }
+            }, 300);
+        }, 2000);
+    }
+
+    // エラー画像表示制御メソッド
+    showErrorImage() {
+        if (this.errorImage) {
+            console.log('=== ERROR IMAGE DISPLAY ATTEMPT ===');
+            console.log('Error image element:', this.errorImage);
+            console.log('Error image src:', this.errorImage.src);
+            console.log('Error image complete:', this.errorImage.complete);
+            console.log('Error image naturalWidth:', this.errorImage.naturalWidth);
+            console.log('Error image naturalHeight:', this.errorImage.naturalHeight);
+            
+            // 強制的に表示設定
+            this.errorImage.style.display = 'block';
+            this.errorImage.style.visibility = 'visible';
+            this.errorImage.style.position = 'fixed';
+            this.errorImage.style.top = '0';
+            this.errorImage.style.right = '0';
+            this.errorImage.style.zIndex = '99999';
+            
+            // デバッグ: 一時的に不透明にして確認
+            this.errorImage.style.opacity = '1';
+            console.log('Error image forced to opacity 1 for debugging');
+            
+            // 少し遅延させてからフェードイン効果を適用
+            setTimeout(() => {
+                this.errorImage.classList.add('show');
+                console.log('Error image fade-in applied, classList:', this.errorImage.classList.toString());
+                console.log('Error image computed style:', {
+                    display: window.getComputedStyle(this.errorImage).display,
+                    visibility: window.getComputedStyle(this.errorImage).visibility,
+                    opacity: window.getComputedStyle(this.errorImage).opacity,
+                    zIndex: window.getComputedStyle(this.errorImage).zIndex,
+                    position: window.getComputedStyle(this.errorImage).position,
+                    top: window.getComputedStyle(this.errorImage).top,
+                    right: window.getComputedStyle(this.errorImage).right
+                });
+            }, 100);
+            
+            console.log('Error image display command executed');
+            console.log('=== END ERROR IMAGE DISPLAY ===');
+        } else {
+            console.error('Error image element not found!');
+        }
+    }
+
+    hideErrorImage() {
+        if (this.errorImage) {
+            this.errorImage.classList.remove('show');
+            // フェードアウト完了後に非表示
+            setTimeout(() => {
+                this.errorImage.style.display = 'none';
+            }, 500);
+            console.log('Error image hidden');
+        }
+    }
 
     showKeyDebugInfo(code, key, location) {
         // デバッグ情報を画面上に一時表示

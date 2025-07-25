@@ -5,7 +5,29 @@ class WindowControl {
         this.isScrolled = false; // スクロール状態を追跡
         this.windowContent = document.getElementById('windowContent');
         this.windowFrame = document.querySelector('.window-frame');
-        this.windowImage = document.getElementById('windowImage');
+        this.windowVideo = document.getElementById('windowVideo');
+        this.windowVideoP = document.getElementById('windowVideoP');
+        
+        // 動画制御用プロパティ（ENTERキー用）
+        this.isPlayingForward = false;
+        this.isPlayingBackward = false;
+        this.currentTime = 0;
+        this.playbackRate = 1;
+        this.animationFrame = null;
+        
+        // P키용 동画制御プロパティ
+        this.isPlayingForwardP = false;
+        this.isPlayingBackwardP = false;
+        this.currentTimeP = 0;
+        this.animationFrameP = null;
+        
+        // 現在アクティブな動画を追跡
+        this.activeVideo = 'enter'; // 'enter' または 'p'
+        
+        // キー状態の管理
+        this.isEnterPressed = false;
+        this.isPPressed = false;
+        this.lastPressedKey = 'enter'; // 最後に押されたキーを記録
         
         // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
@@ -28,7 +50,8 @@ class WindowControl {
             imageOpacity: 100,
             imageZoom: 100,
             scrollDistance: -50,
-            scrollDuration: 0.3
+            scrollDuration: 0.3,
+            playbackSpeed: 0.5
         };
 
         // プリセット定義
@@ -42,7 +65,8 @@ class WindowControl {
                 imageOpacity: 100,
                 imageZoom: 100,
                 scrollDistance: -50,
-                scrollDuration: 0.3
+                scrollDuration: 0.3,
+                playbackSpeed: 0.5
             },
             zoom: {
                 imageWidth: 150,
@@ -53,7 +77,8 @@ class WindowControl {
                 imageOpacity: 100,
                 imageZoom: 150,
                 scrollDistance: -70,
-                scrollDuration: 0.5
+                scrollDuration: 0.5,
+                playbackSpeed: 0.7
             },
             fullScreen: {
                 imageWidth: 300,
@@ -64,7 +89,8 @@ class WindowControl {
                 imageOpacity: 100,
                 imageZoom: 200,
                 scrollDistance: -100,
-                scrollDuration: 0.8
+                scrollDuration: 0.8,
+                playbackSpeed: 1.0
             },
             custom: {
                 imageWidth: 120,
@@ -75,7 +101,8 @@ class WindowControl {
                 imageOpacity: 85,
                 imageZoom: 120,
                 scrollDistance: -60,
-                scrollDuration: 0.4
+                scrollDuration: 0.4,
+                playbackSpeed: 0.5
             }
         };
         
@@ -92,7 +119,7 @@ class WindowControl {
         }
         
         this.loadSettings();
-        this.loadWindowImage();
+        this.loadWindowVideos();
         this.setupFirebaseListener();
         this.setupHiddenButtons();
         this.setupControlPanel();
@@ -126,42 +153,114 @@ class WindowControl {
         });
     }
 
-    loadWindowImage() {
-        console.log('Loading window image...');
+    loadWindowVideos() {
+        console.log('Loading window videos...');
         
-        // window.pngファイルを使用
         try {
-            this.windowImage.src = 'window.png';
-            console.log('Window image set to window.png');
+            // 100.mp4 (ENTERキー用)
+            console.log('Window video set to 100.mp4');
             
-            this.windowImage.onload = () => {
-                console.log('Window image loaded successfully');
-                this.applySettings(); // 画像読み込み後に設定を適用
-                this.updateImageTransform(); // transformを初期化
-            };
+            this.windowVideo.addEventListener('loadedmetadata', () => {
+                console.log('Window video (ENTER) metadata loaded successfully');
+                console.log('Video duration:', this.windowVideo.duration);
+                this.currentTime = 0;
+                this.windowVideo.currentTime = 0;
+                this.applySettings(); // 動画読み込み後に設定を適用
+                this.updateVideoTransform(); // transformを初期化
+            });
             
-            this.windowImage.onerror = (error) => {
-                console.error('Failed to load window.png:', error);
-                this.loadFallbackImage();
-            };
+            this.windowVideo.addEventListener('loadeddata', () => {
+                console.log('Window video (ENTER) data loaded successfully');
+            });
+            
+            this.windowVideo.addEventListener('error', (error) => {
+                console.error('Failed to load 100.mp4:', error);
+                this.loadFallbackVideo();
+            });
+            
+            this.windowVideo.addEventListener('ended', () => {
+                console.log('Video (ENTER) ended');
+                this.stopVideoPlayback();
+            });
+            
+            // 200.mp4 (Pキー用)
+            console.log('Window video P set to 200.mp4');
+            
+            this.windowVideoP.addEventListener('loadedmetadata', () => {
+                console.log('Window video (P) metadata loaded successfully');
+                console.log('Video P duration:', this.windowVideoP.duration);
+                this.currentTimeP = 0;
+                this.windowVideoP.currentTime = 0;
+                this.applySettings(); // 動画読み込み後に設定を適用
+            });
+            
+            this.windowVideoP.addEventListener('loadeddata', () => {
+                console.log('Window video (P) data loaded successfully');
+            });
+            
+            this.windowVideoP.addEventListener('error', (error) => {
+                console.error('Failed to load 200.mp4:', error);
+                // P키 동영상이 로드되지 않아도 시스템은 계속 동작
+                console.log('P key video unavailable, continuing with ENTER video only');
+            });
+            
+            this.windowVideoP.addEventListener('ended', () => {
+                console.log('Video (P) ended');
+                this.stopVideoPlaybackP();
+            });
+            
+            // 動画の再生制御を設定
+            this.setupVideoControls();
+            
         } catch (error) {
-            console.error('Error loading window.png:', error);
-            this.loadFallbackImage();
+            console.error('Error loading videos:', error);
+            this.loadFallbackVideo();
         }
     }
 
-    loadFallbackImage() {
-        // フォールバック用の簡単なSVG
-        const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 200">
-                <rect width="100" height="100" fill="#87CEEB"/>
-                <rect y="100" width="100" height="100" fill="#8B4513"/>
-                <text x="50" y="50" fill="#000000" text-anchor="middle" font-family="Arial" font-size="6px">窓上部</text>
-                <text x="50" y="150" fill="#FFFFFF" text-anchor="middle" font-family="Arial" font-size="6px">地下</text>
-            </svg>`;
+    loadFallbackVideo() {
+        console.log('Loading fallback video content...');
+        // フォールバック用のシンプルな表示
+        this.windowVideo.style.backgroundColor = '#87CEEB';
+        console.log('Fallback video loaded');
+    }
+
+    setupVideoControls() {
+        console.log('Setting up video controls...');
         
-        const fallbackData = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
-        this.windowImage.src = fallbackData;
-        console.log('Fallback image loaded');
+        // 両動画の自動再生を無効にする
+        this.windowVideo.autoplay = false;
+        this.windowVideo.loop = false;
+        this.windowVideoP.autoplay = false;
+        this.windowVideoP.loop = false;
+        
+        // ENTERキー動画用の逆再生制御
+        this.updateVideoTime = () => {
+            if (this.isPlayingBackward && this.currentTime > 0) {
+                this.currentTime -= (1/60) * this.settings.playbackSpeed; // 再生速度に応じて逆再生
+                if (this.currentTime < 0) {
+                    this.currentTime = 0;
+                    this.stopVideoPlayback();
+                } else {
+                    this.windowVideo.currentTime = this.currentTime;
+                    this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+                }
+            }
+        };
+        
+        // Pキー動画用의 역재생 제어
+        this.updateVideoTimeP = () => {
+            if (this.isPlayingBackwardP && this.currentTimeP > 0) {
+                this.currentTimeP -= (1/60) * this.settings.playbackSpeed; // 재생속도에 응じて 역재생
+                if (this.currentTimeP < 0) {
+                    this.currentTimeP = 0;
+                    this.stopVideoPlaybackP();
+                } else {
+                    this.windowVideoP.currentTime = this.currentTimeP;
+                    this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+                }
+            }
+        };
     }
 
 
@@ -196,12 +295,14 @@ class WindowControl {
                 const data = snapshot.data();
                 this.isWindowChangeEnabled = data.enabled || false;
                 this.isScrolling = data.isScrolling || false;
-                console.log('Window change enabled:', this.isWindowChangeEnabled, 'isScrolling:', this.isScrolling);
+                this.isPPressed = data.isPPressed || false;
+                console.log('Window change enabled:', this.isWindowChangeEnabled, 'isScrolling (ENTER):', this.isScrolling, 'isPPressed (P):', this.isPPressed);
                 this.updateWindowState();
             } else {
                 console.log('No window control data in Firestore');
                 this.isWindowChangeEnabled = false;
                 this.isScrolling = false;
+                this.isPPressed = false;
                 this.updateWindowState();
             }
         }, (error) => {
@@ -218,12 +319,14 @@ class WindowControl {
             if (data) {
                 this.isWindowChangeEnabled = data.enabled || false;
                 this.isScrolling = data.isScrolling || false;
-                console.log('Window change enabled:', this.isWindowChangeEnabled, 'isScrolling:', this.isScrolling);
+                this.isPPressed = data.isPPressed || false;
+                console.log('Window change enabled:', this.isWindowChangeEnabled, 'isScrolling (ENTER):', this.isScrolling, 'isPPressed (P):', this.isPPressed);
                 this.updateWindowState();
             } else {
                 console.log('No window control data in Database');
                 this.isWindowChangeEnabled = false;
                 this.isScrolling = false;
+                this.isPPressed = false;
                 this.updateWindowState();
             }
         }, (error) => {
@@ -232,18 +335,160 @@ class WindowControl {
     }
 
     updateWindowState() {
-        if (this.isWindowChangeEnabled && this.isScrolling) {
-            console.log('Window scrolling to bottom');
-            this.isScrolled = true;
-            this.windowFrame.classList.add('active');
+        if (this.isWindowChangeEnabled) {
+            // ENTERキーの処理
+            if (this.isScrolling) {
+                console.log('Enter pressed - playing video forward');
+                this.lastPressedKey = 'enter'; // 最後に押されたキーを更新
+                this.playVideoForward();
+                this.showVideo('enter');
+            } else {
+                console.log('Enter released - playing video backward');
+                this.playVideoBackward();
+            }
+            
+            // Pキーの処理
+            if (this.isPPressed) {
+                console.log('P pressed - playing video P forward');
+                this.lastPressedKey = 'p'; // 最後に押されたキーを更新
+                this.playVideoForwardP();
+                this.showVideo('p');
+            } else {
+                console.log('P released - playing video P backward');
+                this.playVideoBackwardP();
+            }
+            
+            // 両方のキーが離されている場合の処理
+            if (!this.isScrolling && !this.isPPressed) {
+                // 最後に押されたキーの動画を表示
+                console.log('Both keys released - showing last pressed key video:', this.lastPressedKey);
+                this.showVideo(this.lastPressedKey);
+            }
         } else {
-            console.log('Window returning to top');
-            this.isScrolled = false;
-            this.windowFrame.classList.remove('active');
+            console.log('Window control disabled - stopping all videos');
+            this.stopVideoPlayback();
+            this.stopVideoPlaybackP();
         }
         
-        // スクロール状態が変わったら画像の transform を更新
-        this.updateImageTransform();
+        // 動画状態が変わったら transform を更新
+        this.updateVideoTransform();
+    }
+
+    showVideo(videoType) {
+        if (videoType === 'enter') {
+            this.windowVideo.style.display = 'block';
+            this.windowVideoP.style.display = 'none';
+            this.activeVideo = 'enter';
+        } else if (videoType === 'p') {
+            this.windowVideo.style.display = 'none';
+            this.windowVideoP.style.display = 'block';
+            this.activeVideo = 'p';
+        }
+        console.log('Active video switched to:', this.activeVideo);
+    }
+
+    playVideoForward() {
+        this.stopVideoPlayback(); // 既存の再生を停止
+        this.isPlayingForward = true;
+        this.isPlayingBackward = false;
+        
+        console.log('Starting forward playback from:', this.currentTime, 'at speed:', this.settings.playbackSpeed);
+        this.windowVideo.currentTime = this.currentTime;
+        this.windowVideo.playbackRate = this.settings.playbackSpeed;
+        
+        this.windowVideo.play().then(() => {
+            console.log('Video playing forward');
+            
+            // 再生時間を追跡
+            const trackTime = () => {
+                if (this.isPlayingForward && !this.windowVideo.paused) {
+                    this.currentTime = this.windowVideo.currentTime;
+                    requestAnimationFrame(trackTime);
+                }
+            };
+            trackTime();
+        }).catch(error => {
+            console.error('Error playing video forward:', error);
+        });
+    }
+
+    playVideoBackward() {
+        this.stopVideoPlayback(); // 既存の再生を停止
+        this.isPlayingForward = false;
+        this.isPlayingBackward = true;
+        
+        console.log('Starting backward playback from:', this.currentTime);
+        this.windowVideo.pause();
+        
+        // アニメーションフレームで逆再生を制御
+        this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+    }
+
+    stopVideoPlayback() {
+        console.log('Stopping video playback');
+        this.isPlayingForward = false;
+        this.isPlayingBackward = false;
+        
+        if (this.windowVideo) {
+            this.windowVideo.pause();
+        }
+        
+        if (this.animationFrame) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
+    }
+
+    playVideoForwardP() {
+        this.stopVideoPlaybackP(); // 既존의 재생을 정지
+        this.isPlayingForwardP = true;
+        this.isPlayingBackwardP = false;
+        
+        console.log('Starting forward playback P from:', this.currentTimeP, 'at speed:', this.settings.playbackSpeed);
+        this.windowVideoP.currentTime = this.currentTimeP;
+        this.windowVideoP.playbackRate = this.settings.playbackSpeed;
+        
+        this.windowVideoP.play().then(() => {
+            console.log('Video P playing forward');
+            
+            // 재생시간을 추적
+            const trackTime = () => {
+                if (this.isPlayingForwardP && !this.windowVideoP.paused) {
+                    this.currentTimeP = this.windowVideoP.currentTime;
+                    requestAnimationFrame(trackTime);
+                }
+            };
+            trackTime();
+        }).catch(error => {
+            console.error('Error playing video P forward:', error);
+        });
+    }
+
+    playVideoBackwardP() {
+        this.stopVideoPlaybackP(); // 既존의 재생을 정지
+        this.isPlayingForwardP = false;
+        this.isPlayingBackwardP = true;
+        
+        console.log('Starting backward playback P from:', this.currentTimeP);
+        this.windowVideoP.pause();
+        
+        // 애니메이션 프레임으로 역재생을 제어
+        this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+    }
+
+    stopVideoPlaybackP() {
+        console.log('Stopping video P playback');
+        this.isPlayingForwardP = false;
+        this.isPlayingBackwardP = false;
+        
+        if (this.windowVideoP) {
+            this.windowVideoP.pause();
+        }
+        
+        if (this.animationFrameP) {
+            cancelAnimationFrame(this.animationFrameP);
+            this.animationFrameP = null;
+        }
     }
 
     setupHiddenButtons() {
@@ -331,7 +576,8 @@ class WindowControl {
             imageOpacity: document.getElementById('imageOpacity'),
             imageZoom: document.getElementById('imageZoom'),
             scrollDistance: document.getElementById('scrollDistance'),
-            scrollDuration: document.getElementById('scrollDuration')
+            scrollDuration: document.getElementById('scrollDuration'),
+            playbackSpeed: document.getElementById('playbackSpeed')
         };
         
         const numberInputs = {
@@ -343,7 +589,8 @@ class WindowControl {
             imageOpacity: document.getElementById('imageOpacityInput'),
             imageZoom: document.getElementById('imageZoomInput'),
             scrollDistance: document.getElementById('scrollDistanceInput'),
-            scrollDuration: document.getElementById('scrollDurationInput')
+            scrollDuration: document.getElementById('scrollDurationInput'),
+            playbackSpeed: document.getElementById('playbackSpeedInput')
         };
         
         const values = {
@@ -355,7 +602,8 @@ class WindowControl {
             imageOpacity: document.getElementById('imageOpacityValue'),
             imageZoom: document.getElementById('imageZoomValue'),
             scrollDistance: document.getElementById('scrollDistanceValue'),
-            scrollDuration: document.getElementById('scrollDurationValue')
+            scrollDuration: document.getElementById('scrollDurationValue'),
+            playbackSpeed: document.getElementById('playbackSpeedValue')
         };
         
         // 各コントロールのイベントリスナー（スライダー）
@@ -452,6 +700,8 @@ class WindowControl {
                 valueElement.textContent = value + '°';
             } else if (key === 'scrollDuration') {
                 valueElement.textContent = value + 's';
+            } else if (key === 'playbackSpeed') {
+                valueElement.textContent = value + 'x';
             }
         }
         
@@ -488,34 +738,47 @@ class WindowControl {
     }
 
     applySettings() {
-        const img = this.windowImage;
-        if (img) {
-            // 基本的な位置とサイズ
-            img.style.width = this.settings.imageWidth + '%';
-            img.style.height = (this.settings.imageHeight * 2) + 'vh';
-            img.style.top = this.settings.imageTop + 'px';
-            img.style.left = this.settings.imageLeft + 'px';
-            img.style.transitionDuration = this.settings.scrollDuration + 's';
-            img.style.opacity = this.settings.imageOpacity / 100;
-            img.style.transformOrigin = 'center center';
+        // ENTERキー동영상 설정 적용
+        const video = this.windowVideo;
+        if (video) {
+            video.style.width = this.settings.imageWidth + '%';
+            video.style.height = (this.settings.imageHeight * 2) + 'vh';
+            video.style.top = this.settings.imageTop + 'px';
+            video.style.left = this.settings.imageLeft + 'px';
+            video.style.transitionDuration = this.settings.scrollDuration + 's';
+            video.style.opacity = this.settings.imageOpacity / 100;
+            video.style.transformOrigin = 'center center';
+        }
+        
+        // Pキー동영상 설정 적용
+        const videoP = this.windowVideoP;
+        if (videoP) {
+            videoP.style.width = this.settings.imageWidth + '%';
+            videoP.style.height = (this.settings.imageHeight * 2) + 'vh';
+            videoP.style.top = this.settings.imageTop + 'px';
+            videoP.style.left = this.settings.imageLeft + 'px';
+            videoP.style.transitionDuration = this.settings.scrollDuration + 's';
+            videoP.style.opacity = this.settings.imageOpacity / 100;
+            videoP.style.transformOrigin = 'center center';
         }
         
         // transformを統一的に更新
-        this.updateImageTransform();
+        this.updateVideoTransform();
     }
 
-    updateImageTransform() {
-        const img = this.windowImage;
-        if (img) {
-            // 基本的な変形（回転、スケール）
+    updateVideoTransform() {
+        // ENTERキー동영상 transform 적용
+        const video = this.windowVideo;
+        if (video) {
             let transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            
-            // スクロール状態に応じてtranslateYを追加
-            if (this.isScrolled) {
-                transform += ` translateY(${this.settings.scrollDistance}%)`;
-            }
-            
-            img.style.transform = transform;
+            video.style.transform = transform;
+        }
+        
+        // Pキー동영상 transform 적용
+        const videoP = this.windowVideoP;
+        if (videoP) {
+            let transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
+            videoP.style.transform = transform;
         }
     }
 
@@ -530,6 +793,7 @@ class WindowControl {
         document.getElementById('imageZoom').value = this.settings.imageZoom;
         document.getElementById('scrollDistance').value = this.settings.scrollDistance;
         document.getElementById('scrollDuration').value = this.settings.scrollDuration;
+        document.getElementById('playbackSpeed').value = this.settings.playbackSpeed;
         
         // 数値入力フィールドを更新
         document.getElementById('imageWidthInput').value = this.settings.imageWidth;
@@ -541,6 +805,7 @@ class WindowControl {
         document.getElementById('imageZoomInput').value = this.settings.imageZoom;
         document.getElementById('scrollDistanceInput').value = this.settings.scrollDistance;
         document.getElementById('scrollDurationInput').value = this.settings.scrollDuration;
+        document.getElementById('playbackSpeedInput').value = this.settings.playbackSpeed;
         
         // 表示値を更新
         document.getElementById('imageWidthValue').textContent = this.settings.imageWidth + '%';
@@ -552,6 +817,7 @@ class WindowControl {
         document.getElementById('imageZoomValue').textContent = this.settings.imageZoom + '%';
         document.getElementById('scrollDistanceValue').textContent = this.settings.scrollDistance + '%';
         document.getElementById('scrollDurationValue').textContent = this.settings.scrollDuration + 's';
+        document.getElementById('playbackSpeedValue').textContent = this.settings.playbackSpeed + 'x';
     }
 
     resetSettings() {
@@ -564,7 +830,8 @@ class WindowControl {
             imageOpacity: 100,
             imageZoom: 100,
             scrollDistance: -50,
-            scrollDuration: 0.3
+            scrollDuration: 0.3,
+            playbackSpeed: 0.5
         };
         
         // プリセットボタンの状態をリセット
@@ -593,4 +860,4 @@ window.addEventListener('error', (e) => {
 
 window.addEventListener('unhandledrejection', (e) => {
     console.error('Window Promise rejection:', e);
-}); 
+});

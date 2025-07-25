@@ -6,6 +6,7 @@ let keyboardConnected = true; // キーボードの接続状況
 // 通信最適化用
 let lastWindowControlState = null;
 let lastKeyboardState = null;
+let lastImageDisplayState = null;
 
 // キーマッピング関連
 let keyMappingEnabled = true; // デフォルトでON
@@ -66,6 +67,7 @@ function init() {
     setupResetButton();
     setupWindowToggleButton();
     setupKeyboardToggleButton();
+    setupImageToggleButton();
 }
 
 
@@ -331,6 +333,106 @@ function updateKeyboardStatusInFirebase(connected) {
     } catch (error) {
         console.error('Error in updateKeyboardStatusInFirebase:', error);
         showNotification('キーボード状態の更新でエラーが発生しました', 'error');
+    }
+}
+
+// 画像表示制御ボタンの設定
+function setupImageToggleButton() {
+    const imageToggleBtn = document.getElementById('imageToggleBtn');
+    
+    // 既存のイベントリスナーを削除して重複を防ぐ
+    if (imageToggleBtn.hasSetupListener) {
+        console.log('Image toggle button already initialized');
+        return;
+    }
+    
+    let isImageDisplayEnabled = false;
+    
+    const handleToggle = () => {
+        isImageDisplayEnabled = !isImageDisplayEnabled;
+        updateImageToggleButton(isImageDisplayEnabled);
+        updateImageDisplayInFirebase(isImageDisplayEnabled);
+    };
+    
+    imageToggleBtn.addEventListener('click', handleToggle);
+    imageToggleBtn.hasSetupListener = true;
+    
+    console.log('Image toggle button initialized');
+    
+    // 初期状態を設定
+    updateImageToggleButton(isImageDisplayEnabled);
+    updateImageDisplayInFirebase(isImageDisplayEnabled);
+}
+
+// 画像表示ボタンの表示を更新
+function updateImageToggleButton(enabled) {
+    const imageToggleBtn = document.getElementById('imageToggleBtn');
+    
+    console.log('Updating image toggle button:', enabled);
+    
+    if (enabled) {
+        imageToggleBtn.textContent = 'エラー画像: ON';
+        imageToggleBtn.style.backgroundColor = '#28a745';
+        imageToggleBtn.innerHTML = '<i class="fas fa-image"></i> エラー画像: ON';
+    } else {
+        imageToggleBtn.textContent = 'エラー画像: OFF';
+        imageToggleBtn.style.backgroundColor = '#6c757d';
+        imageToggleBtn.innerHTML = '<i class="fas fa-image"></i> エラー画像: OFF';
+    }
+}
+
+// 画像表示状態をFirebaseに保存
+function updateImageDisplayInFirebase(enabled) {
+    console.log('Updating image display in Firebase:', enabled);
+    
+    // 状態が変わっていない場合は通信しない
+    if (lastImageDisplayState === enabled) {
+        console.log('Image display state unchanged, skipping update');
+        return;
+    }
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    const imageDisplayData = {
+        enabled: enabled,
+        timestamp: Date.now()
+    };
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const imageDisplayRef = window.firestoreDoc(window.firestore, 'gameData', 'imageDisplay');
+            window.firestoreSetDoc(imageDisplayRef, imageDisplayData)
+                .then(() => {
+                    console.log('Image display status updated in Firestore');
+                    lastImageDisplayState = enabled; // 成功時のみ状態を保存
+                    showNotification(enabled ? 'エラー画像表示をONにしました' : 'エラー画像表示をOFFにしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating image display status in Firestore:', error);
+                    showNotification('画像表示状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const imageDisplayRef = window.dbRef(window.database, 'imageDisplay');
+            window.dbSet(imageDisplayRef, imageDisplayData)
+                .then(() => {
+                    console.log('Image display status updated in Database');
+                    lastImageDisplayState = enabled; // 成功時のみ状態を保存
+                    showNotification(enabled ? 'エラー画像表示をONにしました' : 'エラー画像表示をOFFにしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating image display status in Database:', error);
+                    showNotification('画像表示状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in updateImageDisplayInFirebase:', error);
+        showNotification('画像表示状態の更新でエラーが発生しました', 'error');
     }
 }
 

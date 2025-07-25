@@ -25,7 +25,7 @@ const initializeDatabase = async () => {
     const defaultGameConfigs = {
       game1: {
         name: "アンティークショップ",
-        initialMessage: "【アンティークショップ（A）】を攻撃するためには、\nWEAKを入力して、Aを長押ししてください",
+        initialMessage: "【アンティークショップ（A）】を攻撃するためには、WEAKを入力して、Aを長押ししてください",
         inputCommand: "WEAK",
         actionKey: "A",
         secondMessage: "ドリルを発動します。長押しで防御してください",
@@ -35,7 +35,7 @@ const initializeDatabase = async () => {
       },
       game2: {
         name: "ファクトリー",
-        initialMessage: "【ファクトリー（B）】を攻撃するためには、\nHACKを入力して、Bを長押ししてください",
+        initialMessage: "【ファクトリー（B）】を攻撃するためには、HACKを入力して、Bを長押ししてください",
         inputCommand: "HACK",
         actionKey: "B",
         secondMessage: "セキュリティを解除します。長押しで実行してください",
@@ -45,7 +45,7 @@ const initializeDatabase = async () => {
       },
       game3: {
         name: "ラボラトリー",
-        initialMessage: "【ラボラトリー（C）】を攻撃するためには、\nVIRUSを入力して、Cを長押ししてください",
+        initialMessage: "【ラボラトリー（C）】を攻撃するためには、VIRUSを入力して、Cを長押ししてください",
         inputCommand: "VIRUS",
         actionKey: "C",
         secondMessage: "ウイルスを送信します。長押しで確認してください",
@@ -55,7 +55,7 @@ const initializeDatabase = async () => {
       },
       game4: {
         name: "バンク",
-        initialMessage: "【バンク（D）】を攻撃するためには、\nSTEALを入力して、Dを長押ししてください",
+        initialMessage: "【バンク（D）】を攻撃するためには、STEALを入力して、Dを長押ししてください",
         inputCommand: "STEAL",
         actionKey: "D",
         secondMessage: "資金を転送します。長押しで承認してください",
@@ -65,7 +65,7 @@ const initializeDatabase = async () => {
       },
       game5: {
         name: "サーバー",
-        initialMessage: "【サーバー（E）】を攻撃するためには、\nCRASHを入力して、Eを長押ししてください",
+        initialMessage: "【サーバー（E）】を攻撃するためには、CRASHを入力して、Eを長押ししてください",
         inputCommand: "CRASH",
         actionKey: "E",
         secondMessage: "システムを停止します。長押しで実行してください",

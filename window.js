@@ -51,7 +51,7 @@ class WindowControl {
             imageZoom: 100,
             scrollDistance: -50,
             scrollDuration: 0.3,
-            playbackSpeed: 0.5
+            playbackSpeed: 1.0
         };
 
         // プリセット定義
@@ -66,7 +66,7 @@ class WindowControl {
                 imageZoom: 100,
                 scrollDistance: -50,
                 scrollDuration: 0.3,
-                playbackSpeed: 0.5
+                playbackSpeed: 1.0
             },
             zoom: {
                 imageWidth: 150,
@@ -78,7 +78,7 @@ class WindowControl {
                 imageZoom: 150,
                 scrollDistance: -70,
                 scrollDuration: 0.5,
-                playbackSpeed: 0.7
+                playbackSpeed: 1.0
             },
             fullScreen: {
                 imageWidth: 300,
@@ -102,7 +102,7 @@ class WindowControl {
                 imageZoom: 120,
                 scrollDistance: -60,
                 scrollDuration: 0.4,
-                playbackSpeed: 0.5
+                playbackSpeed: 1.0
             }
         };
         

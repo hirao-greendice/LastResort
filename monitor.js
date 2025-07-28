@@ -33,6 +33,8 @@ class MysteryMonitor {
             'BracketLeft': 'L',
 
             // 中段
+            'KeyA': 'A',          // Aキー自体も追加
+            'KeyS': 'S',          // Sキー自体も追加（シナリオ3で必要）
             'KeyD': 'A',
             'KeyF': 'S',
             'KeyG': 'D',
@@ -45,6 +47,8 @@ class MysteryMonitor {
             'Quote': 'L',          // 'キーが:（実際のコロン位置）
             
             // 下段
+            'KeyZ': 'Z',          // Zキー自体も追加（シナリオ4,5で必要）
+            'KeyX': 'X',          // Xキー自体も追加
             'KeyC': 'Z',
             'KeyV': 'X',
             'KeyB': 'C',

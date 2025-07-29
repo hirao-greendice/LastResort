@@ -149,11 +149,17 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（常に動作）
+            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
             if (e.key === 'p' || e.key === 'P') {
-                e.preventDefault();
-                this.handlePPress();
-                return;
+                // コマンド入力中は通常のキー入力として処理
+                if (this.gameState === 'waiting_weak') {
+                    // 通常のキー入力処理に進む（returnしない）
+                } else {
+                    // 窓制御として処理
+                    e.preventDefault();
+                    this.handlePPress();
+                    return;
+                }
             }
             
             // キーボードが切断されている場合は入力を無効化
@@ -215,11 +221,17 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（常に動作）
+            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
             if (e.key === 'p' || e.key === 'P') {
-                e.preventDefault();
-                this.handlePRelease();
-                return;
+                // コマンド入力中は通常のキー入力として処理
+                if (this.gameState === 'waiting_weak') {
+                    // 通常のキー入力処理に進む（returnしない）
+                } else {
+                    // 窓制御として処理
+                    e.preventDefault();
+                    this.handlePRelease();
+                    return;
+                }
             }
             
             // キーボードが切断されている場合は入力を無効化

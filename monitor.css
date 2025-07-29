@@ -411,6 +411,91 @@ body {
     opacity: 0.7;
 }
 
+/* 画像位置調整ボタンのスタイル */
+.hidden-button.image-position-up {
+    top: 60px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+}
+
+.hidden-button.image-position-down {
+    top: 110px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+}
+
+.hidden-button.image-position-left {
+    top: 85px;
+    right: 55px;
+    width: 40px;
+    height: 40px;
+}
+
+.hidden-button.image-position-right {
+    top: 85px;
+    right: -35px;
+    width: 40px;
+    height: 40px;
+}
+
+/* 位置調整ボタンのアイコン */
+.hidden-button.image-position-up::before {
+    content: "↑";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ff00ff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button.image-position-down::before {
+    content: "↓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ff00ff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button.image-position-left::before {
+    content: "←";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ff00ff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button.image-position-right::before {
+    content: "→";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ff00ff;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button.image-position-up:hover::before,
+.hidden-button.image-position-down:hover::before,
+.hidden-button.image-position-left:hover::before,
+.hidden-button.image-position-right:hover::before {
+    opacity: 0.7;
+}
+
 .hidden-button.fullscreen-button:hover {
     background: rgba(0, 255, 0, 0.2);
 }
@@ -587,24 +672,25 @@ body {
     font-size: clamp(24px, 4.8vw, 38px);
 }
 
-/* 画像サイズプリセット */
-.image-size-tiny .error-image {
-    height: 30vh;
-}
+/* 画像サイズは JavaScript で動的に制御されるため、プリセットクラスは不要 */
 
-.image-size-small .error-image {
-    height: 50vh;
-}
-
-.image-size-medium .error-image {
-    height: 70vh;
-}
-
-/* デフォルト（large）は既存の100vhを使用 */
-
-.image-size-huge .error-image {
-    height: 120vh;
-    width: auto;
+/* 画像フィードバック表示のスタイル */
+.image-feedback {
+    position: fixed;
+    bottom: 70px;
+    left: 10px;
+    background: rgba(0, 255, 255, 0.9);
+    color: #000;
+    padding: 8px 12px;
+    border: 1px solid #00ffff;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 /* レスポンシブ対応 */

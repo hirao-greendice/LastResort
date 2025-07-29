@@ -69,6 +69,12 @@ class MysteryMonitor {
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
         this.fontSizeButton = document.getElementById('monitorFontSizeButton');
         this.imageSizeButton = document.getElementById('monitorImageSizeButton');
+        
+        // 位置調整ボタン
+        this.imageUpButton = document.getElementById('monitorImageUpButton');
+        this.imageDownButton = document.getElementById('monitorImageDownButton');
+        this.imageLeftButton = document.getElementById('monitorImageLeftButton');
+        this.imageRightButton = document.getElementById('monitorImageRightButton');
         this.homeClickCount = 0;
         this.homeClickTimer = null;
         this.isFullscreen = false;
@@ -85,10 +91,20 @@ class MysteryMonitor {
         this.currentFontSizeIndex = 2; // デフォルトはmedium
         this.loadFontSizeSettings();
         
-        // 画像サイズ管理
-        this.imageSizes = ['tiny', 'small', 'medium', 'large', 'huge'];
-        this.currentImageSizeIndex = 3; // デフォルトはlarge (100vh)
-        this.loadImageSizeSettings();
+        // 画像サイズ管理（％ベース、30%〜200%を10%刻み）
+        this.imageScale = 100; // デフォルトは100%
+        this.minScale = 30;
+        this.maxScale = 200;
+        this.scaleStep = 10;
+        
+        // 画像位置管理（ピクセル単位）
+        this.imagePosition = { x: 0, y: 0 }; // 右上からの相対位置
+        this.positionStep = 20; // 移動ステップ（ピクセル）
+        
+        // フィードバック表示用タイマー
+        this.feedbackTimer = null;
+        
+        this.loadImageSettings();
         
         this.init();
     }
@@ -174,7 +190,7 @@ class MysteryMonitor {
             
             // キーマッピングモードの場合
             if (this.externalKeyboardMode) {
-                console.log('External keyboard mode - Key pressed:', e.code, 'Key:', e.key, 'Location:', e.location);
+                // External keyboard mode
                 
                 // デバッグ: キー情報を画面に一時表示
                 this.showKeyDebugInfo(e.code, e.key, e.location);
@@ -183,22 +199,22 @@ class MysteryMonitor {
                 if (mappedKey) {
                     e.preventDefault(); // ブラウザのデフォルト動作を防止
                     inputKey = mappedKey;
-                    console.log('Mapped:', e.code, '→', mappedKey);
+                    // Key mapped successfully
                 } else {
-                    console.log('Key not mapped:', e.code, '- Available mappings:', Object.keys(this.keyMapping));
+                    // Key not in mapping
                     // マッピングされていないキーは無視
                     return;
                 }
             } else {
                 // 通常モード（見たまま入力）
-                console.log('Normal mode - Key pressed:', e.code, 'Key:', e.key);
+                // Normal keyboard mode
                 const key = e.key.toUpperCase();
                 // アルファベットのみ処理
                 if (key.length === 1 && key.match(/[A-Z]/)) {
                     inputKey = key;
-                    console.log('Normal input:', key);
+                    // Character input processed
                 } else {
-                    console.log('Key not alphabetic:', e.key);
+                    // Non-alphabetic key ignored
                     return;
                 }
             }
@@ -513,6 +529,23 @@ class MysteryMonitor {
         // 左下の画像サイズボタン
         this.imageSizeButton.addEventListener('click', () => {
             this.cycleImageSize();
+        });
+        
+        // 位置調整ボタンのイベントリスナー
+        this.imageUpButton.addEventListener('click', () => {
+            this.moveImage('up');
+        });
+        
+        this.imageDownButton.addEventListener('click', () => {
+            this.moveImage('down');
+        });
+        
+        this.imageLeftButton.addEventListener('click', () => {
+            this.moveImage('left');
+        });
+        
+        this.imageRightButton.addEventListener('click', () => {
+            this.moveImage('right');
         });
     }
 
@@ -1009,38 +1042,13 @@ class MysteryMonitor {
     // エラー画像の初期化とイベントハンドラー設定
     setupErrorImageHandlers() {
         if (this.errorImage) {
-            console.log('Setting up error image handlers');
-            console.log('Initial error image state:', {
-                src: this.errorImage.src,
-                complete: this.errorImage.complete,
-                naturalWidth: this.errorImage.naturalWidth,
-                naturalHeight: this.errorImage.naturalHeight
-            });
-
             this.errorImage.addEventListener('load', () => {
-                console.log('Error image loaded successfully:', {
-                    naturalWidth: this.errorImage.naturalWidth,
-                    naturalHeight: this.errorImage.naturalHeight,
-                    src: this.errorImage.src
-                });
+                // Image loaded successfully
             });
 
             this.errorImage.addEventListener('error', (e) => {
-                console.error('Error image failed to load:', e);
-                console.error('Error image src:', this.errorImage.src);
-                console.error('Full error event:', e);
+                console.error('Error image failed to load:', this.errorImage.src);
             });
-
-            // 既に読み込み済みの場合
-            if (this.errorImage.complete) {
-                if (this.errorImage.naturalWidth > 0) {
-                    console.log('Error image already loaded');
-                } else {
-                    console.error('Error image loaded but with error (naturalWidth is 0)');
-                }
-            }
-        } else {
-            console.error('Error image element not found during setup!');
         }
     }
 
@@ -1055,7 +1063,7 @@ class MysteryMonitor {
                 }
             }
             this.applyFontSize();
-            console.log('Font size loaded:', this.fontSizes[this.currentFontSizeIndex]);
+            // Font size loaded
         } catch (error) {
             console.error('Failed to load font size settings:', error);
             this.currentFontSizeIndex = 2; // デフォルトに戻す
@@ -1066,7 +1074,7 @@ class MysteryMonitor {
     saveFontSizeSettings() {
         try {
             localStorage.setItem('monitor-font-size-index', this.currentFontSizeIndex.toString());
-            console.log('Font size saved:', this.fontSizes[this.currentFontSizeIndex]);
+            // Font size saved
         } catch (error) {
             console.error('Failed to save font size settings:', error);
         }
@@ -1080,7 +1088,7 @@ class MysteryMonitor {
         // フィードバックメッセージを短時間表示
         this.showFontSizeFeedback();
         
-        console.log('Font size changed to:', this.fontSizes[this.currentFontSizeIndex]);
+        // Font size updated
     }
 
     applyFontSize() {
@@ -1142,143 +1150,141 @@ class MysteryMonitor {
     }
 
     // 画像サイズ関連のメソッド
-    loadImageSizeSettings() {
+    loadImageSettings() {
         try {
-            const savedIndex = localStorage.getItem('monitor-image-size-index');
-            if (savedIndex !== null) {
-                this.currentImageSizeIndex = parseInt(savedIndex);
-                if (this.currentImageSizeIndex < 0 || this.currentImageSizeIndex >= this.imageSizes.length) {
-                    this.currentImageSizeIndex = 3; // デフォルトに戻す (large)
+            // 画像サイズの読み込み
+            const savedScale = localStorage.getItem('monitor-image-scale');
+            if (savedScale !== null) {
+                this.imageScale = parseInt(savedScale);
+                if (this.imageScale < this.minScale || this.imageScale > this.maxScale) {
+                    this.imageScale = 100; // デフォルトに戻す
                 }
             }
-            this.applyImageSize();
-            console.log('Image size loaded:', this.imageSizes[this.currentImageSizeIndex]);
+            
+            // 画像位置の読み込み
+            const savedPosition = localStorage.getItem('monitor-image-position');
+            if (savedPosition !== null) {
+                this.imagePosition = JSON.parse(savedPosition);
+            }
+            
+            this.applyImageSettings();
+            // Image settings loaded successfully
         } catch (error) {
-            console.error('Failed to load image size settings:', error);
-            this.currentImageSizeIndex = 3; // デフォルトに戻す
-            this.applyImageSize();
+            console.error('Error loading image settings:', error);
+            this.imageScale = 100;
+            this.imagePosition = { x: 0, y: 0 };
+            this.applyImageSettings();
         }
     }
 
-    saveImageSizeSettings() {
+    saveImageSettings() {
         try {
-            localStorage.setItem('monitor-image-size-index', this.currentImageSizeIndex.toString());
-            console.log('Image size saved:', this.imageSizes[this.currentImageSizeIndex]);
+            localStorage.setItem('monitor-image-scale', this.imageScale.toString());
+            localStorage.setItem('monitor-image-position', JSON.stringify(this.imagePosition));
+            // Image settings saved successfully
         } catch (error) {
-            console.error('Failed to save image size settings:', error);
+            console.error('Error saving image settings:', error);
         }
     }
 
     cycleImageSize() {
-        this.currentImageSizeIndex = (this.currentImageSizeIndex + 1) % this.imageSizes.length;
-        this.applyImageSize();
-        this.saveImageSizeSettings();
+        // 10%刻みで30%から200%まで循環
+        this.imageScale += this.scaleStep;
+        if (this.imageScale > this.maxScale) {
+            this.imageScale = this.minScale;
+        }
         
-        // フィードバックメッセージを短時間表示
+        this.applyImageSettings();
+        this.saveImageSettings();
+        
+        // フィードバック表示
         this.showImageSizeFeedback();
         
-        console.log('Image size changed to:', this.imageSizes[this.currentImageSizeIndex]);
+        // Image size updated
     }
 
-    applyImageSize() {
-        // 既存の画像サイズクラスを削除
+    applyImageSettings() {
+        if (!this.errorImage) return;
+        
+        // 画像のスケールを適用（100% = 100vh）
+        const scaledHeight = this.imageScale + 'vh';
+        this.errorImage.style.height = scaledHeight;
+        this.errorImage.style.width = 'auto';
+        
+        // 画像の位置を適用（右上基準）
+        this.errorImage.style.top = this.imagePosition.y + 'px';
+        this.errorImage.style.right = (-this.imagePosition.x) + 'px'; // 右基準なので符号反転
+        
+        // object-fit を確実に設定
+        this.errorImage.style.objectFit = 'contain';
+        
+        // 古いCSSクラスを削除
         document.body.classList.remove('image-size-tiny', 'image-size-small', 'image-size-medium', 'image-size-large', 'image-size-huge');
         
-        // 新しい画像サイズクラスを追加（largeは何も追加しない）
-        const currentSize = this.imageSizes[this.currentImageSizeIndex];
-        if (currentSize !== 'large') {
-            document.body.classList.add(`image-size-${currentSize}`);
-        }
+        // Image settings applied silently for performance
     }
 
     showImageSizeFeedback() {
-        // フィードバック表示用の一時的な要素を作成
+        // フィードバック表示用の要素を取得または作成
         let feedbackDiv = document.getElementById('imageSizeFeedback');
         if (!feedbackDiv) {
             feedbackDiv = document.createElement('div');
             feedbackDiv.id = 'imageSizeFeedback';
-            feedbackDiv.style.cssText = `
-                position: fixed;
-                bottom: 70px;
-                left: 10px;
-                background: rgba(0, 255, 255, 0.9);
-                color: #000;
-                padding: 8px 12px;
-                border: 1px solid #00ffff;
-                border-radius: 4px;
-                font-family: monospace;
-                font-size: 12px;
-                font-weight: bold;
-                z-index: 9999;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-            `;
+            feedbackDiv.className = 'image-feedback';
             document.body.appendChild(feedbackDiv);
         }
         
-        const sizeNames = {
-            'tiny': '極小',
-            'small': '小',
-            'medium': '中',
-            'large': '大',
-            'huge': '極大'
-        };
-        
-        feedbackDiv.textContent = `画像: ${sizeNames[this.imageSizes[this.currentImageSizeIndex]]}`;
+        feedbackDiv.textContent = `画像: ${this.imageScale}% (${this.imagePosition.x}, ${this.imagePosition.y})`;
         feedbackDiv.style.opacity = '1';
         
-        // 2秒後に非表示
-        setTimeout(() => {
+        // 1.5秒後に非表示（短縮）
+        clearTimeout(this.feedbackTimer);
+        this.feedbackTimer = setTimeout(() => {
             feedbackDiv.style.opacity = '0';
-            setTimeout(() => {
-                if (feedbackDiv && feedbackDiv.parentNode) {
-                    feedbackDiv.parentNode.removeChild(feedbackDiv);
-                }
-            }, 300);
-        }, 2000);
+        }, 1500);
+    }
+
+    // 画像位置移動メソッド
+    moveImage(direction) {
+        switch (direction) {
+            case 'up':
+                this.imagePosition.y -= this.positionStep;
+                break;
+            case 'down':
+                this.imagePosition.y += this.positionStep;
+                break;
+            case 'left':
+                this.imagePosition.x -= this.positionStep;
+                break;
+            case 'right':
+                this.imagePosition.x += this.positionStep;
+                break;
+        }
+        
+        this.applyImageSettings();
+        this.saveImageSettings();
+        this.showImageSizeFeedback(); // 位置情報も含めて表示
+        
+        // Image position updated
     }
 
     // エラー画像表示制御メソッド
     showErrorImage() {
         if (this.errorImage) {
-            console.log('=== ERROR IMAGE DISPLAY ATTEMPT ===');
-            console.log('Error image element:', this.errorImage);
-            console.log('Error image src:', this.errorImage.src);
-            console.log('Error image complete:', this.errorImage.complete);
-            console.log('Error image naturalWidth:', this.errorImage.naturalWidth);
-            console.log('Error image naturalHeight:', this.errorImage.naturalHeight);
-            
-            // 強制的に表示設定
+            // 基本的な表示設定
             this.errorImage.style.display = 'block';
             this.errorImage.style.visibility = 'visible';
             this.errorImage.style.position = 'fixed';
-            this.errorImage.style.top = '0';
-            this.errorImage.style.right = '0';
             this.errorImage.style.zIndex = '99999';
-            
-            // デバッグ: 一時的に不透明にして確認
             this.errorImage.style.opacity = '1';
-            console.log('Error image forced to opacity 1 for debugging');
             
-            // 少し遅延させてからフェードイン効果を適用
+            // 保存されている画像設定を適用（サイズと位置）
+            this.applyImageSettings();
+            
+            // フェードイン効果を適用
             setTimeout(() => {
                 this.errorImage.classList.add('show');
-                console.log('Error image fade-in applied, classList:', this.errorImage.classList.toString());
-                console.log('Error image computed style:', {
-                    display: window.getComputedStyle(this.errorImage).display,
-                    visibility: window.getComputedStyle(this.errorImage).visibility,
-                    opacity: window.getComputedStyle(this.errorImage).opacity,
-                    zIndex: window.getComputedStyle(this.errorImage).zIndex,
-                    position: window.getComputedStyle(this.errorImage).position,
-                    top: window.getComputedStyle(this.errorImage).top,
-                    right: window.getComputedStyle(this.errorImage).right
-                });
-            }, 100);
-            
-            console.log('Error image display command executed');
-            console.log('=== END ERROR IMAGE DISPLAY ===');
-        } else {
-            console.error('Error image element not found!');
+            }, 50);
         }
     }
 
@@ -1289,7 +1295,7 @@ class MysteryMonitor {
             setTimeout(() => {
                 this.errorImage.style.display = 'none';
             }, 500);
-            console.log('Error image hidden');
+            // Image hidden
         }
     }
 

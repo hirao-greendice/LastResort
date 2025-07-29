@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
 
 * {
     margin: 0;
@@ -7,9 +7,9 @@
 }
 
 body {
-    font-family: 'Courier Prime', monospace;
+    font-family: 'Noto Sans JP', 'Courier Prime', monospace;
     background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
-    color: #00ff00;
+    color: #00ff88;
     overflow: hidden;
     height: 100vh;
     user-select: none;
@@ -90,16 +90,18 @@ body {
 }
 
 .message-line {
-    font-size: clamp(14px, 3.2vw, 26px);
-    line-height: 1.4;
+    font-size: clamp(16px, 3.8vw, 30px);
+    line-height: 1.5;
     text-align: left;
-    color: #00ff00;
+    color: #00ff88;
+    font-weight: 700;
     max-width: 90%;
     word-break: break-word;
     white-space: pre-line;
     overflow-wrap: break-word;
     hyphens: auto;
     margin-bottom: 0;
+    text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
 }
 
 .message-text {
@@ -117,10 +119,31 @@ body {
 /* 入力すべきテキストのハイライト */
 .highlight {
     color: #ffff00;
-    font-weight: bold;
+    font-weight: 900;
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
     background-color: rgba(255, 255, 0, 0.1);
     padding: 2px 4px;
     border-radius: 3px;
+}
+
+/* エラーメッセージのスタイル */
+.error-message {
+    color: #ff6666 !important;
+    font-weight: 900 !important;
+    text-shadow: 0 0 12px rgba(255, 102, 102, 0.8) !important;
+    animation: pulse-error 2s ease-in-out infinite;
+}
+
+@keyframes pulse-error {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* プレイヤー入力のスタイル */
+.player-input {
+    color: #88ffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(136, 255, 255, 0.6) !important;
 }
 
 /* プレイヤー入力のスタイル */

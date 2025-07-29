@@ -839,7 +839,7 @@ class MysteryMonitor {
         const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
         const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
         
-        const message = `【${this.currentScenario.target}】を攻撃するためには、<span class="highlight">${displayCommand}</span>を入力して、<span class="highlight">${displayKey}</span>を長押ししてください`;
+        const message = `【${this.currentScenario.target}】に向けてドリルを発射するには、<span class="highlight">${displayCommand}</span>を入力してください`;
         await this.typeMessageWithHTML(message);
     }
 
@@ -885,7 +885,7 @@ class MysteryMonitor {
             
         } else if (scenarioId === 4) {
             // シナリオ4: ドリル発射失敗（エラーメッセージのみ、即座に表示）
-            const errorMessage = 'エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください';
+            const errorMessage = 'エラー\nドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください';
             console.log('Scenario 4: Showing error message instantly');
             const errorElement = this.addMessage(errorMessage);
             errorElement.className = 'message-line error-message';

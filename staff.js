@@ -18,7 +18,7 @@ const defaultScenarios = {
         target: "アロハみやげ館",
         command: "LAND",
         key: "A",
-        secondMessage: "ドリルを発射します。長押しで防御してください",
+        secondMessage: "【アロハみやげ館】に向けてドリルを発射します。Aの長押しで防御してください",
         hideCommand: false,
         hideKey: false
     },
@@ -26,7 +26,7 @@ const defaultScenarios = {
         target: "クイーンズピザ",
         command: "FLAG",
         key: "Q",
-        secondMessage: "ドリルを発射します。長押しで防御してください",
+        secondMessage: "【クイーンズピザ】に向けてドリルを発射します。Qの長押しで防御してください",
         hideCommand: false,
         hideKey: false
     },
@@ -34,28 +34,28 @@ const defaultScenarios = {
         target: "ストリートライブハウス",
         command: "EDIT",
         key: "S",
-        secondMessage: "ドリルを発射します。長押しで防御してください",
+        secondMessage: "【ストリートライブハウス】に向けてドリルを発射します。#の長押しで防御してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "⚠ドリルにより、アンティークショップが破壊されました"
+        completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"
     },
     4: {
         target: "ゾンビアトラクション",
         command: "UNIT",
         key: "Z",
-        secondMessage: "ドリルを発射します。長押しで防御してください",
+        secondMessage: "【ゾンビアトラクション】に向けてドリルを発射します。#の長押しで防御してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "⚠エラー\nドリルが発射されませんでした\n変換表と地図を利用して、別のコードを特定してください"
+        completeMessage: "⚠ エラー\nドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください"
     },
     5: {
         target: "ゾンビアトラクション",
         command: "VIEW",
         key: "Z",
-        secondMessage: "ドリルを発射します。長押しで防御してください",
+        secondMessage: "【ゾンビアトラクション】に向けてドリルを発射します。#の長押しで防御してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "⚠ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
+        completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
     }
 };
 
@@ -626,8 +626,8 @@ function updateAllPreviews() {
             const displayKey = scenario.hideKey ? "#" : scenario.key;
             
             previewElement.innerHTML = `
-                【${scenario.target}】を攻撃するためには、<br>
-                ${displayCommand}を入力して、${displayKey}を長押ししてください
+                【${scenario.target}】に向けてドリルを発射するには、<br>
+                ${displayCommand}を入力してください
             `;
         }
     }

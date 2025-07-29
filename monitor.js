@@ -952,15 +952,15 @@ class MysteryMonitor {
     async typeMessageWithHTML(message) {
         const messageElement = this.addMessage('');
         
-        // HTMLタグを考慮してメッセージを分割
-        const parts = message.split(/(<span class="highlight">.*?<\/span>)/);
+        // HTMLタグを考慮してメッセージを分割（highlight と key-highlight の両方に対応）
+        const parts = message.split(/(<span class="(?:highlight|key-highlight)">.*?<\/span>)/);
         
         for (let part of parts) {
-            if (part.includes('<span class="highlight">')) {
-                // ハイライト部分
+            if (part.includes('<span class="highlight">') || part.includes('<span class="key-highlight">')) {
+                // ハイライト部分（即座に表示）
                 messageElement.innerHTML += part;
             } else {
-                // 通常のテキスト部分
+                // 通常のテキスト部分（タイピングアニメーション）
                 for (let i = 0; i < part.length; i++) {
                     messageElement.innerHTML += part[i];
                     await this.delay(50);

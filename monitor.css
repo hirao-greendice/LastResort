@@ -9,7 +9,7 @@
 body {
     font-family: 'Noto Sans JP', 'Courier Prime', monospace;
     background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
-    color: #00ff88;
+    color: #00ff00;
     overflow: hidden;
     height: 100vh;
     user-select: none;
@@ -93,7 +93,7 @@ body {
     font-size: clamp(16px, 3.8vw, 30px);
     line-height: 1.5;
     text-align: left;
-    color: #00ff88;
+    color: #00ff00;
     font-weight: 700;
     max-width: 90%;
     word-break: break-word;
@@ -101,7 +101,6 @@ body {
     overflow-wrap: break-word;
     hyphens: auto;
     margin-bottom: 0;
-    text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
 }
 
 .message-text {
@@ -116,12 +115,20 @@ body {
     hyphens: auto;
 }
 
-/* 入力すべきテキストのハイライト */
+/* 入力すべきコマンドのハイライト（水色） */
 .highlight {
-    color: #ffff00;
+    color: #00ddff;
     font-weight: 900;
-    text-shadow: 0 0 10px rgba(255, 255, 0, 0.8);
-    background-color: rgba(255, 255, 0, 0.1);
+    background-color: rgba(0, 221, 255, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* 長押しするキーのハイライト（紫色） */
+.key-highlight {
+    color: #ff66ff;
+    font-weight: 900;
+    background-color: rgba(255, 102, 255, 0.1);
     padding: 2px 4px;
     border-radius: 3px;
 }
@@ -130,7 +137,6 @@ body {
 .error-message {
     color: #ff6666 !important;
     font-weight: 900 !important;
-    text-shadow: 0 0 12px rgba(255, 102, 102, 0.8) !important;
     animation: pulse-error 2s ease-in-out infinite;
 }
 
@@ -141,15 +147,8 @@ body {
 
 /* プレイヤー入力のスタイル */
 .player-input {
-    color: #88ffff !important;
+    color: #00ddff !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 8px rgba(136, 255, 255, 0.6) !important;
-}
-
-/* プレイヤー入力のスタイル */
-.player-input {
-    color: #00ffff;
-    font-weight: bold;
 }
 
 .input-area {

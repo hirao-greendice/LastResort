@@ -18,7 +18,7 @@ const defaultScenarios = {
         target: "アロハみやげ館",
         command: "LAND",
         key: "A",
-        secondMessage: "<span class=\"facility-name\">【アロハみやげ館】</span>に向けてドリルを発射します。<span class=\"key-highlight\">A</span>の長押しで防衛してください",
+        secondMessage: "【アロハみやげ館】に向けてドリルを発射します。<span class=\"key-highlight\">A</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: false
     },
@@ -26,7 +26,7 @@ const defaultScenarios = {
         target: "クイーンズピザ",
         command: "FLAG",
         key: "Q",
-        secondMessage: "<span class=\"facility-name\">【クイーンズピザ】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Q</span>の長押しで防衛してください",
+        secondMessage: "【クイーンズピザ】に向けてドリルを発射します。<span class=\"key-highlight\">Q</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: false
     },
@@ -34,28 +34,28 @@ const defaultScenarios = {
         target: "ストリートライブハウス",
         command: "EDIT",
         key: "S",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">A S</span>の長押しで防衛してください",
+        secondMessage: "【ストリートライブハウス】に向けてドリルを発射します。<span class=\"key-highlight\">A S</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "<img src=\"danger.png\" class=\"danger-icon\" alt=\"Warning\">ドリルにより、アロハみやげ館が破壊されました"
+        completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"
     },
     4: {
         target: "ゾンビアトラクション",
         command: "UNIT",
         key: "Z",
-        secondMessage: "<span class=\"facility-name\">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Z</span>の長押しで防衛してください",
+        secondMessage: "【ゾンビアトラクション】に向けてドリルを発射します。<span class=\"key-highlight\">Z</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "<img src=\"danger.png\" class=\"danger-icon\" alt=\"Warning\">ドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください"
+        completeMessage: "⚠ エラー\nドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください"
     },
     5: {
         target: "ゾンビアトラクション",
         command: "VIEW",
         key: "Z",
-        secondMessage: "<span class=\"facility-name\">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Z X</span>の長押しで防衛してください",
+        secondMessage: "【ゾンビアトラクション】に向けてドリルを発射します。<span class=\"key-highlight\">Z X</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
-        completeMessage: "<img src=\"danger.png\" class=\"danger-icon\" alt=\"Warning\">ドリルによりエックス線研究所が破壊されました\n<img src=\"danger.png\" class=\"danger-icon\" alt=\"Warning\">建物倒壊によりゾンビアトラクションが一部破損しました"
+        completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
     }
 };
 

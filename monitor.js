@@ -483,7 +483,7 @@ class MysteryMonitor {
             // シナリオ2の場合、スタッフ画面の設定に従って画像を表示/非表示
             if (this.imageDisplayEnabled) {
                 console.log('Scenario 2: Showing image due to staff setting');
-                this.showErrorImage();
+                this.showErrorImageWithGlitch();
             } else {
                 console.log('Scenario 2: Hiding image due to staff setting');
                 this.hideErrorImage();
@@ -678,7 +678,7 @@ class MysteryMonitor {
     handleLongPress() {
         if (this.gameState === 'waiting_defense') {
             // 長押し完了時にのみログを表示
-            this.addMessage(`> ${this.currentScenario.key}`, false, true);
+            this.addMessage(`<span class="prompt-text">></span> <span class="key-text">${this.currentScenario.key}</span>`, true, true);
             
             // 1秒待ってから次のテキストを表示
             setTimeout(() => {
@@ -797,7 +797,7 @@ class MysteryMonitor {
         // コマンドの入力チェック
         if (this.currentInput === this.currentScenario.command) {
             // 正解の場合、プレイヤーの入力をメッセージエリアに表示
-            this.addMessage(`> ${this.currentInput}`, false, true);
+            this.addMessage(`<span class="prompt-text">></span> <span class="command-text">${this.currentInput}</span>`, true, true);
             
             // 1秒待ってから次のステップへ
             this.gameState = 'processing'; // 処理中状態にして追加入力を防ぐ
@@ -884,7 +884,8 @@ class MysteryMonitor {
         const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
         const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
         
-        const message = `【${this.currentScenario.target}】に向けてドリルを発射するには、<span class="highlight">${displayCommand}</span>を入力してください`;
+        const message = `<span class="facility-name">【${this.currentScenario.target}】</span><span class="action-text">に向けてドリルを発射するには、</span><span class="command-text">${displayCommand}</span><span class="action-text">を入力してください</span>`;
+        console.log('Generated message HTML:', message);
         await this.typeMessageWithHTML(message);
     }
 
@@ -923,17 +924,17 @@ class MysteryMonitor {
             await this.typeMessageUnified(defaultMessage, false);
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = 'ドリルにより、アロハみやげ館が破壊されました';
+            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルにより、アロハみやげ館が破壊されました';
             console.log('Scenario 3: Showing additional message instantly');
-            const errorElement = this.addMessage(additionalMessage);
-            errorElement.className = 'message-line error-message';
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
             
         } else if (scenarioId === 4) {
             // シナリオ4: ドリル発射失敗（エラーメッセージのみ、即座に表示）
-            const errorMessage = 'エラー\nドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください';
+            const errorMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください';
             console.log('Scenario 4: Showing error message instantly');
-            const errorElement = this.addMessage(errorMessage);
-            errorElement.className = 'message-line error-message';
+            const errorElement = this.addMessage(errorMessage, true);
+            errorElement.className = 'message-line danger-message';
             
         } else if (scenarioId === 5) {
             // シナリオ5: まずデフォルトメッセージを表示
@@ -941,10 +942,10 @@ class MysteryMonitor {
             await this.typeMessageUnified(defaultMessage, false);
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = 'ドリルによりエックス線研究所が破壊されました\n建物倒壊によりゾンビアトラクションが一部破損しました';
+            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによりエックス線研究所が破壊されました\n<img src="danger.png" class="danger-icon" alt="Warning">建物倒壊によりゾンビアトラクションが一部破損しました';
             console.log('Scenario 5: Showing additional message instantly');
-            const errorElement = this.addMessage(additionalMessage);
-            errorElement.className = 'message-line error-message';
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
             
         } else if (this.currentScenario.completeMessage) {
             // 特別な完了メッセージがある場合
@@ -996,22 +997,63 @@ class MysteryMonitor {
 
     async typeMessageWithHTML(message) {
         const messageElement = this.addMessage('');
+        console.log('typeMessageWithHTML input:', message);
         
-        // HTMLタグを考慮してメッセージを分割（highlight と key-highlight の両方に対応）
-        const parts = message.split(/(<span class="(?:highlight|key-highlight)">.*?<\/span>)/);
+        // より簡単で確実な方法：HTMLを直接設定してから一文字ずつ表示
+        messageElement.innerHTML = message;
         
-        for (let part of parts) {
-            if (part.includes('<span class="highlight">') || part.includes('<span class="key-highlight">')) {
-                // ハイライト部分（即座に表示）
-                messageElement.innerHTML += part;
-            } else {
-                // 通常のテキスト部分（タイピングアニメーション）
-                for (let i = 0; i < part.length; i++) {
-                    messageElement.innerHTML += part[i];
-                    await this.delay(50);
+        // タイピングアニメーション効果を追加
+        const originalHTML = messageElement.innerHTML;
+        messageElement.innerHTML = '';
+        
+        // HTMLタグを保持しながら一文字ずつ表示
+        let currentHTML = '';
+        let inTag = false;
+        let tagBuffer = '';
+        let textBuffer = '';
+        
+        for (let i = 0; i < originalHTML.length; i++) {
+            const char = originalHTML[i];
+            
+            if (char === '<') {
+                // タグ開始
+                if (textBuffer.length > 0) {
+                    // 蓄積されたテキストを一文字ずつ表示
+                    for (let j = 0; j < textBuffer.length; j++) {
+                        currentHTML += textBuffer[j];
+                        messageElement.innerHTML = currentHTML;
+                        await this.delay(50);
+                    }
+                    textBuffer = '';
                 }
+                inTag = true;
+                tagBuffer = char;
+            } else if (char === '>') {
+                // タグ終了
+                tagBuffer += char;
+                currentHTML += tagBuffer;
+                messageElement.innerHTML = currentHTML;
+                inTag = false;
+                tagBuffer = '';
+            } else if (inTag) {
+                // タグ内の文字
+                tagBuffer += char;
+            } else {
+                // テキスト部分
+                textBuffer += char;
             }
         }
+        
+        // 最後のテキストバッファを処理
+        if (textBuffer.length > 0) {
+            for (let j = 0; j < textBuffer.length; j++) {
+                currentHTML += textBuffer[j];
+                messageElement.innerHTML = currentHTML;
+                await this.delay(50);
+            }
+        }
+        
+        console.log('Final messageElement innerHTML:', messageElement.innerHTML);
     }
 
     delay(ms) {
@@ -1028,10 +1070,16 @@ class MysteryMonitor {
         
         console.log('Starting unified typing animation for:', message);
         
-        // 一文字ずつタイピングアニメーションで表示
-        for (let i = 0; i < message.length; i++) {
-            messageElement.textContent += message[i];
-            await this.delay(50);
+        // HTMLタグが含まれているかチェック
+        if (message.includes('<img') || message.includes('<span')) {
+            // HTMLメッセージの場合はtypeMessageWithHTMLを使用
+            await this.typeMessageWithHTML(message);
+        } else {
+            // 通常のテキストメッセージ
+            for (let i = 0; i < message.length; i++) {
+                messageElement.textContent += message[i];
+                await this.delay(50);
+            }
         }
         
         console.log('Unified typing animation completed');
@@ -1285,6 +1333,27 @@ class MysteryMonitor {
             setTimeout(() => {
                 this.errorImage.classList.add('show');
             }, 50);
+        }
+    }
+
+    // グリッチ効果付きエラー画像表示メソッド
+    async showErrorImageWithGlitch() {
+        if (this.errorImage) {
+            console.log('Starting glitch effect before showing error image');
+            
+            // 1秒間のグリッチ効果を適用
+            document.body.classList.add('glitch-effect');
+            
+            // 1秒待機
+            await this.delay(1000);
+            
+            // グリッチ効果を削除
+            document.body.classList.remove('glitch-effect');
+            
+            console.log('Glitch effect completed, showing error image');
+            
+            // 通常のエラー画像表示
+            this.showErrorImage();
         }
     }
 

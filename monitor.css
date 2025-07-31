@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&family=Courier+Prime:wght@400;700&display=swap');
 
 * {
     margin: 0;
@@ -7,9 +7,10 @@
 }
 
 body {
-    font-family: 'Noto Sans JP', 'Courier Prime', monospace;
+    font-family: 'Noto Sans', 'Noto Sans JP', 'Courier Prime', monospace;
+    font-weight: 700;
     background: linear-gradient(45deg, #0a0a0a, #1a1a1a);
-    color: #00ff00;
+    color: #00e25b;
     overflow: hidden;
     height: 100vh;
     user-select: none;
@@ -20,9 +21,9 @@ body {
     height: 100vh;
     display: flex;
     flex-direction: column;
-    border: 2px solid #00ff00;
+    border: 2px solid #00e25b;
     background: rgba(0, 0, 0, 0.9);
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 20px rgba(0, 226, 91, 0.3);
 }
 
 .terminal-header {
@@ -30,8 +31,8 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 30px;
-    background: rgba(0, 255, 0, 0.1);
-    border-bottom: 1px solid #00ff00;
+    background: rgba(0, 226, 91, 0.1);
+    border-bottom: 1px solid #00e25b;
 }
 
 
@@ -39,12 +40,12 @@ body {
 .terminal-title {
     font-size: clamp(13px, 2.4vw, 19px);
     font-weight: 700;
-    color: #00ff00;
+    color: #00e25b;
 }
 
 .terminal-status {
     font-size: clamp(11px, 2vw, 14px);
-    color: #00ff00;
+    color: #00e25b;
 }
 
 .terminal-content {
@@ -84,7 +85,7 @@ body {
 .prompt {
     font-size: clamp(13px, 2.4vw, 19px);
     font-weight: 700;
-    color: #00ff00;
+    color: #00e25b;
     margin-bottom: 15px;
     align-self: flex-start;
 }
@@ -93,7 +94,7 @@ body {
     font-size: clamp(16px, 3.8vw, 30px);
     line-height: 1.5;
     text-align: left;
-    color: #00ff00;
+    color: #00e25b;
     font-weight: 700;
     max-width: 90%;
     word-break: break-word;
@@ -107,7 +108,7 @@ body {
     font-size: 36px;
     line-height: 1.6;
     text-align: left;
-    color: #00ff00;
+    color: #00e25b;
     max-width: 90%;
     word-break: break-word;
     white-space: pre-line;
@@ -115,27 +116,27 @@ body {
     hyphens: auto;
 }
 
-/* 入力すべきコマンドのハイライト（水色） */
+/* 入力すべきコマンドのハイライト（青） */
 .highlight {
-    color: #00ddff;
+    color: #00ceff;
     font-weight: 900;
-    background-color: rgba(0, 221, 255, 0.1);
+    background-color: rgba(0, 206, 255, 0.1);
     padding: 2px 4px;
     border-radius: 3px;
 }
 
-/* 長押しするキーのハイライト（紫色） */
+/* 長押しするキーのハイライト（ピンク） */
 .key-highlight {
-    color: #ff66ff;
+    color: #ff2db1;
     font-weight: 900;
-    background-color: rgba(255, 102, 255, 0.1);
+    background-color: rgba(255, 45, 177, 0.1);
     padding: 2px 4px;
     border-radius: 3px;
 }
 
-/* エラーメッセージのスタイル */
+/* エラーメッセージのスタイル（黄色） */
 .error-message {
-    color: #ff6666 !important;
+    color: #ffff00 !important;
     font-weight: 900 !important;
     animation: pulse-error 2s ease-in-out infinite;
 }
@@ -147,8 +148,39 @@ body {
 
 /* プレイヤー入力のスタイル */
 .player-input {
-    color: #00ddff !important;
+    color: #00ceff !important;
     font-weight: 700 !important;
+}
+
+/* 新しい色分け用スタイル */
+.facility-name {
+    color: #ffffff !important;
+    font-weight: 900 !important;
+}
+
+.action-text {
+    color: #00e25b !important;
+    font-weight: 700 !important;
+}
+
+.command-text {
+    color: #00ceff !important;
+    font-weight: 900 !important;
+}
+
+.key-text {
+    color: #ff2db1 !important;
+    font-weight: 900 !important;
+}
+
+.prompt-text {
+    color: #00e25b !important;
+    font-weight: 700 !important;
+}
+
+.warning-text {
+    color: #ffff00 !important;
+    font-weight: 900 !important;
 }
 
 .input-area {
@@ -157,8 +189,8 @@ body {
     justify-content: flex-start;
     padding: 20px;
     padding-left: 50px;
-    background: rgba(0, 255, 0, 0.05);
-    border: 1px solid rgba(0, 255, 0, 0.2);
+    background: rgba(0, 226, 91, 0.05);
+    border: 1px solid rgba(0, 226, 91, 0.2);
     border-radius: 10px;
     margin-bottom: 20px;
 }
@@ -172,7 +204,7 @@ body {
 .input-text {
     font-size: clamp(16px, 3.2vw, 26px);
     font-weight: 700;
-    color: #00ff00;
+    color: #00e25b;
     margin-left: 20px;
     margin-right: 10px;
     letter-spacing: 2px;
@@ -181,7 +213,7 @@ body {
 .cursor {
     font-size: clamp(16px, 3.2vw, 26px);
     font-weight: 700;
-    color: #00ff00;
+    color: #00e25b;
     animation: blink 1s infinite;
 }
 
@@ -206,11 +238,11 @@ body {
 
 /* 成功・完了時のエフェクト */
 .success {
-    color: #00ff00;
+    color: #00e25b;
 }
 
 .complete {
-    color: #00ff00;
+    color: #00e25b;
 }
 
 .error {
@@ -322,8 +354,8 @@ body {
 
 /* 入力エリアのフォーカス効果 */
 .input-focus {
-    border-color: #00ff00;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    border-color: #00e25b;
+    box-shadow: 0 0 15px rgba(0, 226, 91, 0.3);
 }
 
 /* 隠しボタンのスタイル */
@@ -341,7 +373,7 @@ body {
 
 .hidden-button:hover {
     opacity: 0.3;
-    background: rgba(0, 255, 0, 0.1);
+    background: rgba(0, 226, 91, 0.1);
 }
 
 /* ホームボタン（左上） */
@@ -497,7 +529,7 @@ body {
 }
 
 .hidden-button.fullscreen-button:hover {
-    background: rgba(0, 255, 0, 0.2);
+    background: rgba(0, 226, 91, 0.2);
 }
 
 /* 全画面時のアイコン表示 */
@@ -508,7 +540,7 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 20px;
-    color: #00ff00;
+    color: #00e25b;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -545,8 +577,6 @@ body {
     transition: opacity 0.5s ease-in-out;
     pointer-events: none;
     object-fit: contain;
-    border: 2px solid red; /* デバッグ用 - 後で削除可能 */
-    background: rgba(255, 0, 0, 0.1); /* デバッグ用 - 後で削除可能 */
 }
 
 .error-image.show {
@@ -557,6 +587,74 @@ body {
 .fullscreen .error-image {
     height: 100vh;
     right: 0;
+}
+
+/* 警告アイコンのスタイル */
+.danger-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 8px;
+    display: inline-block;
+}
+
+.danger-message {
+    color: #ffff00 !important;
+    font-weight: 900 !important;
+    display: flex;
+    align-items: center;
+}
+
+/* グリッチ効果 */
+.glitch-effect {
+    animation: glitch 1s ease-in-out;
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+        filter: hue-rotate(0deg) brightness(1) contrast(1);
+    }
+    10% {
+        transform: translate(-2px, 2px);
+        filter: hue-rotate(90deg) brightness(1.2) contrast(1.5);
+    }
+    20% {
+        transform: translate(2px, -2px);
+        filter: hue-rotate(180deg) brightness(0.8) contrast(0.8);
+    }
+    30% {
+        transform: translate(-1px, 1px);
+        filter: hue-rotate(270deg) brightness(1.1) contrast(1.2);
+    }
+    40% {
+        transform: translate(1px, -1px);
+        filter: hue-rotate(0deg) brightness(0.9) contrast(0.9);
+    }
+    50% {
+        transform: translate(-3px, 3px);
+        filter: hue-rotate(90deg) brightness(1.3) contrast(1.6);
+    }
+    60% {
+        transform: translate(3px, -3px);
+        filter: hue-rotate(180deg) brightness(0.7) contrast(0.7);
+    }
+    70% {
+        transform: translate(-2px, 2px);
+        filter: hue-rotate(270deg) brightness(1.2) contrast(1.4);
+    }
+    80% {
+        transform: translate(2px, -2px);
+        filter: hue-rotate(0deg) brightness(0.8) contrast(0.8);
+    }
+    90% {
+        transform: translate(-1px, 1px);
+        filter: hue-rotate(90deg) brightness(1.1) contrast(1.1);
+    }
+    100% {
+        transform: translate(0);
+        filter: hue-rotate(0deg) brightness(1) contrast(1);
+    }
 }
 
 /* 待機中のエフェクト */

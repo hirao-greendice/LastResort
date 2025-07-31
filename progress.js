@@ -3,6 +3,10 @@ class ProgressManager {
         this.progressData = {};
         this.statusElement = document.getElementById('status');
         this.hiddenBackButton = document.getElementById('hiddenBackButton');
+        this.resetButton = document.getElementById('resetButton');
+        this.confirmDialog = document.getElementById('confirmDialog');
+        this.confirmYes = document.getElementById('confirmYes');
+        this.confirmNo = document.getElementById('confirmNo');
         this.clickCount = 0;
         
         this.init();
@@ -37,6 +41,28 @@ class ProgressManager {
                 this.clickCount = 0;
             }, 3000);
         });
+
+        // リセットボタンのイベント
+        this.resetButton.addEventListener('click', () => {
+            this.showConfirmDialog();
+        });
+
+        // 確認ダイアログのイベント
+        this.confirmYes.addEventListener('click', () => {
+            this.resetAllProgress();
+            this.hideConfirmDialog();
+        });
+
+        this.confirmNo.addEventListener('click', () => {
+            this.hideConfirmDialog();
+        });
+
+        // ダイアログの背景をクリックした時に閉じる
+        this.confirmDialog.addEventListener('click', (e) => {
+            if (e.target === this.confirmDialog) {
+                this.hideConfirmDialog();
+            }
+        });
     }
 
     toggleProgress(cell) {
@@ -66,6 +92,34 @@ class ProgressManager {
         
         console.log('Progress toggled:', key, this.progressData[key]);
         this.updateStatus(`進捗更新: Team ${team} Task ${task}`);
+    }
+
+    showConfirmDialog() {
+        this.confirmDialog.style.display = 'flex';
+    }
+
+    hideConfirmDialog() {
+        this.confirmDialog.style.display = 'none';
+    }
+
+    resetAllProgress() {
+        // すべての進捗をリセット
+        this.progressData = {};
+        
+        // すべてのセルからcompletedクラスを削除
+        const progressCells = document.querySelectorAll('.progress-cell');
+        progressCells.forEach(cell => {
+            cell.classList.remove('completed');
+        });
+        
+        // 依存関係を更新
+        this.updateDependencies();
+        
+        // 自動保存
+        this.saveProgressToFirebase();
+        
+        console.log('All progress reset');
+        this.updateStatus('全進捗をリセットしました');
     }
 
 

@@ -144,6 +144,83 @@
              z-index: 9999;
          }
 
+         .reset-button {
+             position: fixed;
+             bottom: 20px;
+             right: 20px;
+             padding: 10px 20px;
+             font-size: 12px;
+             font-weight: 700;
+             background: transparent;
+             border: 2px solid #ff0000;
+             color: #ff0000;
+             cursor: pointer;
+             font-family: 'Courier Prime', monospace;
+             z-index: 1000;
+             transition: all 0.3s ease;
+         }
+
+         .reset-button:hover {
+             background: rgba(255, 0, 0, 0.1);
+         }
+
+         .confirm-dialog {
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: rgba(0, 0, 0, 0.8);
+             display: none;
+             justify-content: center;
+             align-items: center;
+             z-index: 10000;
+         }
+
+         .confirm-content {
+             background: rgba(0, 0, 0, 0.9);
+             border: 2px solid #00ff00;
+             padding: 30px;
+             text-align: center;
+             font-family: 'Courier Prime', monospace;
+             color: #00ff00;
+             min-width: 300px;
+         }
+
+         .confirm-message {
+             font-size: 16px;
+             margin-bottom: 20px;
+             line-height: 1.5;
+         }
+
+         .confirm-buttons {
+             display: flex;
+             gap: 20px;
+             justify-content: center;
+         }
+
+         .confirm-btn {
+             padding: 10px 20px;
+             font-size: 14px;
+             font-weight: 700;
+             background: transparent;
+             border: 2px solid #00ff00;
+             color: #00ff00;
+             cursor: pointer;
+             font-family: 'Courier Prime', monospace;
+             transition: all 0.3s ease;
+         }
+
+         .confirm-btn.yes:hover {
+             background: rgba(255, 0, 0, 0.2);
+             border-color: #ff0000;
+             color: #ff0000;
+         }
+
+         .confirm-btn.no:hover {
+             background: rgba(0, 255, 0, 0.1);
+         }
+
          @media (max-width: 1200px) {
              .progress-grid {
                  grid-template-columns: 100px repeat(8, 1fr);
@@ -295,6 +372,21 @@
         </div>
         
         <div class="status" id="status">準備完了</div>
+    </div>
+
+    <button class="reset-button" id="resetButton">リセット</button>
+
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="confirm-content">
+            <div class="confirm-message">
+                すべての進捗をリセットしてもよろしいですか？<br>
+                この操作は元に戻せません。
+            </div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn yes" id="confirmYes">YES</button>
+                <button class="confirm-btn no" id="confirmNo">NO</button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->

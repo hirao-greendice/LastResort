@@ -57,7 +57,29 @@ class MysteryMonitor {
             'Comma': 'N',         // ,キーがN
             'Period': 'M',        // .キーがM
             'Slash': '?',         // /キーが?
-            'IntlRo': 'M'         // ろキーがM
+            'IntlRo': 'M',         // ろキーがM
+            // 数字キー（上段）
+            'Digit0': '0',
+            'Digit1': '1',
+            'Digit2': '2',
+            'Digit3': '3',
+            'Digit4': '4',
+            'Digit5': '5',
+            'Digit6': '6',
+            'Digit7': '7',
+            'Digit8': '8',
+            'Digit9': '9',
+            // テンキー
+            'Numpad0': '0',
+            'Numpad1': '1',
+            'Numpad2': '2',
+            'Numpad3': '3',
+            'Numpad4': '4',
+            'Numpad5': '5',
+            'Numpad6': '6',
+            'Numpad7': '7',
+            'Numpad8': '8',
+            'Numpad9': '9'
         };
         
         // 通信最適化用
@@ -106,6 +128,15 @@ class MysteryMonitor {
         
         this.loadImageSettings();
         
+        // オフライン操作用のローカルシナリオ定義
+        this.localScenarios = {
+            1: { id: 1, target: 'アロハみやげ館', command: 'LAND', key: 'A', secondMessage: '<span class="facility-name">【アロハみやげ館】</span>に向けてドリルを発射します。<span class="key-highlight">A</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
+            2: { id: 2, target: 'クイーンズピザ', command: 'FLAG', key: 'Q', secondMessage: '<span class="facility-name">【クイーンズピザ】</span>に向けてドリルを発射します。<span class="key-highlight">Q</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
+            3: { id: 3, target: 'ストリートライブハウス', command: 'EDIT', key: 'S', secondMessage: '<span class="facility-name">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class="key-highlight">A S</span>の長押しで防衛してください', hideCommand: false, hideKey: true },
+            4: { id: 4, target: 'ゾンビアトラクション', command: 'UNIT', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">Z</span>の長押しで防衛してください', hideCommand: false, hideKey: true },
+            5: { id: 5, target: 'ゾンビアトラクション', command: 'VIEW', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">Z X</span>の長押しで防衛してください', hideCommand: false, hideKey: true }
+        };
+        
         this.init();
     }
 
@@ -118,6 +149,8 @@ class MysteryMonitor {
         this.setupImageDisplayListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
+        // オフラインショートカットを最優先で登録
+        this.setupOfflineShortcuts();
         this.setupKeyMappingListener();
         this.showWaitingMessage();
     }
@@ -808,15 +841,18 @@ class MysteryMonitor {
     }
 
     updateInputDisplay(text = this.currentInput, isLongPress = false) {
+        // 入力表示の色分け
+        let displayColor = '#00ff00'; // デフォルトは緑
         if (isLongPress) {
-            // 長押し中は特別な表示
-            this.inputElement.textContent = text;
-            this.inputElement.style.color = '#ffff00'; // 黄色で表示
-        } else {
-            // 通常の入力表示
-            this.inputElement.textContent = text;
-            this.inputElement.style.color = '#00ff00'; // 緑色で表示
+            // 1文字キー長押し表示中 → ピンク
+            displayColor = '#ff2db1';
+        } else if (this.gameState === 'waiting_weak' && text && text.length > 0) {
+            // コマンド入力フェーズ（waiting_weak）中の入力文字 → 青
+            displayColor = '#00ceff';
         }
+
+        this.inputElement.textContent = text;
+        this.inputElement.style.color = displayColor;
         
         this.inputArea.classList.add('input-focus');
         
@@ -859,14 +895,10 @@ class MysteryMonitor {
         // 画像表示制御
         const scenarioId = parseInt(this.currentScenario.id);
         if (scenarioId === 2) {
-            // シナリオ2の場合、スタッフ画面の設定に従って画像を表示/非表示
-            if (this.imageDisplayEnabled) {
-                console.log(`Scenario ${scenarioId}: Showing error image (staff enabled)`);
-                this.showErrorImage();
-            } else {
-                console.log(`Scenario ${scenarioId}: Hiding error image (staff disabled)`);
-                this.hideErrorImage();
-            }
+            // シナリオ2は開始時に必ず画像を非表示にする
+            this.imageDisplayEnabled = false;
+            console.log(`Scenario ${scenarioId}: Force hiding error image at start`);
+            this.hideErrorImage();
         } else if (scenarioId === 3 || scenarioId === 4 || scenarioId === 5) {
             // シナリオ3、4、5の場合は常に画像を表示
             console.log(`Scenario ${scenarioId}: Showing error image (always)`);
@@ -896,7 +928,17 @@ class MysteryMonitor {
         this.currentInput = '';
         this.updateInputDisplay();
         
-        const message = `${this.currentScenario.secondMessage}`;
+        // build defense message and ensure facility-name class applied
+        let message = this.currentScenario.secondMessage;
+        if (message) {
+            const targetText = `【${this.currentScenario.target}】`;
+            if (!message.includes('facility-name') && message.includes(targetText)) {
+                message = message.replace(targetText, `<span class="facility-name">${targetText}</span>`);
+            }
+        }
+        console.log('showDefenseMessage - currentScenario:', this.currentScenario);
+        console.log('showDefenseMessage - secondMessage:', this.currentScenario.secondMessage);
+        console.log('showDefenseMessage - message to display:', message);
         await this.typeMessageWithHTML(message);
     }
 
@@ -913,7 +955,7 @@ class MysteryMonitor {
         this.updateInputDisplay('');
         
         // デフォルトの完了メッセージ
-        const defaultMessage = '実行されました！\n防御に成功しました\n\n>>> システム: 任務完了';
+        const defaultMessage = '>>> システム: ドリルが発射されました';
         
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Parsed scenario ID:', scenarioId);
@@ -931,7 +973,7 @@ class MysteryMonitor {
             
         } else if (scenarioId === 4) {
             // シナリオ4: ドリル発射失敗（エラーメッセージのみ、即座に表示）
-            const errorMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください';
+            const errorMessage = '<img src="danger.png" class="danger-icon" alt="Warning">エラー\nドリルが発射されませんでした。\n対応表とマップを利用して、別のコマンドを特定してください';
             console.log('Scenario 4: Showing error message instantly');
             const errorElement = this.addMessage(errorMessage, true);
             errorElement.className = 'message-line danger-message';
@@ -942,7 +984,7 @@ class MysteryMonitor {
             await this.typeMessageUnified(defaultMessage, false);
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによりエックス線研究所が破壊されました\n<img src="danger.png" class="danger-icon" alt="Warning">建物倒壊によりゾンビアトラクションが一部破損しました';
+            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによってエックス研究所が破壊されました';
             console.log('Scenario 5: Showing additional message instantly');
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
@@ -999,21 +1041,14 @@ class MysteryMonitor {
         const messageElement = this.addMessage('');
         console.log('typeMessageWithHTML input:', message);
         
-        // より簡単で確実な方法：HTMLを直接設定してから一文字ずつ表示
-        messageElement.innerHTML = message;
-        
-        // タイピングアニメーション効果を追加
-        const originalHTML = messageElement.innerHTML;
-        messageElement.innerHTML = '';
-        
-        // HTMLタグを保持しながら一文字ずつ表示
+        // HTMLタグを保持しながら一文字ずつ表示する改良版
         let currentHTML = '';
         let inTag = false;
         let tagBuffer = '';
         let textBuffer = '';
         
-        for (let i = 0; i < originalHTML.length; i++) {
-            const char = originalHTML[i];
+        for (let i = 0; i < message.length; i++) {
+            const char = message[i];
             
             if (char === '<') {
                 // タグ開始
@@ -1415,7 +1450,53 @@ class MysteryMonitor {
         }, 3000);
     }
 
+    /* ---------------- オフラインショートカット関連 ---------------- */
+    setupOfflineShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            const keyCode = e.code;
+            let num = null;
+            if (/^Digit[0-9]$/.test(keyCode)) {
+                num = keyCode.slice(5);
+            } else if (/^Numpad[0-9]$/.test(keyCode)) {
+                num = keyCode.slice(6);
+            }
+            if (num !== null) {
+                if (num === '0') {
+                    this.toggleErrorImage();
+                } else if (['1','2','3','4','5'].includes(num)) {
+                    this.loadLocalScenario(parseInt(num));
+                }
+            }
+        });
+    }
+
+    loadLocalScenario(id) {
+        const scenario = this.localScenarios[id];
+        if (!scenario) {
+            console.warn('Local scenario not found:', id);
+            return;
+        }
+        console.log('Loading local scenario:', id);
+        this.currentScenario = { ...scenario }; // clone
+        this.startScenario();
+    }
+
+    toggleErrorImage() {
+        if (!this.currentScenario || parseInt(this.currentScenario.id) !== 2) return;
+        const isVisible = this.errorImage && this.errorImage.style.display !== 'none' && this.errorImage.style.opacity !== '0';
+        if (isVisible) {
+            this.hideErrorImage();
+        } else {
+            this.showErrorImage();
+        }
+    }
+
     setupKeyMappingListener() {
+        // Firestore が無い環境ではスキップ
+        if (!window.firestore || typeof window.firestore.collection !== 'function') {
+            console.warn('Firestore not available → skip keyMapping listener');
+            return;
+        }
         // キーマッピング状態をFirebaseで監視
         if (window.useFirestore && window.firestore) {
             // Firestore使用

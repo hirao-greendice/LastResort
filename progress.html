@@ -84,7 +84,7 @@
         .progress-cell {
             background: #ffffff;
             border: 1px solid #00ff00;
-            cursor: pointer;
+            cursor: not-allowed;
             aspect-ratio: 1;
             display: flex;
             align-items: center;
@@ -96,16 +96,24 @@
             max-height: 52px;
         }
         
-        .progress-cell.completed {
-            background: #00ff00;
+        .progress-cell.current {
+            background: #ff8800;
             color: #000;
+            cursor: pointer;
+            border-color: #ff8800;
         }
         
-        .progress-cell.disabled {
-            background: #666666;
-            color: #999999;
+        .progress-cell.completed {
+            background: #00cc00;
+            color: #000;
+            cursor: pointer;
+        }
+        
+        .progress-cell.passed {
+            background: #006600;
+            color: #ffffff;
             cursor: not-allowed;
-            border-color: #666666;
+            border-color: #006600;
         }
         
         .header-cell {

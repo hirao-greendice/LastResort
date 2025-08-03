@@ -70,18 +70,16 @@ class ProgressManager {
         const task = cell.getAttribute('data-task');
         const key = `${team}-${task}`;
         
-        // 無効化されている場合は何もしない
-        if (cell.classList.contains('disabled')) {
+        // クリック可能かチェック（current または completed クラスがある場合のみ）
+        if (!cell.classList.contains('current') && !cell.classList.contains('completed')) {
             return;
         }
         
         // 進捗データを更新
         if (this.progressData[key]) {
             delete this.progressData[key];
-            cell.classList.remove('completed');
         } else {
             this.progressData[key] = true;
-            cell.classList.add('completed');
         }
         
         // 依存関係を更新
@@ -106,10 +104,10 @@ class ProgressManager {
         // すべての進捗をリセット
         this.progressData = {};
         
-        // すべてのセルからcompletedクラスを削除
+        // すべてのセルからクラスを削除
         const progressCells = document.querySelectorAll('.progress-cell');
         progressCells.forEach(cell => {
-            cell.classList.remove('completed');
+            cell.classList.remove('current', 'completed', 'passed');
         });
         
         // 依存関係を更新
@@ -218,24 +216,7 @@ class ProgressManager {
     }
 
     updateProgressDisplay() {
-        // すべてのセルをリセット
-        const progressCells = document.querySelectorAll('.progress-cell');
-        progressCells.forEach(cell => {
-            cell.classList.remove('completed');
-        });
-
-        // 保存されたデータに基づいて表示を更新
-        Object.keys(this.progressData).forEach(key => {
-            if (this.progressData[key]) {
-                const [team, task] = key.split('-');
-                const cell = document.querySelector(`[data-team="${team}"][data-task="${task}"]`);
-                if (cell) {
-                    cell.classList.add('completed');
-                }
-            }
-        });
-        
-        // 依存関係を更新
+        // 依存関係を更新（これがすべての状態を管理する）
         this.updateDependencies();
     }
     
@@ -256,17 +237,27 @@ class ProgressManager {
             
             // 次のタスクが完了しているかチェック
             const nextTaskKey = `${team}-${task + 1}`;
-            const isNextCompleted = task === 8 || this.progressData[nextTaskKey];
+            const isNextCompleted = task < 8 && this.progressData[nextTaskKey];
             
-            // 依存関係のルール:
-            // 1. 前のタスクが完了していない場合は無効化
-            // 2. 現在のタスクが完了していて、次のタスクが完了している場合は無効化
+            // すべてのクラスをリセット
+            cell.classList.remove('current', 'completed', 'passed');
+            
+            // 状態を判定
             if (!isPreviousCompleted) {
-                cell.classList.add('disabled');
+                // 白色: まだ到達していない（デフォルトの白色）
+                // クリックできない
+            } else if (!isCurrentCompleted) {
+                // オレンジ色: 挑戦中
+                cell.classList.add('current');
+            } else if (isCurrentCompleted && task === 8) {
+                // 8番目のタスクは完了していても常に緑色（クリック可能）
+                cell.classList.add('completed');
+            } else if (isCurrentCompleted && !isNextCompleted) {
+                // 明るい緑色: 完了済み（クリック可能）
+                cell.classList.add('completed');
             } else if (isCurrentCompleted && isNextCompleted) {
-                cell.classList.add('disabled');
-            } else {
-                cell.classList.remove('disabled');
+                // 濃い緑色: 通過済み（クリックできない）
+                cell.classList.add('passed');
             }
         });
     }

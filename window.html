@@ -200,6 +200,20 @@
         }
     </script>
     
+    <script>
+        // デフォルトで全画面にする
+        document.addEventListener('DOMContentLoaded', function() {
+            // 少し遅延してから全画面にする（ブラウザの制限を回避）
+            setTimeout(() => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Auto fullscreen failed:', err);
+                    });
+                }
+            }, 1000);
+        });
+    </script>
+    
     <script src="window.js"></script>
 </body>
 </html> 

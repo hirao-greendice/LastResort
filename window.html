@@ -146,8 +146,8 @@
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, doc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getDatabase, ref, onValue, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
@@ -171,6 +171,7 @@
                 window.firestore = firestore;
                 window.firestoreDoc = doc;
                 window.firestoreOnSnapshot = onSnapshot;
+                window.firestoreSetDoc = setDoc;
                 window.useFirestore = true;
             } catch (firestoreError) {
                 console.warn('Firestore initialization failed:', firestoreError);
@@ -184,6 +185,7 @@
                 window.database = database;
                 window.dbRef = ref;
                 window.dbOnValue = onValue;
+                window.dbSet = set;
                 
                 if (!window.useFirestore) {
                     console.log('Using Database as primary storage');
@@ -200,19 +202,7 @@
         }
     </script>
     
-    <script>
-        // デフォルトで全画面にする
-        document.addEventListener('DOMContentLoaded', function() {
-            // 少し遅延してから全画面にする（ブラウザの制限を回避）
-            setTimeout(() => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log('Auto fullscreen failed:', err);
-                    });
-                }
-            }, 1000);
-        });
-    </script>
+    <!-- 自動全画面化スクリプトを削除 -->
     
     <script src="window.js"></script>
 </body>

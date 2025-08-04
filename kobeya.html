@@ -34,9 +34,9 @@
         }
         
         .special-button {
-            width: 150px;
-            height: 120px;
-            font-size: 18px;
+            width: 180px;
+            height: 144px;
+            font-size: 26px;
             font-weight: 700;
             border: none;
             cursor: pointer;
@@ -76,13 +76,13 @@
         }
         
         .scenario-button {
-            width: 150px;
-            height: 120px;
+            width: 180px;
+            height: 144px;
             background: #00aa00;
             color: #000000;
             border: none;
             font-family: 'Courier Prime', monospace;
-            font-size: 14px;
+            font-size: 20px;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -102,17 +102,17 @@
         }
         
         .scenario-name {
-            font-size: 12px;
+            font-size: 15px;
             margin-bottom: 5px;
         }
         
         .scenario-command {
-            font-size: 16px;
+            font-size: 20px;
             margin-bottom: 5px;
         }
         
         .scenario-key {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 700;
         }
         
@@ -126,7 +126,7 @@
             color: #000000;
             border: none;
             font-family: 'Courier Prime', monospace;
-            font-size: 14px;
+            font-size: 18px;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -149,7 +149,7 @@
             color: #ffffff;
             border: none;
             font-family: 'Courier Prime', monospace;
-            font-size: 14px;
+            font-size: 18px;
             text-decoration: none;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -169,7 +169,7 @@
             color: #ffffff;
             border: none;
             font-family: 'Courier Prime', monospace;
-            font-size: 14px;
+            font-size: 18px;
             font-weight: 700;
             cursor: pointer;
             display: flex;
@@ -191,6 +191,171 @@
             color: #ffff00;
         }
         
+        /* 接続状況表示パネル */
+        .connection-panel {
+            position: fixed;
+            top: 50px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffffff;
+            border-radius: 5px;
+            padding: 15px;
+            font-size: 14px;
+            font-family: 'Courier Prime', monospace;
+            min-width: 200px;
+        }
+        
+        .connection-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffff00;
+            text-align: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        .connection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        .connection-name {
+            font-weight: 700;
+            color: #ffffff;
+        }
+        
+        .connection-status {
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .status-online {
+            background: #00aa00;
+            color: #000000;
+        }
+        
+        .status-offline {
+            background: #aa0000;
+            color: #ffffff;
+        }
+        
+        .status-unknown {
+            background: #888888;
+            color: #ffffff;
+        }
+        
+        .last-seen {
+            font-size: 11px;
+            color: #888888;
+            text-align: center;
+            margin-top: 10px;
+            border-top: 1px solid #333;
+            padding-top: 5px;
+        }
+        
+        .self-status {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00ffff;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 800px) {
+            .connection-panel {
+                right: 5px;
+                top: 40px;
+                min-width: 180px;
+                padding: 10px;
+            }
+            
+            .connection-title {
+                font-size: 14px;
+            }
+            
+            .connection-item {
+                margin: 6px 0;
+            }
+        }
+        
+        /* 確認ダイアログのスタイル */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            font-family: 'Courier Prime', monospace;
+        }
+        
+        .dialog-content {
+            background: #222222;
+            border: 3px solid #ffffff;
+            padding: 40px;
+            text-align: center;
+            color: #ffffff;
+            max-width: 500px;
+            width: 80%;
+        }
+        
+        .dialog-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffff00;
+        }
+        
+        .dialog-message {
+            font-size: 18px;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .dialog-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'Courier Prime', monospace;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 100px;
+        }
+        
+        .dialog-button.yes {
+            background: #00aa00;
+            color: #000000;
+        }
+        
+        .dialog-button.yes:hover {
+            background: #00dd00;
+        }
+        
+        .dialog-button.no {
+            background: #aa0000;
+            color: #ffffff;
+        }
+        
+        .dialog-button.no:hover {
+            background: #dd0000;
+        }
+        
         /* レスポンシブ対応 */
         @media (max-width: 800px) {
             .special-buttons {
@@ -198,9 +363,9 @@
             }
             
             .special-button {
-                width: 120px;
-                height: 100px;
-                font-size: 16px;
+                width: 144px;
+                height: 120px;
+                font-size: 23px;
             }
             
             .scenario-buttons {
@@ -208,17 +373,21 @@
             }
             
             .scenario-button {
-                width: 120px;
-                height: 100px;
-                font-size: 12px;
+                width: 144px;
+                height: 120px;
+                font-size: 18px;
+            }
+            
+            .scenario-name {
+                font-size: 13px;
             }
             
             .scenario-command {
-                font-size: 14px;
+                font-size: 18px;
             }
             
             .scenario-key {
-                font-size: 16px;
+                font-size: 20px;
             }
         }
         
@@ -229,9 +398,9 @@
             }
             
             .special-button {
-                width: 200px;
-                height: 80px;
-                font-size: 16px;
+                width: 240px;
+                height: 96px;
+                font-size: 23px;
             }
             
             .scenario-buttons {
@@ -240,7 +409,7 @@
             }
             
             .scenario-button {
-                width: 200px;
+                width: 240px;
             }
             
             .reset-button {
@@ -248,7 +417,7 @@
                 right: 20px;
                 width: 100px;
                 height: 60px;
-                font-size: 12px;
+                font-size: 16px;
             }
             
             .fullscreen-button {
@@ -256,13 +425,35 @@
                 left: 20px;
                 width: 100px;
                 height: 60px;
-                font-size: 12px;
+                font-size: 16px;
             }
         }
     </style>
 </head>
 <body>
     <div class="status" id="connectionStatus">Firebase接続中...</div>
+    
+    <!-- 接続状況表示パネル -->
+    <div class="connection-panel" id="connectionPanel">
+        <div class="connection-title">端末接続状況</div>
+        <div class="connection-item self-status">
+            <span class="connection-name">小部屋</span>
+            <span class="connection-status status-online">ONLINE</span>
+        </div>
+        <div class="connection-item" id="windowConnection">
+            <span class="connection-name">窓</span>
+            <span class="connection-status status-unknown">---</span>
+        </div>
+        <div class="connection-item" id="monitorConnection">
+            <span class="connection-name">モニター</span>
+            <span class="connection-status status-unknown">---</span>
+        </div>
+        <div class="connection-item" id="doctorConnection">
+            <span class="connection-name">博士映像</span>
+            <span class="connection-status status-unknown">---</span>
+        </div>
+        <div class="last-seen" id="lastUpdate">最終更新: --:--:--</div>
+    </div>
     
     <a href="index.html" class="back-button">← メニュー</a>
     
@@ -271,50 +462,62 @@
             ノイズ<br>OFF
         </button>
         
-        <button class="special-button window-button off" id="windowToggleBtn" onclick="toggleWindowChange()">
+        <button class="special-button window-button off" id="windowToggleBtn" onclick="confirmToggleWindowChange()">
             窓変化<br>OFF
         </button>
     </div>
     
     <div class="scenario-buttons">
-        <button class="scenario-button" onclick="selectScenario(1)">
+        <button class="scenario-button" onclick="confirmSelectScenario(1)">
             <div class="scenario-name">アロハ</div>
             <div class="scenario-command">LAND</div>
             <div class="scenario-key">A</div>
         </button>
         
-        <button class="scenario-button" onclick="selectScenario(2)">
+        <button class="scenario-button" onclick="confirmSelectScenario(2)">
             <div class="scenario-name">クイーン</div>
             <div class="scenario-command">FLAG</div>
             <div class="scenario-key">Q</div>
         </button>
         
-        <button class="scenario-button" onclick="selectScenario(3)">
+        <button class="scenario-button" onclick="confirmSelectScenario(3)">
             <div class="scenario-name">ストリート</div>
             <div class="scenario-command">EDIT</div>
             <div class="scenario-key">S</div>
         </button>
         
-        <button class="scenario-button" onclick="selectScenario(4)">
+        <button class="scenario-button" onclick="confirmSelectScenario(4)">
             <div class="scenario-name">ゾンビ</div>
             <div class="scenario-command">UNIT</div>
             <div class="scenario-key">Z</div>
         </button>
         
-        <button class="scenario-button" onclick="selectScenario(5)">
+        <button class="scenario-button" onclick="confirmSelectScenario(5)">
             <div class="scenario-name">ゾンビ</div>
             <div class="scenario-command">VIEW</div>
             <div class="scenario-key">Z</div>
         </button>
     </div>
     
-    <button class="reset-button" onclick="resetMonitor()">
+    <button class="reset-button" onclick="confirmResetMonitor()">
         画面<br>リセット
     </button>
     
     <button class="fullscreen-button" onclick="toggleFullscreen()">
         全画面<br>切替
     </button>
+    
+    <!-- 確認ダイアログ -->
+    <div class="confirm-dialog" id="confirmDialog">
+        <div class="dialog-content">
+            <div class="dialog-title">確認</div>
+            <div class="dialog-message" id="dialogMessage">このシナリオを実行しますか？</div>
+            <div class="dialog-buttons">
+                <button class="dialog-button yes" onclick="confirmYes()">ハイ</button>
+                <button class="dialog-button no" onclick="confirmNo()">いいえ</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase SDK -->
     <script type="module">
@@ -398,28 +601,46 @@
     <script>
         // 全画面機能
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log('Error attempting to enable fullscreen:', err);
-                });
+            console.log('Toggle fullscreen clicked');
+            console.log('Current fullscreen element:', document.fullscreenElement);
+            
+            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                // 全画面にする
+                const element = document.documentElement;
+                if (element.requestFullscreen) {
+                    element.requestFullscreen().then(() => {
+                        console.log('Entered fullscreen successfully');
+                    }).catch(err => {
+                        console.error('Error entering fullscreen:', err);
+                    });
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                    console.log('Entered webkit fullscreen');
+                } else if (element.msRequestFullscreen) {
+                    element.msRequestFullscreen();
+                    console.log('Entered ms fullscreen');
+                } else {
+                    console.error('Fullscreen not supported');
+                }
             } else {
-                document.exitFullscreen().catch(err => {
-                    console.log('Error attempting to exit fullscreen:', err);
-                });
+                // 全画面を解除
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        console.log('Exited fullscreen successfully');
+                    }).catch(err => {
+                        console.error('Error exiting fullscreen:', err);
+                    });
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                    console.log('Exited webkit fullscreen');
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                    console.log('Exited ms fullscreen');
+                }
             }
         }
         
-        // デフォルトで全画面にする
-        document.addEventListener('DOMContentLoaded', function() {
-            // 少し遅延してから全画面にする（ブラウザの制限を回避）
-            setTimeout(() => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log('Auto fullscreen failed:', err);
-                    });
-                }
-            }, 1000);
-        });
+        // 自動全画面化スクリプトを削除
     </script>
 
     <script src="kobeya.js"></script>

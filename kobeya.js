@@ -8,6 +8,18 @@ let isWindowChangeEnabled = false;
 let lastWindowControlState = null;
 let lastImageDisplayState = null;
 
+// 確認ダイアログ用変数
+let pendingScenarioId = null;
+let pendingResetAction = false;
+let pendingWindowChangeAction = false;
+
+// 接続状況監視用
+let connectionMonitorInterval = null;
+let heartbeatInterval = null;
+
+// デバウンス用のタイマー
+const statusChangeTimers = {};
+
 // デフォルトのシナリオデータ
 const defaultScenarios = {
     1: {
@@ -60,6 +72,9 @@ function init() {
     console.log('Initializing kobeya panel...');
     scenarios = { ...defaultScenarios };
     setupButtons();
+    
+    // ハートビート開始
+    startHeartbeat();
 }
 
 // ボタンの初期化
@@ -119,10 +134,16 @@ function loadScenariosFromFirestore() {
 
         // Firebase接続成功時に初期化を実行
         init();
+        
+        // 接続状況監視を開始
+        startConnectionMonitoring();
     }, (error) => {
         console.error('Error loading scenarios from Firestore:', error);
         showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
         init();
+        
+        // エラー時も接続状況監視を開始
+        startConnectionMonitoring();
     });
 
     // 現在のシナリオを監視
@@ -158,10 +179,16 @@ function loadScenariosFromDatabase() {
 
         // Firebase接続成功時に初期化を実行
         init();
+        
+        // 接続状況監視を開始
+        startConnectionMonitoring();
     }, (error) => {
         console.error('Error loading scenarios from Database:', error);
         showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
         init();
+        
+        // エラー時も接続状況監視を開始
+        startConnectionMonitoring();
     });
 
     // 現在のシナリオを監視
@@ -178,6 +205,70 @@ function loadScenariosFromDatabase() {
         console.error('Error monitoring current scenario in Database:', error);
         showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
     });
+}
+
+// 確認ダイアログを表示してシナリオ選択
+function confirmSelectScenario(scenarioId) {
+    console.log('Confirming scenario selection:', scenarioId);
+    
+    if (!scenarios[scenarioId]) {
+        console.error('Invalid scenario ID:', scenarioId);
+        showNotification('無効なシナリオです', 'error');
+        return;
+    }
+    
+    // 確認用のデータを保存
+    pendingScenarioId = scenarioId;
+    
+    // ダイアログメッセージを設定
+    const scenario = scenarios[scenarioId];
+    const dialogMessage = document.getElementById('dialogMessage');
+    dialogMessage.innerHTML = `シナリオ ${scenarioId}「${scenario.target}」<br/>コマンド: ${scenario.command}<br/><br/>このシナリオを実行しますか？`;
+    
+    // ダイアログを表示
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'flex';
+}
+
+// 確認ダイアログで「ハイ」を押した時
+function confirmYes() {
+    console.log('User confirmed action');
+    
+    // ダイアログを閉じる
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'none';
+    
+    // シナリオ実行の場合
+    if (pendingScenarioId !== null) {
+        selectScenario(pendingScenarioId);
+        pendingScenarioId = null;
+    }
+    
+    // リセット実行の場合
+    if (pendingResetAction) {
+        resetMonitor();
+        pendingResetAction = false;
+    }
+    
+    // 窓変化実行の場合
+    if (pendingWindowChangeAction) {
+        toggleWindowChange();
+        pendingWindowChangeAction = false;
+    }
+}
+
+// 確認ダイアログで「いいえ」を押した時
+function confirmNo() {
+    console.log('User cancelled action');
+    
+    // ダイアログを閉じる
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'none';
+    
+    // 保留中のアクションをクリア
+    pendingScenarioId = null;
+    pendingResetAction = false;
+    pendingWindowChangeAction = false;
 }
 
 // シナリオを選択
@@ -318,6 +409,26 @@ function updateImageDisplayInFirebase(enabled) {
     }
 }
 
+// 窓変化確認ダイアログを表示
+function confirmToggleWindowChange() {
+    console.log('Confirming window change toggle');
+    
+    // 確認用のフラグを設定
+    pendingWindowChangeAction = true;
+    
+    // 現在の状態に応じてメッセージを設定
+    const currentState = isWindowChangeEnabled ? 'OFF' : 'ON';
+    const actionMessage = isWindowChangeEnabled ? '無効' : '有効';
+    
+    // ダイアログメッセージを設定
+    const dialogMessage = document.getElementById('dialogMessage');
+    dialogMessage.innerHTML = `窓変化機能を${actionMessage}にします。<br/><br/>窓変化を${currentState}にしますか？`;
+    
+    // ダイアログを表示
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'flex';
+}
+
 // 窓変化切り替え
 function toggleWindowChange() {
     isWindowChangeEnabled = !isWindowChangeEnabled;
@@ -396,6 +507,22 @@ function updateWindowControlInFirebase(enabled) {
     }
 }
 
+// リセット確認ダイアログを表示
+function confirmResetMonitor() {
+    console.log('Confirming monitor reset');
+    
+    // 確認用のフラグを設定
+    pendingResetAction = true;
+    
+    // ダイアログメッセージを設定
+    const dialogMessage = document.getElementById('dialogMessage');
+    dialogMessage.innerHTML = 'モニター画面をリセットします。<br/><br/>現在表示されているシナリオが<br/>消去されますがよろしいですか？';
+    
+    // ダイアログを表示
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'flex';
+}
+
 // リセット機能
 function resetMonitor() {
     console.log('Resetting monitor...');
@@ -449,6 +576,181 @@ function resetMonitor() {
         console.error('Error in resetMonitor:', error);
         showNotification('リセット処理でエラーが発生しました', 'error');
     }
+}
+
+// ハートビート機能
+function startHeartbeat() {
+    console.log('Starting heartbeat for kobeya...');
+    
+    // 20秒間隔でハートビートを送信（Firebaseリクエスト削減）
+    heartbeatInterval = setInterval(() => {
+        const heartbeatData = {
+            screen: 'kobeya',
+            timestamp: Date.now(),
+            status: 'online'
+        };
+        
+        try {
+            if (window.useFirestore) {
+                const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'kobeya');
+                window.firestoreSetDoc(heartbeatRef, heartbeatData)
+                    .catch(error => console.error('Heartbeat error (Firestore):', error));
+            } else {
+                const heartbeatRef = window.dbRef(window.database, 'heartbeat/kobeya');
+                window.dbSet(heartbeatRef, heartbeatData)
+                    .catch(error => console.error('Heartbeat error (Database):', error));
+            }
+        } catch (error) {
+            console.error('Heartbeat error:', error);
+        }
+    }, 20000);
+    
+    // ページ離脱時にハートビートを停止し、オフライン状態を送信
+    window.addEventListener('beforeunload', () => {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+        }
+        
+        const offlineData = {
+            screen: 'kobeya',
+            timestamp: Date.now(),
+            status: 'offline'
+        };
+        
+        try {
+            if (window.useFirestore) {
+                const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'kobeya');
+                window.firestoreSetDoc(heartbeatRef, offlineData);
+            } else {
+                const heartbeatRef = window.dbRef(window.database, 'heartbeat/kobeya');
+                window.dbSet(heartbeatRef, offlineData);
+            }
+        } catch (error) {
+            console.error('Offline status update error:', error);
+        }
+    });
+}
+
+// 接続状況監視機能
+function startConnectionMonitoring() {
+    console.log('Starting connection monitoring...');
+    
+    if (window.useFirestore) {
+        // Firestoreの場合は各端末のハートビートを監視
+        ['window', 'monitor', 'doctor'].forEach(screenName => {
+            const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', screenName);
+            window.firestoreOnSnapshot(heartbeatRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    updateConnectionStatus(screenName, data);
+                } else {
+                    updateConnectionStatus(screenName, null);
+                }
+            }, (error) => {
+                console.error(`Error monitoring ${screenName} connection:`, error);
+                updateConnectionStatus(screenName, null);
+            });
+        });
+    } else {
+        // Realtime Databaseの場合
+        ['window', 'monitor', 'doctor'].forEach(screenName => {
+            const heartbeatRef = window.dbRef(window.database, `heartbeat/${screenName}`);
+            window.dbOnValue(heartbeatRef, (snapshot) => {
+                const data = snapshot.val();
+                updateConnectionStatus(screenName, data);
+            }, (error) => {
+                console.error(`Error monitoring ${screenName} connection:`, error);
+                updateConnectionStatus(screenName, null);
+            });
+        });
+    }
+    
+    // 定期的に接続状況をチェック（45秒間隔）
+    connectionMonitorInterval = setInterval(() => {
+        updateLastUpdateTime();
+        checkConnectionTimeout();
+    }, 45000);
+}
+
+// 接続状況表示を更新（デバウンス機能付き）
+function updateConnectionStatus(screenName, data) {
+    const connectionElement = document.getElementById(`${screenName}Connection`);
+    if (!connectionElement) return;
+    
+    const statusElement = connectionElement.querySelector('.connection-status');
+    
+    // 既存のタイマーをクリア
+    if (statusChangeTimers[screenName]) {
+        clearTimeout(statusChangeTimers[screenName]);
+    }
+    
+    if (!data) {
+        // データがない場合は不明状態（即座に更新）
+        statusElement.textContent = '---';
+        statusElement.className = 'connection-status status-unknown';
+        updateLastUpdateTime();
+        return;
+    }
+    
+    const now = Date.now();
+    const lastSeen = data.timestamp || 0;
+    const timeDiff = now - lastSeen;
+    
+    // 新しい状態を判定
+    let newStatus, newClass;
+    if (timeDiff < 60000 && data.status === 'online') {
+        newStatus = 'ONLINE';
+        newClass = 'connection-status status-online';
+    } else {
+        newStatus = 'OFFLINE';
+        newClass = 'connection-status status-offline';
+    }
+    
+    // 現在の状態と比較
+    const currentStatus = statusElement.textContent;
+    
+    if (currentStatus === newStatus) {
+        // 状態が変わらない場合は即座に更新
+        statusElement.textContent = newStatus;
+        statusElement.className = newClass;
+        updateLastUpdateTime();
+    } else {
+        // 状態が変わる場合はデバウンス（3秒待機）
+        statusChangeTimers[screenName] = setTimeout(() => {
+            statusElement.textContent = newStatus;
+            statusElement.className = newClass;
+            updateLastUpdateTime();
+            console.log(`${screenName} status changed to ${newStatus} (debounced)`);
+        }, 3000);
+    }
+}
+
+// 最終更新時刻を表示
+function updateLastUpdateTime() {
+    const now = new Date();
+    const timeString = now.toTimeString().split(' ')[0];
+    document.getElementById('lastUpdate').textContent = `最終更新: ${timeString}`;
+}
+
+// 接続タイムアウトをチェック
+function checkConnectionTimeout() {
+    ['window', 'monitor', 'doctor'].forEach(screenName => {
+        const connectionElement = document.getElementById(`${screenName}Connection`);
+        if (!connectionElement) return;
+        
+        const statusElement = connectionElement.querySelector('.connection-status');
+        
+        // 既にオフラインまたは不明の場合はスキップ
+        if (statusElement.classList.contains('status-offline') || 
+            statusElement.classList.contains('status-unknown')) {
+            return;
+        }
+        
+        // 強制的にオフライン表示に変更（ハートビートが止まった場合）
+        // これは実際のハートビートデータで上書きされるので問題ない
+        statusElement.textContent = 'OFFLINE';
+        statusElement.className = 'connection-status status-offline';
+    });
 }
 
 // アクティブなボタンを更新

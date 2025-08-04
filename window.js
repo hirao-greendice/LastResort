@@ -130,6 +130,9 @@ class WindowControl {
         this.setupControlPanel();
         this.setupFullscreenListener();
         
+        // ハートビート機能を開始
+        this.startHeartbeat();
+        
         // デフォルトプリセットを有効にする
         setTimeout(() => {
             document.getElementById('presetDefault').classList.add('active');
@@ -142,8 +145,10 @@ class WindowControl {
             this.isFullscreen = !!document.fullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
+                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
         
@@ -152,8 +157,10 @@ class WindowControl {
             this.isFullscreen = !!document.webkitFullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
+                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
     }
@@ -890,6 +897,59 @@ class WindowControl {
         this.updateControlValues();
         this.applySettings();
         this.saveSettings();
+    }
+
+    // ハートビート機能
+    startHeartbeat() {
+        console.log('Starting heartbeat for window...');
+        
+        // 20秒間隔でハートビートを送信（Firebaseリクエスト削減）
+        this.heartbeatInterval = setInterval(() => {
+            const heartbeatData = {
+                screen: 'window',
+                timestamp: Date.now(),
+                status: 'online'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'window');
+                    window.firestoreSetDoc(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Firestore):', error));
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/window');
+                    window.dbSet(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Database):', error));
+                }
+            } catch (error) {
+                console.error('Heartbeat error:', error);
+            }
+        }, 20000);
+        
+        // ページ離脱時にハートビートを停止し、オフライン状態を送信
+        window.addEventListener('beforeunload', () => {
+            if (this.heartbeatInterval) {
+                clearInterval(this.heartbeatInterval);
+            }
+            
+            const offlineData = {
+                screen: 'window',
+                timestamp: Date.now(),
+                status: 'offline'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'window');
+                    window.firestoreSetDoc(heartbeatRef, offlineData);
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/window');
+                    window.dbSet(heartbeatRef, offlineData);
+                }
+            } catch (error) {
+                console.error('Offline status update error:', error);
+            }
+        });
     }
 
 

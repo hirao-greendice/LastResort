@@ -1,0 +1,316 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier Prime', monospace;
+    background: #000000;
+    color: #ffffff;
+    min-height: 100vh;
+    padding: 0;
+    margin: 0;
+    user-select: none;
+    overflow: hidden;
+}
+
+.doctor-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+.doctor-frame {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.doctor-content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    background: #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.doctor-video-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.doctor-message {
+    font-size: 24px;
+    text-align: center;
+    color: #00ff00;
+    font-weight: 700;
+    line-height: 1.5;
+    opacity: 0.8;
+}
+
+.doctor-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 1;
+    transform: scale(1);
+    transition: all 0.3s ease-in-out;
+}
+
+/* 隠しボタンのスタイル */
+.hidden-button {
+    position: fixed;
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hidden-button:hover {
+    opacity: 0.3;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hidden-button-left {
+    top: 10px;
+    left: 10px;
+}
+
+.hidden-button-right {
+    top: 10px;
+    right: 10px;
+}
+
+/* 全画面ボタン（右下） */
+.hidden-button.fullscreen-button {
+    bottom: 10px;
+    right: 10px;
+}
+
+.hidden-button.fullscreen-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.hidden-button.fullscreen-button::before {
+    content: "⛶";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.hidden-button.fullscreen-button:hover::before {
+    color: #00ff00;
+}
+
+.fullscreen .hidden-button.fullscreen-button::before {
+    content: "⊡";
+}
+
+/* コントロールパネル */
+.control-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 380px;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    border-left: 2px solid #00ff00;
+    padding: 20px;
+    z-index: 2000;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+    font-family: 'Courier Prime', monospace;
+}
+
+.control-panel.open {
+    right: 0;
+}
+
+.control-panel h3 {
+    color: #00ff00;
+    font-size: 18px;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+}
+
+.control-group {
+    margin-bottom: 20px;
+}
+
+.control-group label {
+    display: block;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.input-group input[type="range"] {
+    flex: 1;
+    height: 25px;
+    background: #333;
+    outline: none;
+    border-radius: 5px;
+}
+
+.input-group input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #00ff00;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.input-group input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #00ff00;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.input-group input[type="number"] {
+    width: 70px;
+    padding: 5px;
+    background: #333;
+    border: 1px solid #555;
+    color: #ffffff;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    text-align: center;
+}
+
+.input-group span {
+    color: #00ff00;
+    font-weight: 700;
+    font-size: 12px;
+    min-width: 50px;
+    text-align: right;
+}
+
+.status-display {
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.status-item span:first-child {
+    color: #888;
+}
+
+.status-item span:last-child {
+    color: #00ff00;
+    font-weight: 700;
+}
+
+.control-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.control-btn {
+    flex: 1;
+    padding: 10px;
+    background: #333;
+    color: #ffffff;
+    border: 1px solid #555;
+    font-family: 'Courier Prime', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: #555;
+    border-color: #00ff00;
+}
+
+.control-btn.close {
+    background: #aa0000;
+    border-color: #cc0000;
+}
+
+.control-btn.close:hover {
+    background: #cc0000;
+}
+
+/* 全画面時のスタイル */
+.fullscreen {
+    background: #000000;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 800px) {
+    .control-panel {
+        width: 100vw;
+        right: -100vw;
+    }
+    
+    .doctor-message {
+        font-size: 20px;
+        padding: 20px;
+    }
+    
+    .hidden-button {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+@media (max-width: 600px) {
+    .doctor-message {
+        font-size: 18px;
+        padding: 15px;
+    }
+    
+    .hidden-button {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .hidden-button.fullscreen-button::before {
+        font-size: 16px;
+    }
+}

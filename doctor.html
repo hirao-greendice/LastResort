@@ -4,185 +4,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>博士映像画面</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Courier Prime', monospace;
-            background: #000000;
-            color: #ffffff;
-            min-height: 100vh;
-            padding: 0;
-            margin: 0;
-            user-select: none;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .doctor-container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .doctor-content {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 40px;
-        }
-        
-        .doctor-title {
-            font-size: 48px;
-            font-weight: 700;
-            color: #00ff00;
-            text-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-            text-align: center;
-        }
-        
-        .doctor-subtitle {
-            font-size: 24px;
-            color: #ffffff;
-            text-align: center;
-            opacity: 0.8;
-        }
-        
-        .video-placeholder {
-            width: 80%;
-            max-width: 800px;
-            height: 60vh;
-            background: #111111;
-            border: 3px solid #00ff00;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .placeholder-text {
-            font-size: 24px;
-            color: #00ff00;
-            text-align: center;
-        }
-        
-        .placeholder-subtext {
-            font-size: 16px;
-            color: #888888;
-            text-align: center;
-        }
-        
-        /* 隠しボタン */
-        .hidden-button {
-            position: fixed;
-            width: 50px;
-            height: 50px;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .hidden-button:hover {
-            opacity: 0.3;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .back-button {
-            top: 10px;
-            left: 10px;
-        }
-        
-        .fullscreen-button {
-            bottom: 10px;
-            right: 10px;
-        }
-        
-        .status {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            font-size: 12px;
-            color: #ffff00;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 5px 10px;
-            border-radius: 3px;
-        }
-        
-        /* レスポンシブ対応 */
-        @media (max-width: 800px) {
-            .doctor-title {
-                font-size: 36px;
-            }
-            
-            .doctor-subtitle {
-                font-size: 18px;
-            }
-            
-            .video-placeholder {
-                width: 95%;
-                height: 50vh;
-            }
-            
-            .placeholder-text {
-                font-size: 20px;
-            }
-        }
-        
-        @media (max-width: 600px) {
-            .doctor-title {
-                font-size: 28px;
-            }
-            
-            .doctor-subtitle {
-                font-size: 16px;
-            }
-            
-            .video-placeholder {
-                width: 95%;
-                height: 40vh;
-            }
-            
-            .placeholder-text {
-                font-size: 18px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="doctor.css">
 </head>
 <body>
-    <div class="status" id="connectionStatus">Firebase接続中...</div>
-    
-    <!-- 隠しボタン -->
-    <button class="hidden-button back-button" id="backButton"></button>
-    <button class="hidden-button fullscreen-button" id="fullscreenButton"></button>
-    
     <div class="doctor-container">
-        <div class="doctor-content">
-            <div class="doctor-title">博士映像システム</div>
-            <div class="doctor-subtitle">DOCTOR VIDEO SYSTEM</div>
-            
-            <div class="video-placeholder">
-                <div class="placeholder-text">映像準備中</div>
-                <div class="placeholder-subtext">
-                    小部屋画面から制御されます<br>
-                    システム連携待機中...
+        <div class="doctor-frame">
+            <div class="doctor-content" id="doctorContent">
+                <!-- 博士映像がここに表示される -->
+                <div class="doctor-video-container" id="doctorVideoContainer">
+                    <div class="doctor-message" id="doctorMessage">
+                        博士映像待機中...<br>
+                        小部屋画面から制御してください
+                    </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- 隠しボタン -->
+        <button class="hidden-button hidden-button-left" id="homeButton"></button>
+        <button class="hidden-button hidden-button-right" id="settingsButton"></button>
+        <button class="hidden-button fullscreen-button" id="doctorFullscreenButton"></button>
+        
+        <!-- コントロールパネル -->
+        <div class="control-panel" id="controlPanel">
+            <h3>博士映像設定</h3>
+            
+            <!-- 映像設定 -->
+            <div class="control-group">
+                <label for="videoOpacity">映像透明度 (%)</label>
+                <div class="input-group">
+                    <input type="range" id="videoOpacity" min="0" max="100" step="5" value="100">
+                    <input type="number" id="videoOpacityInput" min="0" max="100" step="5" value="100">
+                    <span id="videoOpacityValue">100%</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="videoScale">映像サイズ (%)</label>
+                <div class="input-group">
+                    <input type="range" id="videoScale" min="50" max="200" step="5" value="100">
+                    <input type="number" id="videoScaleInput" min="50" max="200" step="5" value="100">
+                    <span id="videoScaleValue">100%</span>
+                </div>
+            </div>
+            
+            <!-- 表示制御 -->
+            <div class="control-group">
+                <label>表示状態</label>
+                <div class="status-display">
+                    <div class="status-item">
+                        <span>接続状態:</span>
+                        <span id="connectionStatusDisplay">接続中...</span>
+                    </div>
+                    <div class="status-item">
+                        <span>映像状態:</span>
+                        <span id="videoStatusDisplay">待機中</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" id="resetButton">リセット</button>
+                <button class="control-btn close" id="closeButton">閉じる</button>
             </div>
         </div>
     </div>
@@ -206,184 +89,46 @@
 
         try {
             const app = initializeApp(firebaseConfig);
+            console.log('Firebase app initialized:', app);
             
-            // Cloud Firestore
-            const firestore = getFirestore(app);
+            // Firestore を試行
+            try {
+                const firestore = getFirestore(app);
+                console.log('Firestore initialized successfully');
+                window.firestore = firestore;
+                window.firestoreDoc = doc;
+                window.firestoreOnSnapshot = onSnapshot;
+                window.firestoreSetDoc = setDoc;
+                window.useFirestore = true;
+            } catch (firestoreError) {
+                console.warn('Firestore initialization failed:', firestoreError);
+                window.useFirestore = false;
+            }
             
-            // Realtime Database
-            const database = getDatabase(app);
-
-            // グローバルにエクスポート
-            window.firestore = firestore;
-            window.database = database;
-            window.firestoreDoc = doc;
-            window.firestoreOnSnapshot = onSnapshot;
-            window.firestoreSetDoc = setDoc;
+            // Database を試行
+            try {
+                const database = getDatabase(app);
+                console.log('Database initialized successfully');
+                            window.database = database;
             window.dbRef = ref;
             window.dbOnValue = onValue;
             window.dbSet = set;
-
-            // 接続テスト
-            console.log('Testing Firebase connections...');
-            
-            // Firestore接続テスト
-            const testFirestoreRef = doc(firestore, 'gameData', 'doctorControl');
-            const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
-                console.log('Firestore connection successful');
-                document.getElementById('connectionStatus').textContent = 'Firebase接続済み ✓';
-                document.getElementById('connectionStatus').style.color = '#00ff00';
-                window.useFirestore = true;
                 
-                // ハートビート開始
-                startHeartbeat();
+                if (!window.useFirestore) {
+                    console.log('Using Database as primary storage');
+                }
+            } catch (dbError) {
+                console.warn('Database initialization failed:', dbError);
                 
-                unsubscribe();
-            }, (firestoreError) => {
-                console.log('Firestore connection failed:', firestoreError);
-                
-                // Realtime Database接続テスト
-                const testRef = ref(database, '.info/connected');
-                onValue(testRef, (snapshot) => {
-                    const connected = snapshot.val();
-                    if (connected) {
-                        console.log('Realtime Database connection successful');
-                        document.getElementById('connectionStatus').textContent = 'Firebase接続済み ✓';
-                        document.getElementById('connectionStatus').style.color = '#00ff00';
-                        window.useFirestore = false;
-                        
-                        // ハートビート開始
-                        startHeartbeat();
-                    } else {
-                        console.log('Both Firebase services failed');
-                        document.getElementById('connectionStatus').textContent = '接続失敗 ✗';
-                        document.getElementById('connectionStatus').style.color = '#ff0000';
-                    }
-                });
-            });
-            
+                if (!window.useFirestore) {
+                    console.error('Both Firestore and Database failed to initialize');
+                }
+            }
         } catch (error) {
             console.error('Firebase initialization error:', error);
-            document.getElementById('connectionStatus').textContent = '初期化エラー ✗';
-            document.getElementById('connectionStatus').style.color = '#ff0000';
-        }
-        
-        // ハートビート機能
-        function startHeartbeat() {
-            const heartbeatInterval = setInterval(() => {
-                const heartbeatData = {
-                    screen: 'doctor',
-                    timestamp: Date.now(),
-                    status: 'online'
-                };
-                
-                try {
-                    if (window.useFirestore) {
-                        // Firestoreの場合
-                        const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'doctor');
-                        window.firestoreSetDoc(heartbeatRef, heartbeatData)
-                            .catch(error => console.error('Heartbeat error (Firestore):', error));
-                    } else {
-                        // Realtime Databaseの場合
-                        const heartbeatRef = window.dbRef(window.database, 'heartbeat/doctor');
-                        window.dbSet(heartbeatRef, heartbeatData)
-                            .catch(error => console.error('Heartbeat error (Database):', error));
-                    }
-                } catch (error) {
-                    console.error('Heartbeat error:', error);
-                }
-            }, 20000); // 20秒間隔（Firebaseリクエスト削減）
-            
-            // ページ離脱時にハートビートを停止
-            window.addEventListener('beforeunload', () => {
-                clearInterval(heartbeatInterval);
-                
-                // オフライン状態を送信
-                const offlineData = {
-                    screen: 'doctor',
-                    timestamp: Date.now(),
-                    status: 'offline'
-                };
-                
-                try {
-                    if (window.useFirestore) {
-                        // Firestoreの場合
-                        const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'doctor');
-                        window.firestoreSetDoc(heartbeatRef, offlineData);
-                    } else {
-                        // Realtime Databaseの場合
-                        const heartbeatRef = window.dbRef(window.database, 'heartbeat/doctor');
-                        window.dbSet(heartbeatRef, offlineData);
-                    }
-                } catch (error) {
-                    console.error('Offline status update error:', error);
-                }
-            });
         }
     </script>
     
-    <script>
-        // 隠しボタンの設定
-        document.addEventListener('DOMContentLoaded', function() {
-            // 戻るボタン（5回クリックでメイン画面に戻る）
-            let homeClickCount = 0;
-            let homeClickTimer = null;
-            
-            document.getElementById('backButton').addEventListener('click', () => {
-                homeClickCount++;
-                console.log('Back button clicked:', homeClickCount);
-                
-                if (homeClickTimer) {
-                    clearTimeout(homeClickTimer);
-                }
-                
-                if (homeClickCount >= 5) {
-                    window.location.href = 'index.html';
-                } else {
-                    homeClickTimer = setTimeout(() => {
-                        homeClickCount = 0;
-                    }, 3000);
-                }
-            });
-            
-            // 全画面ボタン
-            document.getElementById('fullscreenButton').addEventListener('click', () => {
-                toggleFullscreen();
-            });
-        });
-        
-        // 全画面機能
-        function toggleFullscreen() {
-            console.log('Toggle fullscreen clicked');
-            
-            if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-                // 全画面にする
-                const element = document.documentElement;
-                if (element.requestFullscreen) {
-                    element.requestFullscreen().then(() => {
-                        console.log('Entered fullscreen successfully');
-                    }).catch(err => {
-                        console.error('Error entering fullscreen:', err);
-                    });
-                } else if (element.webkitRequestFullscreen) {
-                    element.webkitRequestFullscreen();
-                } else if (element.msRequestFullscreen) {
-                    element.msRequestFullscreen();
-                }
-            } else {
-                // 全画面を解除
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().then(() => {
-                        console.log('Exited fullscreen successfully');
-                    }).catch(err => {
-                        console.error('Error exiting fullscreen:', err);
-                    });
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-            }
-        }
-    </script>
+    <script src="doctor.js"></script>
 </body>
 </html>

@@ -3,22 +3,18 @@ let currentScenario = null;
 let scenarios = {};
 let isImageDisplayEnabled = false;
 let isWindowChangeEnabled = false;
+let isDoctorVideoEnabled = false;
 
 // 通信最適化用
 let lastWindowControlState = null;
 let lastImageDisplayState = null;
+let lastDoctorVideoState = null;
 
 // 確認ダイアログ用変数
 let pendingScenarioId = null;
 let pendingResetAction = false;
 let pendingWindowChangeAction = false;
-
-// 接続状況監視用
-let connectionMonitorInterval = null;
-let heartbeatInterval = null;
-
-// デバウンス用のタイマー
-const statusChangeTimers = {};
+let pendingDoctorVideoAction = false;
 
 // デフォルトのシナリオデータ
 const defaultScenarios = {
@@ -72,9 +68,6 @@ function init() {
     console.log('Initializing kobeya panel...');
     scenarios = { ...defaultScenarios };
     setupButtons();
-    
-    // ハートビート開始
-    startHeartbeat();
 }
 
 // ボタンの初期化
@@ -82,10 +75,12 @@ function setupButtons() {
     // 初期状態を設定
     updateImageToggleButton(isImageDisplayEnabled);
     updateWindowToggleButton(isWindowChangeEnabled);
+    updateDoctorToggleButton(isDoctorVideoEnabled);
     
     // Firebaseに初期状態を保存
     updateImageDisplayInFirebase(isImageDisplayEnabled);
     updateWindowControlInFirebase(isWindowChangeEnabled);
+    updateDoctorVideoInFirebase(isDoctorVideoEnabled);
 }
 
 // シナリオをFirebaseから読み込み
@@ -134,16 +129,12 @@ function loadScenariosFromFirestore() {
 
         // Firebase接続成功時に初期化を実行
         init();
-        
-        // 接続状況監視を開始
-        startConnectionMonitoring();
+        // 接続監視を開始
+        setupConnectionMonitoring();
     }, (error) => {
         console.error('Error loading scenarios from Firestore:', error);
         showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
         init();
-        
-        // エラー時も接続状況監視を開始
-        startConnectionMonitoring();
     });
 
     // 現在のシナリオを監視
@@ -179,16 +170,12 @@ function loadScenariosFromDatabase() {
 
         // Firebase接続成功時に初期化を実行
         init();
-        
-        // 接続状況監視を開始
-        startConnectionMonitoring();
+        // 接続監視を開始
+        setupConnectionMonitoring();
     }, (error) => {
         console.error('Error loading scenarios from Database:', error);
         showNotification('シナリオ読み込みエラー: ' + error.message, 'error');
         init();
-        
-        // エラー時も接続状況監視を開始
-        startConnectionMonitoring();
     });
 
     // 現在のシナリオを監視
@@ -255,6 +242,12 @@ function confirmYes() {
         toggleWindowChange();
         pendingWindowChangeAction = false;
     }
+    
+    // 博士映像実行の場合
+    if (pendingDoctorVideoAction) {
+        toggleDoctorVideo();
+        pendingDoctorVideoAction = false;
+    }
 }
 
 // 確認ダイアログで「いいえ」を押した時
@@ -269,6 +262,7 @@ function confirmNo() {
     pendingScenarioId = null;
     pendingResetAction = false;
     pendingWindowChangeAction = false;
+    pendingDoctorVideoAction = false;
 }
 
 // シナリオを選択
@@ -436,6 +430,33 @@ function toggleWindowChange() {
     updateWindowControlInFirebase(isWindowChangeEnabled);
 }
 
+// 博士映像確認ダイアログを表示
+function confirmToggleDoctorVideo() {
+    console.log('Confirming doctor video toggle');
+    
+    // 確認用のフラグを設定
+    pendingDoctorVideoAction = true;
+    
+    // 現在の状態に応じてメッセージを設定
+    const currentState = isDoctorVideoEnabled ? 'OFF' : 'ON';
+    const actionMessage = isDoctorVideoEnabled ? '停止' : '再生';
+    
+    // ダイアログメッセージを設定
+    const dialogMessage = document.getElementById('dialogMessage');
+    dialogMessage.innerHTML = `博士映像を${actionMessage}します。<br/><br/>博士映像を${currentState}にしますか？`;
+    
+    // ダイアログを表示
+    const confirmDialog = document.getElementById('confirmDialog');
+    confirmDialog.style.display = 'flex';
+}
+
+// 博士映像切り替え
+function toggleDoctorVideo() {
+    isDoctorVideoEnabled = !isDoctorVideoEnabled;
+    updateDoctorToggleButton(isDoctorVideoEnabled);
+    updateDoctorVideoInFirebase(isDoctorVideoEnabled);
+}
+
 // 窓変化ボタンの表示を更新
 function updateWindowToggleButton(enabled) {
     const windowToggleBtn = document.getElementById('windowToggleBtn');
@@ -448,6 +469,21 @@ function updateWindowToggleButton(enabled) {
     } else {
         windowToggleBtn.innerHTML = '窓変化<br>OFF';
         windowToggleBtn.classList.add('off');
+    }
+}
+
+// 博士映像ボタンの表示を更新
+function updateDoctorToggleButton(enabled) {
+    const doctorToggleBtn = document.getElementById('doctorToggleBtn');
+    
+    console.log('Updating doctor toggle button:', enabled);
+    
+    if (enabled) {
+        doctorToggleBtn.innerHTML = '博士映像<br>ON';
+        doctorToggleBtn.classList.remove('off');
+    } else {
+        doctorToggleBtn.innerHTML = '博士映像<br>OFF';
+        doctorToggleBtn.classList.add('off');
     }
 }
 
@@ -504,6 +540,61 @@ function updateWindowControlInFirebase(enabled) {
     } catch (error) {
         console.error('Error in updateWindowControlInFirebase:', error);
         showNotification('窓変化設定の更新でエラーが発生しました', 'error');
+    }
+}
+
+// 博士映像状態をFirebaseに保存
+function updateDoctorVideoInFirebase(enabled) {
+    console.log('Updating doctor video in Firebase:', enabled);
+    
+    // 状態が変わっていない場合は通信しない
+    if (lastDoctorVideoState === enabled) {
+        console.log('Doctor video state unchanged, skipping update');
+        return;
+    }
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+
+    const doctorVideoData = {
+        enabled: enabled,
+        timestamp: Date.now()
+    };
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const doctorControlRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorControl');
+            window.firestoreSetDoc(doctorControlRef, doctorVideoData)
+                .then(() => {
+                    console.log('Doctor video status updated in Firestore');
+                    lastDoctorVideoState = enabled; // 成功時のみ状態を保存
+                    showNotification(enabled ? '博士映像をONにしました' : '博士映像をOFFにしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating doctor video status in Firestore:', error);
+                    showNotification('博士映像状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const doctorControlRef = window.dbRef(window.database, 'doctorControl');
+            window.dbSet(doctorControlRef, doctorVideoData)
+                .then(() => {
+                    console.log('Doctor video status updated in Database');
+                    lastDoctorVideoState = enabled; // 成功時のみ状態を保存
+                    showNotification(enabled ? '博士映像をONにしました' : '博士映像をOFFにしました', 'success');
+                })
+                .catch((error) => {
+                    console.error('Error updating doctor video status in Database:', error);
+                    showNotification('博士映像状態の更新に失敗しました: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in updateDoctorVideoInFirebase:', error);
+        showNotification('博士映像状態の更新でエラーが発生しました', 'error');
     }
 }
 
@@ -578,179 +669,125 @@ function resetMonitor() {
     }
 }
 
-// ハートビート機能
-function startHeartbeat() {
-    console.log('Starting heartbeat for kobeya...');
+// 接続状況監視システム
+function setupConnectionMonitoring() {
+    console.log('Setting up connection monitoring...');
     
-    // 20秒間隔でハートビートを送信（Firebaseリクエスト削減）
-    heartbeatInterval = setInterval(() => {
-        const heartbeatData = {
-            screen: 'kobeya',
-            timestamp: Date.now(),
-            status: 'online'
-        };
-        
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized for connection monitoring');
+        return;
+    }
+
+    // 自分の接続状況を報告
+    reportPresence();
+    
+    // 定期的に接続状況を報告（30秒ごと）
+    setInterval(() => {
+        reportPresence();
+    }, 30000);
+    
+    // 他の端末の接続状況を監視
+    monitorOtherConnections();
+}
+
+function reportPresence() {
+    if (!window.firestore && !window.database) {
+        return;
+    }
+
+    const presenceData = {
+        screen: 'kobeya',
+        timestamp: Date.now(),
+        status: 'online'
+    };
+
+    try {
+        if (window.useFirestore) {
+            const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'kobeya');
+            window.firestoreSetDoc(presenceRef, presenceData)
+                .catch(error => console.error('Error reporting presence to Firestore:', error));
+        } else {
+            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
+            window.dbSet(presenceRef, presenceData)
+                .catch(error => console.error('Error reporting presence to Database:', error));
+        }
+    } catch (error) {
+        console.error('Error in reportPresence:', error);
+    }
+}
+
+function monitorOtherConnections() {
+    const terminals = ['window', 'monitor', 'doctor'];
+    
+    terminals.forEach(terminal => {
         try {
             if (window.useFirestore) {
-                const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'kobeya');
-                window.firestoreSetDoc(heartbeatRef, heartbeatData)
-                    .catch(error => console.error('Heartbeat error (Firestore):', error));
+                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
+                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
+                }, (error) => {
+                    console.error(`Error monitoring ${terminal} presence:`, error);
+                    updateConnectionStatus(terminal, null);
+                });
             } else {
-                const heartbeatRef = window.dbRef(window.database, 'heartbeat/kobeya');
-                window.dbSet(heartbeatRef, heartbeatData)
-                    .catch(error => console.error('Heartbeat error (Database):', error));
+                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
+                window.dbOnValue(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.val());
+                }, (error) => {
+                    console.error(`Error monitoring ${terminal} presence:`, error);
+                    updateConnectionStatus(terminal, null);
+                });
             }
         } catch (error) {
-            console.error('Heartbeat error:', error);
-        }
-    }, 20000);
-    
-    // ページ離脱時にハートビートを停止し、オフライン状態を送信
-    window.addEventListener('beforeunload', () => {
-        if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-        }
-        
-        const offlineData = {
-            screen: 'kobeya',
-            timestamp: Date.now(),
-            status: 'offline'
-        };
-        
-        try {
-            if (window.useFirestore) {
-                const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'kobeya');
-                window.firestoreSetDoc(heartbeatRef, offlineData);
-            } else {
-                const heartbeatRef = window.dbRef(window.database, 'heartbeat/kobeya');
-                window.dbSet(heartbeatRef, offlineData);
-            }
-        } catch (error) {
-            console.error('Offline status update error:', error);
+            console.error(`Error setting up monitoring for ${terminal}:`, error);
         }
     });
 }
 
-// 接続状況監視機能
-function startConnectionMonitoring() {
-    console.log('Starting connection monitoring...');
-    
-    if (window.useFirestore) {
-        // Firestoreの場合は各端末のハートビートを監視
-        ['window', 'monitor', 'doctor'].forEach(screenName => {
-            const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', screenName);
-            window.firestoreOnSnapshot(heartbeatRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    updateConnectionStatus(screenName, data);
-                } else {
-                    updateConnectionStatus(screenName, null);
-                }
-            }, (error) => {
-                console.error(`Error monitoring ${screenName} connection:`, error);
-                updateConnectionStatus(screenName, null);
-            });
-        });
-    } else {
-        // Realtime Databaseの場合
-        ['window', 'monitor', 'doctor'].forEach(screenName => {
-            const heartbeatRef = window.dbRef(window.database, `heartbeat/${screenName}`);
-            window.dbOnValue(heartbeatRef, (snapshot) => {
-                const data = snapshot.val();
-                updateConnectionStatus(screenName, data);
-            }, (error) => {
-                console.error(`Error monitoring ${screenName} connection:`, error);
-                updateConnectionStatus(screenName, null);
-            });
-        });
-    }
-    
-    // 定期的に接続状況をチェック（45秒間隔）
-    connectionMonitorInterval = setInterval(() => {
-        updateLastUpdateTime();
-        checkConnectionTimeout();
-    }, 45000);
-}
-
-// 接続状況表示を更新（デバウンス機能付き）
-function updateConnectionStatus(screenName, data) {
-    const connectionElement = document.getElementById(`${screenName}Connection`);
+function updateConnectionStatus(terminal, data) {
+    const connectionElement = document.getElementById(`${terminal}Connection`);
     if (!connectionElement) return;
     
     const statusElement = connectionElement.querySelector('.connection-status');
+    const nameMap = {
+        'window': '窓',
+        'monitor': 'モニター', 
+        'doctor': '博士映像'
+    };
     
-    // 既存のタイマーをクリア
-    if (statusChangeTimers[screenName]) {
-        clearTimeout(statusChangeTimers[screenName]);
-    }
-    
-    if (!data) {
-        // データがない場合は不明状態（即座に更新）
+    if (data && data.timestamp) {
+        const timeDiff = Date.now() - data.timestamp;
+        
+        if (timeDiff < 60000) { // 1分以内
+            statusElement.textContent = 'ONLINE';
+            statusElement.className = 'connection-status status-online';
+        } else if (timeDiff < 300000) { // 5分以内
+            statusElement.textContent = 'AWAY';
+            statusElement.className = 'connection-status status-unknown';
+        } else {
+            statusElement.textContent = 'OFFLINE';
+            statusElement.className = 'connection-status status-offline';
+        }
+    } else {
         statusElement.textContent = '---';
         statusElement.className = 'connection-status status-unknown';
-        updateLastUpdateTime();
-        return;
     }
     
-    const now = Date.now();
-    const lastSeen = data.timestamp || 0;
-    const timeDiff = now - lastSeen;
-    
-    // 新しい状態を判定
-    let newStatus, newClass;
-    if (timeDiff < 60000 && data.status === 'online') {
-        newStatus = 'ONLINE';
-        newClass = 'connection-status status-online';
-    } else {
-        newStatus = 'OFFLINE';
-        newClass = 'connection-status status-offline';
-    }
-    
-    // 現在の状態と比較
-    const currentStatus = statusElement.textContent;
-    
-    if (currentStatus === newStatus) {
-        // 状態が変わらない場合は即座に更新
-        statusElement.textContent = newStatus;
-        statusElement.className = newClass;
-        updateLastUpdateTime();
-    } else {
-        // 状態が変わる場合はデバウンス（3秒待機）
-        statusChangeTimers[screenName] = setTimeout(() => {
-            statusElement.textContent = newStatus;
-            statusElement.className = newClass;
-            updateLastUpdateTime();
-            console.log(`${screenName} status changed to ${newStatus} (debounced)`);
-        }, 3000);
-    }
+    // 最終更新時刻を更新
+    updateLastSeen();
 }
 
-// 最終更新時刻を表示
-function updateLastUpdateTime() {
-    const now = new Date();
-    const timeString = now.toTimeString().split(' ')[0];
-    document.getElementById('lastUpdate').textContent = `最終更新: ${timeString}`;
-}
-
-// 接続タイムアウトをチェック
-function checkConnectionTimeout() {
-    ['window', 'monitor', 'doctor'].forEach(screenName => {
-        const connectionElement = document.getElementById(`${screenName}Connection`);
-        if (!connectionElement) return;
-        
-        const statusElement = connectionElement.querySelector('.connection-status');
-        
-        // 既にオフラインまたは不明の場合はスキップ
-        if (statusElement.classList.contains('status-offline') || 
-            statusElement.classList.contains('status-unknown')) {
-            return;
-        }
-        
-        // 強制的にオフライン表示に変更（ハートビートが止まった場合）
-        // これは実際のハートビートデータで上書きされるので問題ない
-        statusElement.textContent = 'OFFLINE';
-        statusElement.className = 'connection-status status-offline';
-    });
+function updateLastSeen() {
+    const lastUpdateElement = document.getElementById('lastUpdate');
+    if (lastUpdateElement) {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('ja-JP', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        });
+        lastUpdateElement.textContent = `最終更新: ${timeString}`;
+    }
 }
 
 // アクティブなボタンを更新

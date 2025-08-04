@@ -159,20 +159,63 @@ class DoctorControl {
     }
 
     showDoctorVideo() {
-        this.doctorMessage.innerHTML = 'サンプル博士映像<br>（実際の映像ファイルを配置してください）';
-        this.doctorMessage.style.fontSize = '36px';
-        this.doctorMessage.style.color = '#ffffff';
-        this.doctorMessage.style.textShadow = '0 0 10px #00ff00';
-        this.isVideoPlaying = true;
-        this.videoStatus = 'playing';
-        this.updateStatus();
+        // 既存の動画要素があれば削除
+        const existingVideo = this.doctorVideoContainer.querySelector('.doctor-video');
+        if (existingVideo) {
+            existingVideo.remove();
+        }
+
+        // メッセージを隠す
+        this.doctorMessage.style.display = 'none';
+
+        // 動画要素を作成
+        const video = document.createElement('video');
+        video.className = 'doctor-video';
+        video.src = 'doctor.mp4';
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = false; // 音楽を再生
+        video.controls = false;
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        video.style.position = 'absolute';
+        video.style.top = '0';
+        video.style.left = '0';
+
+        // 動画を最初から再生
+        video.currentTime = 0;
+
+        // 動画をコンテナに追加
+        this.doctorVideoContainer.appendChild(video);
+
+        // 動画の再生を開始
+        video.play().then(() => {
+            console.log('Doctor video started playing');
+            this.isVideoPlaying = true;
+            this.videoStatus = 'playing';
+            this.updateStatus();
+        }).catch(error => {
+            console.error('Error playing doctor video:', error);
+            // エラー時はメッセージを表示
+            this.doctorMessage.style.display = 'block';
+            this.doctorMessage.innerHTML = '映像ファイルの再生に失敗しました<br>ファイルを確認してください';
+            this.doctorMessage.style.color = '#ff0000';
+        });
     }
 
     hideDoctorVideo() {
-        this.doctorMessage.innerHTML = '博士映像待機中...<br>小部屋画面から制御してください';
-        this.doctorMessage.style.fontSize = '24px';
-        this.doctorMessage.style.color = '#00ff00';
-        this.doctorMessage.style.textShadow = 'none';
+        // 動画要素があれば停止して削除
+        const video = this.doctorVideoContainer.querySelector('.doctor-video');
+        if (video) {
+            video.pause();
+            video.remove();
+        }
+
+        // 画面を完全に暗くする（メッセージを隠す）
+        this.doctorMessage.style.display = 'none';
+        this.doctorMessage.innerHTML = '';
+
         this.isVideoPlaying = false;
         this.videoStatus = 'waiting';
         this.updateStatus();

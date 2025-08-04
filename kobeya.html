@@ -28,7 +28,7 @@
         
         .special-buttons {
             display: flex;
-            gap: 100px;
+            gap: 200px;
             align-items: center;
             margin-bottom: 20px;
         }
@@ -64,16 +64,6 @@
         }
         
         .window-button.off {
-            background: #808080;
-            color: #000000;
-        }
-        
-        .doctor-button {
-            background: #0066aa;
-            color: #ffffff;
-        }
-        
-        .doctor-button.off {
             background: #808080;
             color: #000000;
         }
@@ -275,6 +265,24 @@
             border: 1px solid #00ffff;
         }
         
+        /* レスポンシブ対応 */
+        @media (max-width: 800px) {
+            .connection-panel {
+                right: 5px;
+                top: 40px;
+                min-width: 180px;
+                padding: 10px;
+            }
+            
+            .connection-title {
+                font-size: 14px;
+            }
+            
+            .connection-item {
+                margin: 6px 0;
+            }
+        }
+        
         /* 確認ダイアログのスタイル */
         .confirm-dialog {
             position: fixed;
@@ -349,25 +357,10 @@
         }
         
         /* レスポンシブ対応 */
-                 @media (max-width: 800px) {
-             .connection-panel {
-                 right: 5px;
-                 top: 40px;
-                 min-width: 180px;
-                 padding: 10px;
-             }
-             
-             .connection-title {
-                 font-size: 14px;
-             }
-             
-             .connection-item {
-                 margin: 6px 0;
-             }
-             
-             .special-buttons {
-                 gap: 50px;
-             }
+        @media (max-width: 800px) {
+            .special-buttons {
+                gap: 100px;
+            }
             
             .special-button {
                 width: 144px;
@@ -398,11 +391,11 @@
             }
         }
         
-                 @media (max-width: 600px) {
-             .special-buttons {
-                 flex-direction: column;
-                 gap: 15px;
-             }
+        @media (max-width: 600px) {
+            .special-buttons {
+                flex-direction: column;
+                gap: 20px;
+            }
             
             .special-button {
                 width: 240px;
@@ -471,10 +464,6 @@
         
         <button class="special-button window-button off" id="windowToggleBtn" onclick="confirmToggleWindowChange()">
             窓変化<br>OFF
-        </button>
-        
-        <button class="special-button doctor-button off" id="doctorToggleBtn" onclick="confirmToggleDoctorVideo()">
-            博士映像<br>OFF
         </button>
     </div>
     

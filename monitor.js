@@ -153,6 +153,9 @@ class MysteryMonitor {
         this.setupOfflineShortcuts();
         this.setupKeyMappingListener();
         this.showWaitingMessage();
+        
+        // ハートビート機能を開始
+        this.startHeartbeat();
     }
 
 
@@ -1531,27 +1534,64 @@ class MysteryMonitor {
             });
         }
     }
+
+    // ハートビート機能
+    startHeartbeat() {
+        console.log('Starting heartbeat for monitor...');
+        
+        // 20秒間隔でハートビートを送信（Firebaseリクエスト削減）
+        this.heartbeatInterval = setInterval(() => {
+            const heartbeatData = {
+                screen: 'monitor',
+                timestamp: Date.now(),
+                status: 'online'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'monitor');
+                    window.firestoreSetDoc(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Firestore):', error));
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/monitor');
+                    window.dbSet(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Database):', error));
+                }
+            } catch (error) {
+                console.error('Heartbeat error:', error);
+            }
+        }, 20000);
+        
+        // ページ離脱時にハートビートを停止し、オフライン状態を送信
+        window.addEventListener('beforeunload', () => {
+            if (this.heartbeatInterval) {
+                clearInterval(this.heartbeatInterval);
+            }
+            
+            const offlineData = {
+                screen: 'monitor',
+                timestamp: Date.now(),
+                status: 'offline'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'monitor');
+                    window.firestoreSetDoc(heartbeatRef, offlineData);
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/monitor');
+                    window.dbSet(heartbeatRef, offlineData);
+                }
+            } catch (error) {
+                console.error('Offline status update error:', error);
+            }
+        });
+    }
 }
 
 // モニター初期化関数
 window.initGame = () => {
     const monitor = new MysteryMonitor();
-    // Presence reporting for monitor screen
-    function reportMonitorPresence(){
-        if(!window.firestore && !window.database) return;
-        const data={screen:'monitor',timestamp:Date.now(),status:'online'};
-        try{
-            if(window.useFirestore){
-                const ref=window.firestoreDoc(window.firestore,'presence','monitor');
-                window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));
-            }else if(window.database){
-                const ref=window.dbRef(window.database,'presence/monitor');
-                window.dbSet(ref,data).catch(e=>console.error('presence db',e));
-            }
-        }catch(err){console.error('presence error',err);}
-    }
-    reportMonitorPresence();
-    setInterval(reportMonitorPresence,30000);
     
     // デバッグ用のリセット機能（Escキーで待機状態に戻る）
     document.addEventListener('keydown', (e) => {

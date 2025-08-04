@@ -14,12 +14,17 @@ class WindowControl {
         this.currentTime = 0;
         this.playbackRate = 1;
         this.animationFrame = null;
+        this.lastBackwardUpdateTime = null;
+        this.backwardFrameRate = 1000 / 24; // 24FPSに制限（約41.67ms間隔）
+        this.lastBackwardFrameTime = 0;
         
         // P키용 동画制御プロパティ
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
         this.currentTimeP = 0;
         this.animationFrameP = null;
+        this.lastBackwardUpdateTimeP = null;
+        this.lastBackwardFrameTimeP = 0;
         
         // 現在アクティブな動画を追跡
         this.activeVideo = 'enter'; // 'enter' または 'p'
@@ -125,6 +130,9 @@ class WindowControl {
         this.setupControlPanel();
         this.setupFullscreenListener();
         
+        // ハートビート機能を開始
+        this.startHeartbeat();
+        
         // デフォルトプリセットを有効にする
         setTimeout(() => {
             document.getElementById('presetDefault').classList.add('active');
@@ -137,8 +145,10 @@ class WindowControl {
             this.isFullscreen = !!document.fullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
+                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
         
@@ -147,8 +157,10 @@ class WindowControl {
             this.isFullscreen = !!document.webkitFullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
+                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
     }
@@ -237,28 +249,62 @@ class WindowControl {
         // ENTERキー動画用の逆再生制御
         this.updateVideoTime = () => {
             if (this.isPlayingBackward && this.currentTime > 0) {
-                this.currentTime -= (1/60) * this.settings.playbackSpeed; // 再生速度に応じて逆再生
-                if (this.currentTime < 0) {
-                    this.currentTime = 0;
-                    this.stopVideoPlayback();
-                } else {
-                    this.windowVideo.currentTime = this.currentTime;
-                    this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+                const currentTimeStamp = performance.now();
+                
+                if (this.lastBackwardUpdateTime === null) {
+                    this.lastBackwardUpdateTime = currentTimeStamp;
+                    this.lastBackwardFrameTime = currentTimeStamp;
                 }
+                
+                // フレームレート制限：24FPSに制限して滑らかな逆再生を実現
+                if (currentTimeStamp - this.lastBackwardFrameTime >= this.backwardFrameRate) {
+                    const deltaTime = (currentTimeStamp - this.lastBackwardUpdateTime) / 1000; // 秒単位に変換
+                    this.lastBackwardUpdateTime = currentTimeStamp;
+                    this.lastBackwardFrameTime = currentTimeStamp;
+                    
+                    this.currentTime -= deltaTime * this.settings.playbackSpeed; // 実際の経過時間を使用
+                    
+                    if (this.currentTime < 0) {
+                        this.currentTime = 0;
+                        this.stopVideoPlayback();
+                        return;
+                    } else {
+                        this.windowVideo.currentTime = this.currentTime;
+                    }
+                }
+                
+                this.animationFrame = requestAnimationFrame(this.updateVideoTime);
             }
         };
         
         // Pキー動画用의 역재생 제어
         this.updateVideoTimeP = () => {
             if (this.isPlayingBackwardP && this.currentTimeP > 0) {
-                this.currentTimeP -= (1/60) * this.settings.playbackSpeed; // 재생속도에 응じて 역재생
-                if (this.currentTimeP < 0) {
-                    this.currentTimeP = 0;
-                    this.stopVideoPlaybackP();
-                } else {
-                    this.windowVideoP.currentTime = this.currentTimeP;
-                    this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+                const currentTimeStamp = performance.now();
+                
+                if (this.lastBackwardUpdateTimeP === null) {
+                    this.lastBackwardUpdateTimeP = currentTimeStamp;
+                    this.lastBackwardFrameTimeP = currentTimeStamp;
                 }
+                
+                // フレームレート制限：24FPSに制限して滑らかな逆再生を実現
+                if (currentTimeStamp - this.lastBackwardFrameTimeP >= this.backwardFrameRate) {
+                    const deltaTime = (currentTimeStamp - this.lastBackwardUpdateTimeP) / 1000; // 秒単位に変換
+                    this.lastBackwardUpdateTimeP = currentTimeStamp;
+                    this.lastBackwardFrameTimeP = currentTimeStamp;
+                    
+                    this.currentTimeP -= deltaTime * this.settings.playbackSpeed; // 실제 경과시간을 사용
+                    
+                    if (this.currentTimeP < 0) {
+                        this.currentTimeP = 0;
+                        this.stopVideoPlaybackP();
+                        return;
+                    } else {
+                        this.windowVideoP.currentTime = this.currentTimeP;
+                    }
+                }
+                
+                this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
             }
         };
     }
@@ -420,6 +466,10 @@ class WindowControl {
         console.log('Starting backward playback from:', this.currentTime);
         this.windowVideo.pause();
         
+        // 逆再生開始時にタイムスタンプをリセット
+        this.lastBackwardUpdateTime = null;
+        this.lastBackwardFrameTime = 0;
+        
         // アニメーションフレームで逆再生を制御
         this.animationFrame = requestAnimationFrame(this.updateVideoTime);
     }
@@ -471,6 +521,10 @@ class WindowControl {
         
         console.log('Starting backward playback P from:', this.currentTimeP);
         this.windowVideoP.pause();
+        
+        // 逆재생 시작시에 타임스탬프를 리셋
+        this.lastBackwardUpdateTimeP = null;
+        this.lastBackwardFrameTimeP = 0;
         
         // 애니메이션 프레임으로 역재생을 제어
         this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
@@ -845,28 +899,65 @@ class WindowControl {
         this.saveSettings();
     }
 
+    // ハートビート機能
+    startHeartbeat() {
+        console.log('Starting heartbeat for window...');
+        
+        // 20秒間隔でハートビートを送信（Firebaseリクエスト削減）
+        this.heartbeatInterval = setInterval(() => {
+            const heartbeatData = {
+                screen: 'window',
+                timestamp: Date.now(),
+                status: 'online'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'window');
+                    window.firestoreSetDoc(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Firestore):', error));
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/window');
+                    window.dbSet(heartbeatRef, heartbeatData)
+                        .catch(error => console.error('Heartbeat error (Database):', error));
+                }
+            } catch (error) {
+                console.error('Heartbeat error:', error);
+            }
+        }, 20000);
+        
+        // ページ離脱時にハートビートを停止し、オフライン状態を送信
+        window.addEventListener('beforeunload', () => {
+            if (this.heartbeatInterval) {
+                clearInterval(this.heartbeatInterval);
+            }
+            
+            const offlineData = {
+                screen: 'window',
+                timestamp: Date.now(),
+                status: 'offline'
+            };
+            
+            try {
+                if (window.useFirestore) {
+                    const heartbeatRef = window.firestoreDoc(window.firestore, 'heartbeat', 'window');
+                    window.firestoreSetDoc(heartbeatRef, offlineData);
+                } else {
+                    const heartbeatRef = window.dbRef(window.database, 'heartbeat/window');
+                    window.dbSet(heartbeatRef, offlineData);
+                }
+            } catch (error) {
+                console.error('Offline status update error:', error);
+            }
+        });
+    }
+
 
 }
 
 // 窓制御初期化
 window.addEventListener('DOMContentLoaded', () => {
     new WindowControl();
-    // Presence reporting for window screen
-    function reportWindowPresence(){
-        if(!window.firestore && !window.database) return;
-        const data={screen:'window',timestamp:Date.now(),status:'online'};
-        try{
-            if(window.useFirestore){
-                const ref=window.firestoreDoc(window.firestore,'presence','window');
-                window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));
-            }else if(window.database){
-                const ref=window.dbRef(window.database,'presence/window');
-                window.dbSet(ref,data).catch(e=>console.error('presence db',e));
-            }
-        }catch(err){console.error('presence error',err);}
-    }
-    reportWindowPresence();
-    setInterval(reportWindowPresence,30000);
 });
 
 // エラーハンドリング

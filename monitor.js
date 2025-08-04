@@ -9,7 +9,7 @@ class MysteryMonitor {
         
         this.pressedKeys = new Set();
         this.longPressTimer = null;
-        this.longPressDelay = 1000; // 1秒で長押し判定
+        this.longPressDelay = 400; // 0.4秒で長押し判定
         this.isLongPressing = false; // 長押し中かどうか
         
         this.currentScenario = null;
@@ -698,7 +698,11 @@ class MysteryMonitor {
     }
 
     startLongPress() {
-        if (this.longPressTimer || this.isLongPressing) return; // 既に開始済み
+        // 既に実行中のタイマーがあればクリア
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
         
         this.isLongPressing = true;
         this.updateInputDisplay(this.currentScenario.key, true); // 長押し中のキーを表示

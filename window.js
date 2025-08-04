@@ -14,12 +14,17 @@ class WindowControl {
         this.currentTime = 0;
         this.playbackRate = 1;
         this.animationFrame = null;
+        this.lastBackwardUpdateTime = null;
+        this.backwardFrameRate = 1000 / 24; // 24FPSに制限（約41.67ms間隔）
+        this.lastBackwardFrameTime = 0;
         
         // P키용 동画制御プロパティ
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
         this.currentTimeP = 0;
         this.animationFrameP = null;
+        this.lastBackwardUpdateTimeP = null;
+        this.lastBackwardFrameTimeP = 0;
         
         // 現在アクティブな動画を追跡
         this.activeVideo = 'enter'; // 'enter' または 'p'
@@ -237,28 +242,62 @@ class WindowControl {
         // ENTERキー動画用の逆再生制御
         this.updateVideoTime = () => {
             if (this.isPlayingBackward && this.currentTime > 0) {
-                this.currentTime -= (1/60) * this.settings.playbackSpeed; // 再生速度に応じて逆再生
-                if (this.currentTime < 0) {
-                    this.currentTime = 0;
-                    this.stopVideoPlayback();
-                } else {
-                    this.windowVideo.currentTime = this.currentTime;
-                    this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+                const currentTimeStamp = performance.now();
+                
+                if (this.lastBackwardUpdateTime === null) {
+                    this.lastBackwardUpdateTime = currentTimeStamp;
+                    this.lastBackwardFrameTime = currentTimeStamp;
                 }
+                
+                // フレームレート制限：24FPSに制限して滑らかな逆再生を実現
+                if (currentTimeStamp - this.lastBackwardFrameTime >= this.backwardFrameRate) {
+                    const deltaTime = (currentTimeStamp - this.lastBackwardUpdateTime) / 1000; // 秒単位に変換
+                    this.lastBackwardUpdateTime = currentTimeStamp;
+                    this.lastBackwardFrameTime = currentTimeStamp;
+                    
+                    this.currentTime -= deltaTime * this.settings.playbackSpeed; // 実際の経過時間を使用
+                    
+                    if (this.currentTime < 0) {
+                        this.currentTime = 0;
+                        this.stopVideoPlayback();
+                        return;
+                    } else {
+                        this.windowVideo.currentTime = this.currentTime;
+                    }
+                }
+                
+                this.animationFrame = requestAnimationFrame(this.updateVideoTime);
             }
         };
         
         // Pキー動画用의 역재생 제어
         this.updateVideoTimeP = () => {
             if (this.isPlayingBackwardP && this.currentTimeP > 0) {
-                this.currentTimeP -= (1/60) * this.settings.playbackSpeed; // 재생속도에 응じて 역재생
-                if (this.currentTimeP < 0) {
-                    this.currentTimeP = 0;
-                    this.stopVideoPlaybackP();
-                } else {
-                    this.windowVideoP.currentTime = this.currentTimeP;
-                    this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+                const currentTimeStamp = performance.now();
+                
+                if (this.lastBackwardUpdateTimeP === null) {
+                    this.lastBackwardUpdateTimeP = currentTimeStamp;
+                    this.lastBackwardFrameTimeP = currentTimeStamp;
                 }
+                
+                // フレームレート制限：24FPSに制限して滑らかな逆再生を実現
+                if (currentTimeStamp - this.lastBackwardFrameTimeP >= this.backwardFrameRate) {
+                    const deltaTime = (currentTimeStamp - this.lastBackwardUpdateTimeP) / 1000; // 秒単位に変換
+                    this.lastBackwardUpdateTimeP = currentTimeStamp;
+                    this.lastBackwardFrameTimeP = currentTimeStamp;
+                    
+                    this.currentTimeP -= deltaTime * this.settings.playbackSpeed; // 실제 경과시간을 사용
+                    
+                    if (this.currentTimeP < 0) {
+                        this.currentTimeP = 0;
+                        this.stopVideoPlaybackP();
+                        return;
+                    } else {
+                        this.windowVideoP.currentTime = this.currentTimeP;
+                    }
+                }
+                
+                this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
             }
         };
     }
@@ -420,6 +459,10 @@ class WindowControl {
         console.log('Starting backward playback from:', this.currentTime);
         this.windowVideo.pause();
         
+        // 逆再生開始時にタイムスタンプをリセット
+        this.lastBackwardUpdateTime = null;
+        this.lastBackwardFrameTime = 0;
+        
         // アニメーションフレームで逆再生を制御
         this.animationFrame = requestAnimationFrame(this.updateVideoTime);
     }
@@ -471,6 +514,10 @@ class WindowControl {
         
         console.log('Starting backward playback P from:', this.currentTimeP);
         this.windowVideoP.pause();
+        
+        // 逆재생 시작시에 타임스탬프를 리셋
+        this.lastBackwardUpdateTimeP = null;
+        this.lastBackwardFrameTimeP = 0;
         
         // 애니메이션 프레임으로 역재생을 제어
         this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);

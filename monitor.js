@@ -1384,11 +1384,11 @@ class MysteryMonitor {
         if (this.errorImage) {
             console.log('Starting glitch effect before showing error image');
             
-            // 1秒間のグリッチ効果を適用
+            // 3秒間のグリッチ効果を適用
             document.body.classList.add('glitch-effect');
             
-            // 1秒待機
-            await this.delay(1000);
+            // 3秒待機
+            await this.delay(3000);
             
             // グリッチ効果を削除
             document.body.classList.remove('glitch-effect');

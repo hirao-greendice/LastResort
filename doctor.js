@@ -2,9 +2,12 @@ class DoctorControl {
     constructor() {
         this.isDoctorVideoEnabled = false;
         this.isVideoPlaying = false;
+        this.hasVideoEnded = false; // 動画が終了したかどうかのフラグ
         this.doctorContent = document.getElementById('doctorContent');
         this.doctorVideoContainer = document.getElementById('doctorVideoContainer');
         this.doctorMessage = document.getElementById('doctorMessage');
+        this.doctorVideo = document.getElementById('doctorVideo');
+        this.fadeOverlay = document.getElementById('fadeOverlay');
         
         // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
@@ -34,6 +37,7 @@ class DoctorControl {
         console.log('Initializing doctor control...');
         
         this.loadSettings();
+        this.setupVideoEvents();
         this.setupFirebaseListener();
         this.setupHiddenButtons();
         this.setupControlPanel();
@@ -45,6 +49,66 @@ class DoctorControl {
         setInterval(() => {
             this.reportPresence();
         }, 30000); // 30秒ごと
+    }
+
+    setupVideoEvents() {
+        if (this.doctorVideo) {
+            // 動画のループを無効にする
+            this.doctorVideo.loop = false;
+            
+            // 動画終了時のイベントリスナー
+            this.doctorVideo.addEventListener('ended', () => {
+                console.log('Doctor video ended');
+                this.onVideoEnded();
+            });
+            
+            // 動画エラー時のイベントリスナー
+            this.doctorVideo.addEventListener('error', (error) => {
+                console.error('Doctor video error:', error);
+                this.videoStatus = 'error';
+                this.updateStatus();
+            });
+            
+            // 動画読み込み完了時のイベントリスナー
+            this.doctorVideo.addEventListener('loadeddata', () => {
+                console.log('Doctor video loaded');
+            });
+            
+            console.log('Video events setup completed');
+        }
+    }
+
+    onVideoEnded() {
+        console.log('Video playback completed, starting fade to black');
+        this.hasVideoEnded = true;
+        this.isVideoPlaying = false;
+        this.videoStatus = 'ended';
+        this.updateStatus();
+        
+        // 画面を暗くする（フェードアウト）
+        this.fadeToBlack();
+    }
+
+    fadeToBlack() {
+        if (this.fadeOverlay) {
+            this.fadeOverlay.style.display = 'block';
+            // 短時間後にフェードイン開始（CSSトランジション用）
+            setTimeout(() => {
+                this.fadeOverlay.classList.add('fade-in');
+            }, 100);
+            
+            console.log('Fade to black started');
+        }
+    }
+
+    resetFade() {
+        if (this.fadeOverlay) {
+            this.fadeOverlay.classList.remove('fade-in');
+            setTimeout(() => {
+                this.fadeOverlay.style.display = 'none';
+            }, 100);
+            console.log('Fade reset');
+        }
     }
 
     setupFullscreenListener() {
@@ -159,63 +223,67 @@ class DoctorControl {
     }
 
     showDoctorVideo() {
-        // 既存の動画要素があれば削除
-        const existingVideo = this.doctorVideoContainer.querySelector('.doctor-video');
-        if (existingVideo) {
-            existingVideo.remove();
+        console.log('Showing doctor video');
+        
+        // フェード効果をリセット
+        this.resetFade();
+        this.hasVideoEnded = false;
+        
+        if (this.doctorVideo) {
+            // メッセージを非表示にして動画を表示
+            this.doctorMessage.style.display = 'none';
+            this.doctorVideo.style.display = 'block';
+            
+            // 動画を最初から再生
+            this.doctorVideo.currentTime = 0;
+            this.doctorVideo.play().then(() => {
+                console.log('Doctor video started playing');
+                this.isVideoPlaying = true;
+                this.videoStatus = 'playing';
+                this.updateStatus();
+            }).catch(error => {
+                console.error('Error playing doctor video:', error);
+                this.showVideoError();
+            });
+        } else {
+            console.warn('Doctor video element not found');
+            this.showVideoError();
         }
+    }
 
-        // メッセージを隠す
-        this.doctorMessage.style.display = 'none';
-
-        // 動画要素を作成
-        const video = document.createElement('video');
-        video.className = 'doctor-video';
-        video.src = 'doctor.mp4';
-        video.autoplay = true;
-        video.loop = true;
-        video.muted = false; // 音楽を再生
-        video.controls = false;
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.objectFit = 'cover';
-        video.style.position = 'absolute';
-        video.style.top = '0';
-        video.style.left = '0';
-
-        // 動画を最初から再生
-        video.currentTime = 0;
-
-        // 動画をコンテナに追加
-        this.doctorVideoContainer.appendChild(video);
-
-        // 動画の再生を開始
-        video.play().then(() => {
-            console.log('Doctor video started playing');
-            this.isVideoPlaying = true;
-            this.videoStatus = 'playing';
-            this.updateStatus();
-        }).catch(error => {
-            console.error('Error playing doctor video:', error);
-            // エラー時はメッセージを表示
-            this.doctorMessage.style.display = 'block';
-            this.doctorMessage.innerHTML = '映像ファイルの再生に失敗しました<br>ファイルを確認してください';
-            this.doctorMessage.style.color = '#ff0000';
-        });
+    showVideoError() {
+        // 動画が利用できない場合のフォールバック
+        this.doctorVideo.style.display = 'none';
+        this.doctorMessage.style.display = 'block';
+        this.doctorMessage.innerHTML = '博士映像が利用できません<br>doctor.mp4ファイルを確認してください';
+        this.doctorMessage.style.fontSize = '24px';
+        this.doctorMessage.style.color = '#ff4444';
+        this.doctorMessage.style.textShadow = '0 0 10px #ff0000';
+        this.videoStatus = 'error';
+        this.updateStatus();
     }
 
     hideDoctorVideo() {
-        // 動画要素があれば停止して削除
-        const video = this.doctorVideoContainer.querySelector('.doctor-video');
-        if (video) {
-            video.pause();
-            video.remove();
+        console.log('Hiding doctor video');
+        
+        // 動画を停止
+        if (this.doctorVideo) {
+            this.doctorVideo.pause();
+            this.doctorVideo.currentTime = 0;
+            this.doctorVideo.style.display = 'none';
         }
-
-        // 画面を完全に暗くする（メッセージを隠す）
-        this.doctorMessage.style.display = 'none';
-        this.doctorMessage.innerHTML = '';
-
+        
+        // フェード効果をリセット
+        this.resetFade();
+        this.hasVideoEnded = false;
+        
+        // 待機メッセージを表示
+        this.doctorMessage.style.display = 'block';
+        this.doctorMessage.innerHTML = '博士映像待機中...<br>小部屋画面から制御してください';
+        this.doctorMessage.style.fontSize = '24px';
+        this.doctorMessage.style.color = '#00ff00';
+        this.doctorMessage.style.textShadow = 'none';
+        
         this.isVideoPlaying = false;
         this.videoStatus = 'waiting';
         this.updateStatus();
@@ -437,6 +505,14 @@ class DoctorControl {
                 case 'waiting':
                     videoDisplay.textContent = '待機中';
                     videoDisplay.style.color = '#888888';
+                    break;
+                case 'ended':
+                    videoDisplay.textContent = '終了（暗転中）';
+                    videoDisplay.style.color = '#ffff00';
+                    break;
+                case 'error':
+                    videoDisplay.textContent = 'エラー';
+                    videoDisplay.style.color = '#ff0000';
                     break;
             }
         }

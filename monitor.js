@@ -1382,18 +1382,59 @@ class MysteryMonitor {
     // グリッチ効果付きエラー画像表示メソッド
     async showErrorImageWithGlitch() {
         if (this.errorImage) {
-            console.log('Starting glitch effect before showing error image');
+            console.log('Starting enhanced glitch effect before showing error image');
             
-            // 3秒間のグリッチ効果を適用
+            // 3秒間の強化グリッチ効果を適用
             document.body.classList.add('glitch-effect');
+            
+            // グリッチ中にランダムなテキスト変更効果を追加
+            const originalMessages = [];
+            const messageElements = document.querySelectorAll('.message-line');
+            
+            // 元のメッセージを保存
+            messageElements.forEach((el, index) => {
+                originalMessages[index] = el.innerHTML;
+            });
+            
+            // グリッチ中のランダム文字変更
+            const glitchTextInterval = setInterval(() => {
+                messageElements.forEach((el) => {
+                    if (Math.random() < 0.3) { // 30%の確率でテキストを変更
+                        const glitchChars = '!@#$%^&*(){}[]|\\<>?/.,;:\'"`~±§¿¡¦«»¬°²³€¥£¢∞μ∑π∆Ω';
+                        const originalText = el.textContent;
+                        let glitchedText = '';
+                        
+                        for (let i = 0; i < originalText.length; i++) {
+                            if (Math.random() < 0.1) { // 10%の確率で文字をグリッチ文字に変更
+                                glitchedText += glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                            } else {
+                                glitchedText += originalText[i];
+                            }
+                        }
+                        
+                        el.textContent = glitchedText;
+                        
+                        // 短時間後に元に戻す
+                        setTimeout(() => {
+                            el.innerHTML = originalMessages[Array.from(messageElements).indexOf(el)];
+                        }, 50 + Math.random() * 100);
+                    }
+                });
+            }, 100); // 100msごとに実行
             
             // 3秒待機
             await this.delay(3000);
             
             // グリッチ効果を削除
             document.body.classList.remove('glitch-effect');
+            clearInterval(glitchTextInterval);
             
-            console.log('Glitch effect completed, showing error image');
+            // メッセージを元に戻す
+            messageElements.forEach((el, index) => {
+                el.innerHTML = originalMessages[index];
+            });
+            
+            console.log('Enhanced glitch effect completed, showing error image');
             
             // 通常のエラー画像表示
             this.showErrorImage();

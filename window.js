@@ -234,30 +234,43 @@ class WindowControl {
         this.windowVideoP.autoplay = false;
         this.windowVideoP.loop = false;
         
-        // ENTERキー動画用の逆再生制御
+        // ENTERキー動画用の逆再生制御（最適化版）
         this.updateVideoTime = () => {
             if (this.isPlayingBackward && this.currentTime > 0) {
-                this.currentTime -= (1/60) * this.settings.playbackSpeed; // 再生速度に応じて逆再生
+                // フレームレートを30FPSに制限してパフォーマンスを向上
+                const deltaTime = (1/30) * this.settings.playbackSpeed;
+                this.currentTime -= deltaTime;
+                
                 if (this.currentTime < 0) {
                     this.currentTime = 0;
+                    this.windowVideo.currentTime = 0;
                     this.stopVideoPlayback();
                 } else {
                     this.windowVideo.currentTime = this.currentTime;
-                    this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+                    // setTimeoutを使用してより安定した逆再生を実現
+                    this.animationFrame = setTimeout(() => {
+                        requestAnimationFrame(this.updateVideoTime);
+                    }, 1000/30); // 30FPS
                 }
             }
         };
         
-        // Pキー動画用의 역재생 제어
+        // Pキー動画用の逆再生制御（最適化版）
         this.updateVideoTimeP = () => {
             if (this.isPlayingBackwardP && this.currentTimeP > 0) {
-                this.currentTimeP -= (1/60) * this.settings.playbackSpeed; // 재생속도에 응じて 역재생
+                // フレームレートを30FPSに制限してパフォーマンスを向上
+                const deltaTime = (1/30) * this.settings.playbackSpeed;
+                this.currentTimeP -= deltaTime; // 재생속도에 응じて 역재생
                 if (this.currentTimeP < 0) {
                     this.currentTimeP = 0;
+                    this.windowVideoP.currentTime = 0;
                     this.stopVideoPlaybackP();
                 } else {
                     this.windowVideoP.currentTime = this.currentTimeP;
-                    this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+                    // setTimeoutを使用してより安定した逆再生を実現
+                    this.animationFrameP = setTimeout(() => {
+                        requestAnimationFrame(this.updateVideoTimeP);
+                    }, 1000/30); // 30FPS
                 }
             }
         };
@@ -420,8 +433,8 @@ class WindowControl {
         console.log('Starting backward playback from:', this.currentTime);
         this.windowVideo.pause();
         
-        // アニメーションフレームで逆再生を制御
-        this.animationFrame = requestAnimationFrame(this.updateVideoTime);
+        // 最適化された逆再生制御を開始
+        this.updateVideoTime();
     }
 
     stopVideoPlayback() {
@@ -434,7 +447,13 @@ class WindowControl {
         }
         
         if (this.animationFrame) {
-            cancelAnimationFrame(this.animationFrame);
+            if (typeof this.animationFrame === 'number') {
+                // setTimeoutの場合
+                clearTimeout(this.animationFrame);
+            } else {
+                // requestAnimationFrameの場合
+                cancelAnimationFrame(this.animationFrame);
+            }
             this.animationFrame = null;
         }
     }
@@ -472,8 +491,8 @@ class WindowControl {
         console.log('Starting backward playback P from:', this.currentTimeP);
         this.windowVideoP.pause();
         
-        // 애니메이션 프레임으로 역재생을 제어
-        this.animationFrameP = requestAnimationFrame(this.updateVideoTimeP);
+        // 最適化された逆再生制御を開始
+        this.updateVideoTimeP();
     }
 
     stopVideoPlaybackP() {
@@ -486,7 +505,13 @@ class WindowControl {
         }
         
         if (this.animationFrameP) {
-            cancelAnimationFrame(this.animationFrameP);
+            if (typeof this.animationFrameP === 'number') {
+                // setTimeoutの場合
+                clearTimeout(this.animationFrameP);
+            } else {
+                // requestAnimationFrameの場合
+                cancelAnimationFrame(this.animationFrameP);
+            }
             this.animationFrameP = null;
         }
     }
@@ -831,7 +856,7 @@ class WindowControl {
             imageZoom: 100,
             scrollDistance: -50,
             scrollDuration: 0.3,
-            playbackSpeed: 0.5
+            playbackSpeed: 1.0
         };
         
         // プリセットボタンの状態をリセット

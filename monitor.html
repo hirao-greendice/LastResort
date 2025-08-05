@@ -91,7 +91,7 @@
             const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
                 console.log('Firestore connection test successful');
                 const statusElement = document.querySelector('.terminal-status');
-                statusElement.textContent = 'STATUS: ACTIVE - Firestore Connected ✓';
+                statusElement.textContent = 'STATUS: ACTIVE - Defense Network Online ✓';
                 window.useFirestore = true;
                 setTimeout(() => {
                     window.initGame();
@@ -107,7 +107,7 @@
                     const statusElement = document.querySelector('.terminal-status');
                     if (connected) {
                         console.log('Realtime Database connection successful');
-                        statusElement.textContent = 'STATUS: ACTIVE - Realtime Database Connected ✓';
+                        statusElement.textContent = 'STATUS: ACTIVE - Command Network Online ✓';
                         window.useFirestore = false;
                         setTimeout(() => {
                             window.initGame();

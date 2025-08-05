@@ -230,7 +230,7 @@ class MysteryMonitor {
                 // External keyboard mode
                 
                 // デバッグ: キー情報を画面に一時表示
-                this.showKeyDebugInfo(e.code, e.key, e.location);
+                // this.showKeyDebugInfo(e.code, e.key, e.location);
                 
                 const mappedKey = this.keyMapping[e.code];
                 if (mappedKey) {
@@ -877,7 +877,7 @@ class MysteryMonitor {
         // エラー画像を非表示（待機状態時）
         this.hideErrorImage();
         
-        const message = 'システム待機中...\n\nスタッフ画面からシナリオを選択してください';
+        const message = 'DEFENSE SYSTEM > Ready\n\nアルファベット4文字のコマンドを入力してください\n分からない場合には攻撃先を読み取らせてください';
         await this.typeMessage(message);
     }
 

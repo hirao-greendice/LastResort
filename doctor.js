@@ -42,6 +42,7 @@ class DoctorControl {
         this.setupHiddenButtons();
         this.setupControlPanel();
         this.setupFullscreenListener();
+        this.setupAudioUnlock();
         this.updateStatus();
         
         // 接続状況を定期更新
@@ -55,6 +56,9 @@ class DoctorControl {
         if (this.doctorVideo) {
             // 動画のループを無効にする
             this.doctorVideo.loop = false;
+            // 音声を有効にする
+            this.doctorVideo.muted = false;
+            this.doctorVideo.volume = 1.0;
             
             // 動画終了時のイベントリスナー
             this.doctorVideo.addEventListener('ended', () => {
@@ -236,14 +240,31 @@ class DoctorControl {
             
             // 動画を最初から再生
             this.doctorVideo.currentTime = 0;
+            // 音声を確実に有効にする
+            this.doctorVideo.muted = false;
+            this.doctorVideo.volume = 1.0;
+            
             this.doctorVideo.play().then(() => {
-                console.log('Doctor video started playing');
+                console.log('Doctor video started playing with audio');
                 this.isVideoPlaying = true;
                 this.videoStatus = 'playing';
                 this.updateStatus();
             }).catch(error => {
                 console.error('Error playing doctor video:', error);
-                this.showVideoError();
+                // 自動再生が失敗した場合、ミュートで再生を試す
+                console.log('Trying to play video without audio...');
+                this.doctorVideo.muted = true;
+                this.doctorVideo.play().then(() => {
+                    console.log('Doctor video started playing (muted fallback)');
+                    this.isVideoPlaying = true;
+                    this.videoStatus = 'playing';
+                    this.updateStatus();
+                    // ユーザーに音声有効化を促すメッセージを表示
+                    console.log('Video is playing muted. User interaction required for audio.');
+                }).catch(fallbackError => {
+                    console.error('Fallback video play also failed:', fallbackError);
+                    this.showVideoError();
+                });
             });
         } else {
             console.warn('Doctor video element not found');
@@ -287,6 +308,26 @@ class DoctorControl {
         this.isVideoPlaying = false;
         this.videoStatus = 'waiting';
         this.updateStatus();
+    }
+
+    setupAudioUnlock() {
+        // 画面クリックで音声を有効化
+        document.addEventListener('click', () => {
+            if (this.doctorVideo && this.isVideoPlaying && this.doctorVideo.muted) {
+                this.doctorVideo.muted = false;
+                this.doctorVideo.volume = 1.0;
+                console.log('Audio unlocked by user interaction');
+            }
+        }, { once: false });
+        
+        // タッチデバイス対応
+        document.addEventListener('touchstart', () => {
+            if (this.doctorVideo && this.isVideoPlaying && this.doctorVideo.muted) {
+                this.doctorVideo.muted = false;
+                this.doctorVideo.volume = 1.0;
+                console.log('Audio unlocked by user touch');
+            }
+        }, { once: false });
     }
 
     setupHiddenButtons() {

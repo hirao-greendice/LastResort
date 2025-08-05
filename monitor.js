@@ -140,9 +140,9 @@ class MysteryMonitor {
         this.localScenarios = {
             1: { id: 1, target: 'アロハみやげ館', command: 'LAND', key: 'A', secondMessage: '<span class="facility-name">【アロハみやげ館】</span>に向けてドリルを発射します。<span class="key-highlight">A</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
             2: { id: 2, target: 'クイーンズピザ', command: 'FLAG', key: 'Q', secondMessage: '<span class="facility-name">【クイーンズピザ】</span>に向けてドリルを発射します。<span class="key-highlight">Q</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
-            3: { id: 3, target: 'ストリートライブハウス', command: 'EDIT', key: 'S', secondMessage: '<span class="facility-name">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class="key-highlight">A S</span>の長押しで防衛してください', hideCommand: false, hideKey: true },
-            4: { id: 4, target: 'ゾンビアトラクション', command: 'UNIT', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">Z</span>の長押しで防衛してください', hideCommand: false, hideKey: true },
-            5: { id: 5, target: 'ゾンビアトラクション', command: 'VIEW', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">Z X</span>の長押しで防衛してください', hideCommand: false, hideKey: true }
+            3: { id: 3, target: 'ストリートライブハウス', command: 'EDIT', key: 'S', secondMessage: '<span class="facility-name">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true },
+            4: { id: 4, target: 'ゾンビアトラクション', command: 'UNIT', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true },
+            5: { id: 5, target: 'ゾンビアトラクション', command: 'VIEW', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true }
         };
         
         this.init();

@@ -277,9 +277,9 @@ class DoctorControl {
         this.resetFade();
         this.hasVideoEnded = false;
         
-        // 待機メッセージを表示
-        this.doctorMessage.style.display = 'block';
-        this.doctorMessage.innerHTML = '博士映像待機中...<br>小部屋画面から制御してください';
+        // 待機メッセージを非表示にする
+        this.doctorMessage.style.display = 'none';
+        this.doctorMessage.innerHTML = '';
         this.doctorMessage.style.fontSize = '24px';
         this.doctorMessage.style.color = '#00ff00';
         this.doctorMessage.style.textShadow = 'none';

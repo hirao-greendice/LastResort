@@ -105,6 +105,14 @@ class MysteryMonitor {
         this.errorImage = document.getElementById('errorImage');
         this.setupErrorImageHandlers();
         
+        // 音声要素
+        this.doriruAudio = document.getElementById('doriruAudio');
+        this.doriruLoopAudio = document.getElementById('doriruLoopAudio');
+        this.noppoAudio = document.getElementById('noppoAudio');
+        this.noppoToieAudio = document.getElementById('noppoToieAudio');
+        this.defenseSoundPlayed = false; // 防衛音声再生済みフラグ
+        this.setupAudioHandlers();
+        
         // 画像表示制御（シナリオ2用）
         this.imageDisplayEnabled = false;
         
@@ -688,12 +696,16 @@ class MysteryMonitor {
         this.updateInputDisplay('');
         this.isLongPressing = false;
         this.currentScenario = null;
+        this.defenseSoundPlayed = false; // 防衛音声フラグをリセット
         
         // タイマーをクリア
         if (this.longPressTimer) {
             clearTimeout(this.longPressTimer);
             this.longPressTimer = null;
         }
+        
+        // 全ての音声を停止
+        this.stopAllAudio();
         
         // エラー画像を非表示
         this.hideErrorImage();
@@ -717,14 +729,24 @@ class MysteryMonitor {
     }
 
     handleLongPress() {
-        if (this.gameState === 'waiting_defense') {
+        if (this.gameState === 'waiting_defense' && !this.defenseSoundPlayed) {
             // 長押し完了時にのみログを表示
             this.addMessage(`<span class="prompt-text">></span> <span class="key-text">${this.currentScenario.key}</span>`, true, true);
             
-            // 1秒待ってから次のテキストを表示
-            setTimeout(() => {
-                this.completeGame();
-            }, 1000);
+            const scenarioId = parseInt(this.currentScenario.id);
+            
+            if ([1, 2, 3, 5].includes(scenarioId)) {
+                // 長押し完了時に音声を再生
+                this.defenseSoundPlayed = true; // 一回だけ再生のためのフラグ
+                this.playLongPressSound();
+                console.log('Long press completed, playing defense sound and waiting for it to end');
+            } else {
+                // シナリオ4: 防衛音声がないため、従来通りcompleteGame()を呼び出し
+                console.log('Long press completed for scenario 4, calling completeGame');
+                setTimeout(() => {
+                    this.completeGame();
+                }, 1000);
+            }
         }
     }
 
@@ -840,6 +862,12 @@ class MysteryMonitor {
             // 正解の場合、プレイヤーの入力をメッセージエリアに表示
             this.addMessage(`<span class="prompt-text">></span> <span class="command-text">${this.currentInput}</span>`, true, true);
             
+            // シナリオ1,2,3,5でDORIRU.mp3を再生
+            const scenarioId = parseInt(this.currentScenario.id);
+            if ([1, 2, 3, 5].includes(scenarioId)) {
+                this.playDoriruSound();
+            }
+            
             // 1秒待ってから次のステップへ
             this.gameState = 'processing'; // 処理中状態にして追加入力を防ぐ
             setTimeout(() => {
@@ -935,6 +963,7 @@ class MysteryMonitor {
         this.gameState = 'waiting_defense';
         this.currentInput = '';
         this.updateInputDisplay();
+        this.defenseSoundPlayed = false; // 防衛フェーズ開始時にフラグをリセット
         
         // build defense message and ensure facility-name class applied
         let message = this.currentScenario.secondMessage;
@@ -1141,6 +1170,171 @@ class MysteryMonitor {
                 console.error('Error image failed to load:', this.errorImage.src);
             });
         }
+    }
+    
+    // 音声の初期化とイベントハンドラー設定
+    setupAudioHandlers() {
+        
+        if (this.doriruAudio) {
+            // DORIRU.mp3が終了したらDORIRULOOP.mp3を開始
+            this.doriruAudio.addEventListener('ended', () => {
+                console.log('DORIRU ended, starting DORIRULOOP');
+                if (this.doriruLoopAudio) {
+                    this.doriruLoopAudio.currentTime = 0;
+                    this.doriruLoopAudio.play().catch(e => console.error('DORIRU LOOP playback error:', e));
+                }
+            });
+            
+            this.doriruAudio.addEventListener('error', (e) => {
+                console.error('DORIRU audio failed to load:', e);
+            });
+        }
+        
+        if (this.doriruLoopAudio) {
+            // DORIRULOOP.mp3のシームレスループ制御
+            this.doriruLoopAudio.addEventListener('timeupdate', () => {
+                // 音声の終わり0.1秒前で先頭に戻る（シームレスループ）
+                if (this.doriruLoopAudio.duration - this.doriruLoopAudio.currentTime <= 0.1 && 
+                    this.doriruLoopAudio.currentTime > 0 &&
+                    !this.doriruLoopAudio.paused) {
+                    this.doriruLoopAudio.currentTime = 0;
+                }
+            });
+            
+            // バックアップとしてendedイベントでも即座に再開
+            this.doriruLoopAudio.addEventListener('ended', () => {
+                if (!this.doriruLoopAudio.paused) {
+                    this.doriruLoopAudio.currentTime = 0;
+                    this.doriruLoopAudio.play().catch(e => console.error('DORIRU LOOP restart error:', e));
+                }
+            });
+            
+            this.doriruLoopAudio.addEventListener('error', (e) => {
+                console.error('DORIRU LOOP audio failed to load:', e);
+            });
+        }
+        
+        if (this.noppoAudio) {
+            this.noppoAudio.addEventListener('error', (e) => {
+                console.error('NOPPO audio failed to load:', e);
+            });
+            
+            // NOPPO音声終了時の処理
+            this.noppoAudio.addEventListener('ended', () => {
+                this.handleDefenseSoundEnded();
+            });
+        }
+        
+        if (this.noppoToieAudio) {
+            this.noppoToieAudio.addEventListener('error', (e) => {
+                console.error('NOPPO TOIE audio failed to load:', e);
+            });
+            
+            // NOPPOTOIE音声終了時の処理
+            this.noppoToieAudio.addEventListener('ended', () => {
+                this.handleDefenseSoundEnded();
+            });
+        }
+    }
+    
+    // DORIRU音声を再生するメソッド
+    playDoriruSound() {
+        console.log('Playing DORIRU sound (once only)');
+        // まず全ての音声を停止
+        this.stopAllAudio();
+        
+        if (this.doriruAudio) {
+            this.doriruAudio.currentTime = 0;
+            this.doriruAudio.play().catch(e => console.error('DORIRU playback error:', e));
+            // DORIRU終了後、自動でDORIRULOOPが開始される（endedイベントで処理）
+        }
+    }
+    
+    // 長押し時の音声を再生するメソッド
+    playLongPressSound() {
+        if (!this.currentScenario) return;
+        
+        const scenarioId = parseInt(this.currentScenario.id);
+        console.log('Long press completed for scenario:', scenarioId);
+        
+        // 長押し完了から2秒後に防衛音声を再生
+        setTimeout(() => {
+            console.log('Playing defense sound after 2 seconds for scenario:', scenarioId);
+            if ([1, 2].includes(scenarioId)) {
+                // シナリオ1,2: NOPPO.mp3を再生
+                if (this.noppoAudio) {
+                    this.noppoAudio.currentTime = 0;
+                    this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
+                }
+            } else if ([3, 5].includes(scenarioId)) {
+                // シナリオ3,5: NOPPOTOIE.mp3を再生
+                if (this.noppoToieAudio) {
+                    this.noppoToieAudio.currentTime = 0;
+                    this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
+                }
+            }
+        }, 2000);
+        
+        // 長押し完了から3秒後にDORIRULOOPを停止
+        setTimeout(() => {
+            if (this.doriruLoopAudio) {
+                this.doriruLoopAudio.pause();
+                this.doriruLoopAudio.currentTime = 0;
+                console.log('DORIRU LOOP stopped after 3 seconds delay');
+            }
+        }, 3000);
+    }
+    
+    // 防衛音声終了時の処理
+    handleDefenseSoundEnded() {
+        if (!this.currentScenario || this.gameState !== 'waiting_defense') return;
+        
+        const scenarioId = parseInt(this.currentScenario.id);
+        console.log('Defense sound ended for scenario:', scenarioId);
+        
+        // シナリオ1,2,3,5の場合のみシステムメッセージを表示
+        if ([1, 2, 3, 5].includes(scenarioId)) {
+            this.showSystemCompleteMessage();
+        }
+    }
+    
+    // システム完了メッセージを表示するメソッド
+    async showSystemCompleteMessage() {
+        if (!this.currentScenario) return;
+        
+        console.log('Showing system complete message');
+        this.gameState = 'complete';
+        this.isLongPressing = false;
+        this.updateInputDisplay('');
+        
+        const systemMessage = '>>> システム: ドリルが発射されました';
+        await this.typeMessageUnified(systemMessage, false);
+        
+        // 追加のシナリオ固有メッセージがある場合は表示
+        const scenarioId = parseInt(this.currentScenario.id);
+        if (scenarioId === 3) {
+            // シナリオ3: 追加メッセージを即座に表示
+            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルにより、アロハみやげ館が破壊されました';
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
+        } else if (scenarioId === 5) {
+            // シナリオ5: 追加メッセージを即座に表示
+            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによってエックス研究所が破壊されました';
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
+        }
+    }
+    
+    // 全ての音声を停止するメソッド
+    stopAllAudio() {
+        [this.doriruAudio, this.doriruLoopAudio, this.noppoAudio, this.noppoToieAudio].forEach(audio => {
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+        // フラグもリセット
+        this.defenseSoundPlayed = false;
     }
 
     // フォントサイズ関連のメソッド

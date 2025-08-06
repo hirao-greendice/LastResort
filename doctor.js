@@ -91,6 +91,9 @@ class DoctorControl {
         
         // 画面を暗くする（フェードアウト）
         this.fadeToBlack();
+        
+        // 映像終了をFirebaseに通知
+        this.notifyVideoEnded();
     }
 
     fadeToBlack() {
@@ -249,6 +252,8 @@ class DoctorControl {
                 this.isVideoPlaying = true;
                 this.videoStatus = 'playing';
                 this.updateStatus();
+                // 動画開始時に終了状態をクリア
+                this.notifyVideoStarted();
             }).catch(error => {
                 console.error('Error playing doctor video:', error);
                 // 自動再生が失敗した場合、ミュートで再生を試す
@@ -259,6 +264,8 @@ class DoctorControl {
                     this.isVideoPlaying = true;
                     this.videoStatus = 'playing';
                     this.updateStatus();
+                    // 動画開始時に終了状態をクリア
+                    this.notifyVideoStarted();
                     // ユーザーに音声有効化を促すメッセージを表示
                     console.log('Video is playing muted. User interaction required for audio.');
                 }).catch(fallbackError => {
@@ -583,6 +590,86 @@ class DoctorControl {
             }
         } catch (error) {
             console.error('Error in reportPresence:', error);
+        }
+    }
+
+    notifyVideoStarted() {
+        // 映像開始状態をFirebaseに通知（終了状態をクリア）
+        console.log('Notifying video started to Firebase...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for video start notification');
+            return;
+        }
+
+        const videoStatusData = {
+            isPlaying: true,
+            hasEnded: false,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+                window.firestoreSetDoc(doctorStatusRef, videoStatusData)
+                    .then(() => {
+                        console.log('Video started status successfully sent to Firestore');
+                    })
+                    .catch(error => {
+                        console.error('Error sending video started status to Firestore:', error);
+                    });
+            } else {
+                const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
+                window.dbSet(doctorStatusRef, videoStatusData)
+                    .then(() => {
+                        console.log('Video started status successfully sent to Database');
+                    })
+                    .catch(error => {
+                        console.error('Error sending video started status to Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in notifyVideoStarted:', error);
+        }
+    }
+
+    notifyVideoEnded() {
+        // 映像終了状態をFirebaseに通知
+        console.log('Notifying video ended to Firebase...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for video end notification');
+            return;
+        }
+
+        const videoStatusData = {
+            isPlaying: false,
+            hasEnded: true,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+                window.firestoreSetDoc(doctorStatusRef, videoStatusData)
+                    .then(() => {
+                        console.log('Video ended status successfully sent to Firestore');
+                    })
+                    .catch(error => {
+                        console.error('Error sending video ended status to Firestore:', error);
+                    });
+            } else {
+                const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
+                window.dbSet(doctorStatusRef, videoStatusData)
+                    .then(() => {
+                        console.log('Video ended status successfully sent to Database');
+                    })
+                    .catch(error => {
+                        console.error('Error sending video ended status to Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in notifyVideoEnded:', error);
         }
     }
 }

@@ -121,6 +121,7 @@ class WindowControl {
         this.loadSettings();
         this.loadWindowVideos();
         this.setupFirebaseListener();
+        this.setupVideoControlListener(); // シナリオ6用の動画制御リスナーを追加
         this.setupHiddenButtons();
         this.setupControlPanel();
         this.setupFullscreenListener();
@@ -868,6 +869,91 @@ class WindowControl {
         this.updateControlValues();
         this.applySettings();
         this.saveSettings();
+    }
+
+    // シナリオ6用の動画制御リスナーを設定
+    setupVideoControlListener() {
+        console.log('Setting up video control listener for scenario 6...');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for video control');
+            return;
+        }
+
+        try {
+            if (window.useFirestore) {
+                console.log('Using Firestore for video control monitoring');
+                this.setupFirestoreVideoListener();
+            } else {
+                console.log('Using Realtime Database for video control monitoring');
+                this.setupDatabaseVideoListener();
+            }
+        } catch (error) {
+            console.error('Firebase setup error for video control:', error);
+        }
+    }
+
+    setupFirestoreVideoListener() {
+        const videoControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowVideoControl');
+        window.firestoreOnSnapshot(videoControlRef, (snapshot) => {
+            console.log('Firestore video control data received:', snapshot.exists());
+            
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                this.handleVideoControlSignal(data);
+            }
+        }, (error) => {
+            console.error('Error monitoring video control in Firestore:', error);
+        });
+    }
+
+    setupDatabaseVideoListener() {
+        const videoControlRef = window.dbRef(window.database, 'windowVideoControl');
+        window.dbOnValue(videoControlRef, (snapshot) => {
+            console.log('Database video control data received:', snapshot.val());
+            const data = snapshot.val();
+            
+            if (data) {
+                this.handleVideoControlSignal(data);
+            }
+        }, (error) => {
+            console.error('Error monitoring video control in Database:', error);
+        });
+    }
+
+    handleVideoControlSignal(data) {
+        console.log('Video control signal received:', data);
+        
+        if (data.scenario6Playing === true) {
+            // シナリオ6でUとENTER長押し時：100.mp4を再生開始
+            console.log('Starting 100.mp4 playback for scenario 6');
+            this.startScenario6Video();
+        } else if (data.scenario6Reverse === true) {
+            // 音声終了時：動画を逆再生して最初まで戻す
+            console.log('Starting reverse playback for scenario 6');
+            this.reverseScenario6Video();
+        }
+    }
+
+    startScenario6Video() {
+        console.log('Starting scenario 6 video playback');
+        
+        // 現在の動画を停止
+        this.stopVideoPlayback();
+        this.stopVideoPlaybackP();
+        
+        // 100.mp4を最初から再生
+        this.currentTime = 0;
+        this.windowVideo.currentTime = 0;
+        this.showVideo('enter');
+        this.playVideoForward();
+    }
+
+    reverseScenario6Video() {
+        console.log('Starting scenario 6 video reverse playback');
+        
+        // 逆再生で最初まで戻す
+        this.playVideoBackward();
     }
 
 

@@ -14,7 +14,6 @@ let lastDoctorVideoState = null;
 let pendingScenarioId = null;
 let pendingResetAction = false;
 let pendingWindowChangeAction = false;
-let pendingDoctorVideoAction = false;
 
 // デフォルトのシナリオデータ
 const defaultScenarios = {
@@ -252,11 +251,7 @@ function confirmYes() {
         pendingWindowChangeAction = false;
     }
     
-    // 博士映像実行の場合
-    if (pendingDoctorVideoAction) {
-        toggleDoctorVideo();
-        pendingDoctorVideoAction = false;
-    }
+    // 博士映像実行の場合（削除済み）
 }
 
 // 確認ダイアログで「いいえ」を押した時
@@ -271,7 +266,6 @@ function confirmNo() {
     pendingScenarioId = null;
     pendingResetAction = false;
     pendingWindowChangeAction = false;
-    pendingDoctorVideoAction = false;
 }
 
 // シナリオを選択
@@ -441,25 +435,8 @@ function toggleWindowChange() {
     updateWindowControlInFirebase(isWindowChangeEnabled);
 }
 
-// 博士映像確認ダイアログを表示
-function confirmToggleDoctorVideo() {
-    console.log('Confirming doctor video toggle');
-    
-    // 確認用のフラグを設定
-    pendingDoctorVideoAction = true;
-    
-    // 現在の状態に応じてメッセージを設定
-    const currentState = isDoctorVideoEnabled ? 'OFF' : 'ON';
-    const actionMessage = isDoctorVideoEnabled ? '停止' : '再生';
-    
-    // ダイアログメッセージを設定
-    const dialogMessage = document.getElementById('dialogMessage');
-    dialogMessage.innerHTML = `博士映像を${actionMessage}します。<br/><br/>博士映像を${currentState}にしますか？`;
-    
-    // ダイアログを表示
-    const confirmDialog = document.getElementById('confirmDialog');
-    confirmDialog.style.display = 'flex';
-}
+// 博士映像確認ダイアログ関数（削除予定）
+// 直接toggleDoctorVideo()を呼ぶため、この関数は不要になった
 
 // 博士映像切り替え
 function toggleDoctorVideo() {
@@ -699,6 +676,9 @@ function setupConnectionMonitoring() {
     
     // 他の端末の接続状況を監視
     monitorOtherConnections();
+    
+    // 博士映像の状態監視を開始
+    setupDoctorVideoMonitoring();
 }
 
 function reportPresence() {
@@ -798,6 +778,62 @@ function updateLastSeen() {
             second: '2-digit' 
         });
         lastUpdateElement.textContent = `最終更新: ${timeString}`;
+    }
+}
+
+// 博士映像の状態を監視し、動画終了時に自動でOFFにする
+function setupDoctorVideoMonitoring() {
+    console.log('Setting up doctor video monitoring...');
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized for doctor video monitoring');
+        return;
+    }
+
+    try {
+        if (window.useFirestore) {
+            // Firestore使用時：博士映像の状態を監視
+            const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+            window.firestoreOnSnapshot(doctorStatusRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    handleDoctorVideoStatusChange(data);
+                }
+            }, (error) => {
+                console.error('Error monitoring doctor video status in Firestore:', error);
+            });
+        } else {
+            // Realtime Database使用時：博士映像の状態を監視
+            const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
+            window.dbOnValue(doctorStatusRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    handleDoctorVideoStatusChange(data);
+                }
+            }, (error) => {
+                console.error('Error monitoring doctor video status in Database:', error);
+            });
+        }
+    } catch (error) {
+        console.error('Error setting up doctor video monitoring:', error);
+    }
+}
+
+// 博士映像の状態変化を処理
+function handleDoctorVideoStatusChange(data) {
+    console.log('Doctor video status change detected:', data);
+    
+    if (data.isPlaying === false && data.hasEnded === true) {
+        // 映像が終了した場合、ボタンを自動でOFFにする
+        console.log('Doctor video has ended, turning off button automatically');
+        
+        // 現在ONの場合のみOFFにする（無限ループ防止）
+        if (isDoctorVideoEnabled) {
+            isDoctorVideoEnabled = false;
+            updateDoctorToggleButton(isDoctorVideoEnabled);
+            updateDoctorVideoInFirebase(isDoctorVideoEnabled);
+            showNotification('博士映像が終了しました（自動OFF）', 'info');
+        }
     }
 }
 

@@ -115,6 +115,7 @@ class MysteryMonitor {
         this.doriruLoopAudio = document.getElementById('doriruLoopAudio');
         this.noppoAudio = document.getElementById('noppoAudio');
         this.noppoToieAudio = document.getElementById('noppoToieAudio');
+        this.noppoKakuseiAudio = document.getElementById('noppoKakuseiAudio');
         this.defenseSoundPlayed = false; // 防衛音声再生済みフラグ
         this.setupAudioHandlers();
         
@@ -827,6 +828,9 @@ class MysteryMonitor {
                 this.defenseSoundPlayed = true;
                 this.playLongPressSound();
                 console.log('Long press completed for scenario 6, playing defense sound and waiting for it to end');
+                
+                // 窓画面で100.mp4を再生開始
+                this.triggerWindowVideoPlayback();
             } else {
                 // シナリオ4: 防衛音声がないため、従来通りcompleteGame()を呼び出し
                 console.log('Long press completed for scenario 4, calling completeGame');
@@ -1408,6 +1412,17 @@ class MysteryMonitor {
                 this.handleDefenseSoundEnded();
             });
         }
+        
+        if (this.noppoKakuseiAudio) {
+            this.noppoKakuseiAudio.addEventListener('error', (e) => {
+                console.error('NOPPO KAKUSEI audio failed to load:', e);
+            });
+            
+            // NOPPOkakusei音声終了時の処理
+            this.noppoKakuseiAudio.addEventListener('ended', () => {
+                this.handleDefenseSoundEnded();
+            });
+        }
     }
     
     // DORIRU音声を再生するメソッド
@@ -1430,23 +1445,27 @@ class MysteryMonitor {
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Long press completed for scenario:', scenarioId);
         
-        // 長押し完了から2秒後に防衛音声を再生
-        setTimeout(() => {
-            console.log('Playing defense sound after 2 seconds for scenario:', scenarioId);
-            if ([1, 2].includes(scenarioId)) {
-                // シナリオ1,2: NOPPO.mp3を再生
-                if (this.noppoAudio) {
-                    this.noppoAudio.currentTime = 0;
-                    this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
-                }
-            } else if ([3, 5, 6].includes(scenarioId)) {
-                // シナリオ3,5,6: NOPPOTOIE.mp3を再生
-                if (this.noppoToieAudio) {
-                    this.noppoToieAudio.currentTime = 0;
-                    this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
-                }
-            }
-        }, 2000);
+            // 長押し完了時に即座に防衛音声を再生
+    console.log('Playing defense sound immediately for scenario:', scenarioId);
+    if ([1, 2].includes(scenarioId)) {
+        // シナリオ1,2: NOPPO.mp3を再生
+        if (this.noppoAudio) {
+            this.noppoAudio.currentTime = 0;
+            this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
+        }
+    } else if ([3, 5].includes(scenarioId)) {
+        // シナリオ3,5: NOPPOTOIE.mp3を再生
+        if (this.noppoToieAudio) {
+            this.noppoToieAudio.currentTime = 0;
+            this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
+        }
+    } else if (scenarioId === 6) {
+        // シナリオ6: NOPPOkakusei.mp3を再生
+        if (this.noppoKakuseiAudio) {
+            this.noppoKakuseiAudio.currentTime = 0;
+            this.noppoKakuseiAudio.play().catch(e => console.error('NOPPO KAKUSEI playback error:', e));
+        }
+    }
         
         // 長押し完了から3秒後にDORIRULOOPを停止
         setTimeout(() => {
@@ -1535,12 +1554,15 @@ class MysteryMonitor {
             console.log(`Scenario ${scenarioId}: Showing additional message instantly`);
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
+            
+            // 窓画面で動画を逆再生して最初まで戻す
+            this.triggerWindowVideoReverse();
         }
     }
     
     // 全ての音声を停止するメソッド
     stopAllAudio() {
-        [this.doriruAudio, this.doriruLoopAudio, this.noppoAudio, this.noppoToieAudio].forEach(audio => {
+        [this.doriruAudio, this.doriruLoopAudio, this.noppoAudio, this.noppoToieAudio, this.noppoKakuseiAudio].forEach(audio => {
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
@@ -1548,6 +1570,85 @@ class MysteryMonitor {
         });
         // フラグもリセット
         this.defenseSoundPlayed = false;
+    }
+
+    // 窓画面での動画再生を開始するメソッド
+    triggerWindowVideoPlayback() {
+        console.log('Triggering window video playback for scenario 6');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for window video control');
+            return;
+        }
+
+        const windowVideoData = {
+            scenario6Playing: true,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                const windowVideoRef = window.firestoreDoc(window.firestore, 'gameData', 'windowVideoControl');
+                window.firestoreSetDoc(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video playback signal sent via Firestore');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video signal via Firestore:', error);
+                    });
+            } else {
+                const windowVideoRef = window.dbRef(window.database, 'windowVideoControl');
+                window.dbSet(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video playback signal sent via Database');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video signal via Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in triggerWindowVideoPlayback:', error);
+        }
+    }
+
+    // 窓画面での動画逆再生を開始するメソッド
+    triggerWindowVideoReverse() {
+        console.log('Triggering window video reverse playback for scenario 6');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for window video reverse control');
+            return;
+        }
+
+        const windowVideoData = {
+            scenario6Playing: false,
+            scenario6Reverse: true,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                const windowVideoRef = window.firestoreDoc(window.firestore, 'gameData', 'windowVideoControl');
+                window.firestoreSetDoc(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video reverse playback signal sent via Firestore');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video reverse signal via Firestore:', error);
+                    });
+            } else {
+                const windowVideoRef = window.dbRef(window.database, 'windowVideoControl');
+                window.dbSet(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video reverse playback signal sent via Database');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video reverse signal via Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in triggerWindowVideoReverse:', error);
+        }
     }
 
     // フォントサイズ関連のメソッド

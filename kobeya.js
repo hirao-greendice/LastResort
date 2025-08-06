@@ -38,7 +38,7 @@ const defaultScenarios = {
         target: "ストリートライブハウス",
         command: "EDIT",
         key: "S",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">A S</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">S #</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"
@@ -56,7 +56,7 @@ const defaultScenarios = {
         target: "ゾンビアトラクション",
         command: "VIEW",
         key: "Z",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z X</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z #</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
@@ -65,7 +65,7 @@ const defaultScenarios = {
         target: "ゾンビアトラクション",
         command: "LIVE",
         key: "U",
-        secondMessage: "<span class=\"facility-name\">【小池】</span>から北にドリルを発射します。<span class=\"key-highlight\">I O</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【キッチンセンター】</span>から北にドリルを発射します。<span class=\"key-highlight\">I O</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
@@ -287,8 +287,10 @@ function selectScenario(scenarioId) {
     try {
         currentScenario = scenarioId;
         
-        // シナリオ選択時にノイズを自動的にOFFにする
-        if (isImageDisplayEnabled) {
+        // シナリオ2以外の場合はノイズ設定をリセット
+        // シナリオ3、4、5、6はモニター側で強制表示されるため、スタッフ画面での制御は無効
+        if (scenarioId === 2 && isImageDisplayEnabled) {
+            // シナリオ2のみノイズを自動的にOFFにする
             isImageDisplayEnabled = false;
             updateImageToggleButton(isImageDisplayEnabled);
             updateImageDisplayInFirebase(isImageDisplayEnabled);

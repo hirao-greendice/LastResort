@@ -90,6 +90,11 @@ class MysteryMonitor {
         this.homeButton = document.getElementById('monitorHomeButton');
         this.fullscreenButton = document.getElementById('monitorFullscreenButton');
         this.fontSizeButton = document.getElementById('monitorFontSizeButton');
+        this.fontSizePanel = document.getElementById('fontSizePanel');
+        this.fontSizeInput = document.getElementById('fontSizeInput');
+        this.fontSizeApplyButton = document.getElementById('fontSizeApply');
+        this.fontSizeResetButton = document.getElementById('fontSizeReset');
+        this.fontSizeCloseButton = document.getElementById('fontSizeClose');
         this.imageSizeButton = document.getElementById('monitorImageSizeButton');
         
         // 位置調整ボタン
@@ -119,6 +124,8 @@ class MysteryMonitor {
         // フォントサイズ管理
         this.fontSizes = ['smaller', 'small', 'medium', 'large', 'larger'];
         this.currentFontSizeIndex = 2; // デフォルトはmedium
+        this.customFontScale = 100; // 数値ベースのフォントスケール（％）
+        this.useCustomFontSize = false; // カスタムフォントサイズを使用するか
         this.loadFontSizeSettings();
         
         // 画像サイズ管理（％ベース、30%〜200%を10%刻み）
@@ -558,7 +565,11 @@ class MysteryMonitor {
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Updating image display for current scenario:', scenarioId, 'Display enabled:', this.imageDisplayEnabled);
         
-        if (scenarioId === 2) {
+        if (scenarioId === 1) {
+            // シナリオ1は画像を表示しない
+            console.log('Scenario 1: Hiding image (default behavior)');
+            this.hideErrorImage();
+        } else if (scenarioId === 2) {
             // シナリオ2の場合、スタッフ画面の設定に従って画像を表示/非表示
             if (this.imageDisplayEnabled) {
                 console.log('Scenario 2: Showing image due to staff setting');
@@ -567,9 +578,15 @@ class MysteryMonitor {
                 console.log('Scenario 2: Hiding image due to staff setting');
                 this.hideErrorImage();
             }
+        } else if (scenarioId === 3 || scenarioId === 4 || scenarioId === 5 || scenarioId === 6) {
+            // シナリオ3、4、5、6は必ずノイズ画像を表示（グリッチエフェクトなし）
+            console.log(`Scenario ${scenarioId}: Force showing noise image immediately`);
+            this.showErrorImage();
+        } else {
+            // その他のシナリオは画像を非表示
+            console.log(`Scenario ${scenarioId}: Hiding image (other scenario)`);
+            this.hideErrorImage();
         }
-        // シナリオ3、4、5は既存の動作（常に表示）を維持
-        // シナリオ1は既存の動作（表示しない）を維持
     }
 
 
@@ -602,7 +619,34 @@ class MysteryMonitor {
         
         // 右上のフォントサイズボタン
         this.fontSizeButton.addEventListener('click', () => {
-            this.cycleFontSize();
+            this.openFontSizePanel();
+        });
+        
+        // フォントサイズパネルのイベントリスナー
+        this.fontSizeApplyButton.addEventListener('click', () => {
+            this.applyCustomFontSize();
+        });
+        
+        this.fontSizeResetButton.addEventListener('click', () => {
+            this.resetFontSize();
+        });
+        
+        this.fontSizeCloseButton.addEventListener('click', () => {
+            this.closeFontSizePanel();
+        });
+        
+        // パネル外クリックで閉じる
+        this.fontSizePanel.addEventListener('click', (e) => {
+            if (e.target === this.fontSizePanel) {
+                this.closeFontSizePanel();
+            }
+        });
+        
+        // Escキーで閉じる
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.fontSizePanel.style.display === 'flex') {
+                this.closeFontSizePanel();
+            }
         });
         
         // 左下の画像サイズボタン
@@ -978,7 +1022,7 @@ class MysteryMonitor {
         }, 200);
     }
 
-    async showWaitingMessage() {
+    showWaitingMessage() {
         this.gameState = 'waiting';
         this.currentInput = '';
         this.updateInputDisplay();
@@ -987,7 +1031,7 @@ class MysteryMonitor {
         this.hideErrorImage();
         
         const message = 'コマンドリルを使用するには4文字のコマンドを入力してください\n分からない場合は攻撃先を読み込ませてください';
-        await this.typeMessage(message);
+        this.addMessage(message);
     }
 
     async showErrorMessage(errorMsg) {
@@ -1011,30 +1055,37 @@ class MysteryMonitor {
         
         // 画像表示制御
         const scenarioId = parseInt(this.currentScenario.id);
-        if (scenarioId === 2) {
-            // シナリオ2は開始時に必ず画像を非表示にする
-            this.imageDisplayEnabled = false;
-            console.log(`Scenario ${scenarioId}: Force hiding error image at start`);
-            this.hideErrorImage();
-        } else if (scenarioId === 3 || scenarioId === 4 || scenarioId === 5) {
-            // シナリオ3、4、5の場合は常に画像を表示
-            console.log(`Scenario ${scenarioId}: Showing error image (always)`);
-            this.showErrorImage();
-        } else {
-            // シナリオ1の場合は画像を表示しない
+        if (scenarioId === 1) {
+            // シナリオ1は画像を表示しない
             console.log(`Scenario ${scenarioId}: Hiding error image (never)`);
             this.hideErrorImage();
+        } else if (scenarioId === 2) {
+            // シナリオ2は開始時に必ず画像を非表示にする（スタッフ画面で制御）
+            this.imageDisplayEnabled = false;
+            console.log(`Scenario ${scenarioId}: Force hiding error image at start (staff controlled)`);
+            this.hideErrorImage();
+        } else if (scenarioId === 3 || scenarioId === 4 || scenarioId === 5 || scenarioId === 6) {
+            // シナリオ3、4、5、6の場合は常にノイズ画像を表示（グリッチエフェクトなし）
+            console.log(`Scenario ${scenarioId}: Force showing noise image immediately (no glitch)`);
+            this.showErrorImage();
+        } else {
+            // その他のシナリオは画像を表示しない
+            console.log(`Scenario ${scenarioId}: Hiding error image (other scenario)`);
+            this.hideErrorImage();
         }
+        
+        // 統一された画像表示ロジックを呼び出し
+        this.updateImageDisplayForCurrentScenario();
         
         this.gameState = 'waiting_weak';
         this.currentInput = '';
         this.updateInputDisplay();
         
-        // シナリオ5、6の場合は特別な初期メッセージを表示
+        // シナリオ5、6の場合は特別な初期メッセージを即座に表示
         if (scenarioId === 5 || scenarioId === 6) {
             const defaultMessage = 'コマンドリルを使用するには4文字のコマンドを入力してください\n分からない場合は攻撃先を読み込ませてください';
-            console.log(`Scenario ${scenarioId}: Showing default initial message`);
-            await this.typeMessage(defaultMessage);
+            console.log(`Scenario ${scenarioId}: Showing default initial message immediately`);
+            this.addMessage(defaultMessage);
         } else {
             const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
             const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
@@ -1503,17 +1554,34 @@ class MysteryMonitor {
     loadFontSizeSettings() {
         try {
             const savedIndex = localStorage.getItem('monitor-font-size-index');
+            const savedCustomScale = localStorage.getItem('monitor-custom-font-scale');
+            const savedUseCustom = localStorage.getItem('monitor-use-custom-font');
+            
             if (savedIndex !== null) {
                 this.currentFontSizeIndex = parseInt(savedIndex);
                 if (this.currentFontSizeIndex < 0 || this.currentFontSizeIndex >= this.fontSizes.length) {
                     this.currentFontSizeIndex = 2; // デフォルトに戻す
                 }
             }
+            
+            if (savedCustomScale !== null) {
+                this.customFontScale = parseInt(savedCustomScale);
+                if (this.customFontScale < 50 || this.customFontScale > 300) {
+                    this.customFontScale = 100; // デフォルトに戻す
+                }
+            }
+            
+            if (savedUseCustom !== null) {
+                this.useCustomFontSize = savedUseCustom === 'true';
+            }
+            
             this.applyFontSize();
             // Font size loaded
         } catch (error) {
             console.error('Failed to load font size settings:', error);
             this.currentFontSizeIndex = 2; // デフォルトに戻す
+            this.customFontScale = 100;
+            this.useCustomFontSize = false;
             this.applyFontSize();
         }
     }
@@ -1521,6 +1589,8 @@ class MysteryMonitor {
     saveFontSizeSettings() {
         try {
             localStorage.setItem('monitor-font-size-index', this.currentFontSizeIndex.toString());
+            localStorage.setItem('monitor-custom-font-scale', this.customFontScale.toString());
+            localStorage.setItem('monitor-use-custom-font', this.useCustomFontSize.toString());
             // Font size saved
         } catch (error) {
             console.error('Failed to save font size settings:', error);
@@ -1540,13 +1610,44 @@ class MysteryMonitor {
 
     applyFontSize() {
         // 既存のフォントサイズクラスを削除
-        document.body.classList.remove('font-size-smaller', 'font-size-small', 'font-size-medium', 'font-size-large', 'font-size-larger');
+        document.body.classList.remove('font-size-smaller', 'font-size-small', 'font-size-medium', 'font-size-large', 'font-size-larger', 'font-size-custom');
         
-        // 新しいフォントサイズクラスを追加（mediumは何も追加しない）
-        const currentSize = this.fontSizes[this.currentFontSizeIndex];
-        if (currentSize !== 'medium') {
-            document.body.classList.add(`font-size-${currentSize}`);
+        if (this.useCustomFontSize) {
+            // カスタムフォントサイズを使用
+            document.body.classList.add('font-size-custom');
+            this.setCustomFontSizeCSSVariables();
+        } else {
+            // プリセットフォントサイズを使用
+            const currentSize = this.fontSizes[this.currentFontSizeIndex];
+            if (currentSize !== 'medium') {
+                document.body.classList.add(`font-size-${currentSize}`);
+            }
         }
+    }
+    
+    setCustomFontSizeCSSVariables() {
+        const scale = this.customFontScale / 100;
+        const root = document.documentElement;
+        
+        // 基準となるサイズを定義（medium相当）
+        const baseSizes = {
+            title: { min: 13, vw: 2.4, max: 19 },
+            status: { min: 11, vw: 2.0, max: 14 },
+            prompt: { min: 13, vw: 2.4, max: 19 },
+            message: { min: 16, vw: 3.8, max: 30 },
+            inputPrompt: { min: 14, vw: 2.8, max: 22 },
+            inputText: { min: 16, vw: 3.2, max: 26 },
+            messageText: 36
+        };
+        
+        // スケールを適用したサイズを計算
+        root.style.setProperty('--custom-title-size', `clamp(${baseSizes.title.min * scale}px, ${baseSizes.title.vw * scale}vw, ${baseSizes.title.max * scale}px)`);
+        root.style.setProperty('--custom-status-size', `clamp(${baseSizes.status.min * scale}px, ${baseSizes.status.vw * scale}vw, ${baseSizes.status.max * scale}px)`);
+        root.style.setProperty('--custom-prompt-size', `clamp(${baseSizes.prompt.min * scale}px, ${baseSizes.prompt.vw * scale}vw, ${baseSizes.prompt.max * scale}px)`);
+        root.style.setProperty('--custom-message-size', `clamp(${baseSizes.message.min * scale}px, ${baseSizes.message.vw * scale}vw, ${baseSizes.message.max * scale}px)`);
+        root.style.setProperty('--custom-input-prompt-size', `clamp(${baseSizes.inputPrompt.min * scale}px, ${baseSizes.inputPrompt.vw * scale}vw, ${baseSizes.inputPrompt.max * scale}px)`);
+        root.style.setProperty('--custom-input-text-size', `clamp(${baseSizes.inputText.min * scale}px, ${baseSizes.inputText.vw * scale}vw, ${baseSizes.inputText.max * scale}px)`);
+        root.style.setProperty('--custom-message-text-size', `${baseSizes.messageText * scale}px`);
     }
 
     showFontSizeFeedback() {
@@ -1594,6 +1695,88 @@ class MysteryMonitor {
                 }
             }, 300);
                  }, 2000);
+    }
+    
+    // フォントサイズパネル関連のメソッド
+    openFontSizePanel() {
+        this.fontSizeInput.value = this.useCustomFontSize ? this.customFontScale : 100;
+        this.fontSizePanel.style.display = 'flex';
+        setTimeout(() => {
+            this.fontSizeInput.focus();
+            this.fontSizeInput.select();
+        }, 100);
+    }
+    
+    closeFontSizePanel() {
+        this.fontSizePanel.style.display = 'none';
+    }
+    
+    applyCustomFontSize() {
+        const inputValue = parseInt(this.fontSizeInput.value);
+        if (isNaN(inputValue) || inputValue < 50 || inputValue > 300) {
+            alert('フォントサイズは50%から300%の間で入力してください。');
+            return;
+        }
+        
+        this.customFontScale = inputValue;
+        this.useCustomFontSize = true;
+        this.applyFontSize();
+        this.saveFontSizeSettings();
+        this.closeFontSizePanel();
+        
+        // フィードバック表示
+        this.showCustomFontSizeFeedback();
+    }
+    
+    resetFontSize() {
+        this.useCustomFontSize = false;
+        this.customFontScale = 100;
+        this.currentFontSizeIndex = 2; // medium
+        this.applyFontSize();
+        this.saveFontSizeSettings();
+        this.closeFontSizePanel();
+        
+        // フィードバック表示
+        this.showFontSizeFeedback();
+    }
+    
+    showCustomFontSizeFeedback() {
+        // フィードバック表示用の一時的な要素を作成
+        let feedbackDiv = document.getElementById('fontSizeFeedback');
+        if (!feedbackDiv) {
+            feedbackDiv = document.createElement('div');
+            feedbackDiv.id = 'fontSizeFeedback';
+            feedbackDiv.style.cssText = `
+                position: fixed;
+                top: 70px;
+                right: 10px;
+                background: rgba(255, 255, 0, 0.9);
+                color: #000;
+                padding: 8px 12px;
+                border: 1px solid #ffff00;
+                border-radius: 4px;
+                font-family: monospace;
+                font-size: 12px;
+                font-weight: bold;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            document.body.appendChild(feedbackDiv);
+        }
+        
+        feedbackDiv.textContent = `フォント: ${this.customFontScale}%`;
+        feedbackDiv.style.opacity = '1';
+        
+        // 2秒後に非表示
+        setTimeout(() => {
+            feedbackDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (feedbackDiv && feedbackDiv.parentNode) {
+                    feedbackDiv.parentNode.removeChild(feedbackDiv);
+                }
+            }, 300);
+        }, 2000);
     }
 
     // 画像サイズ関連のメソッド

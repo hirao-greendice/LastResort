@@ -34,7 +34,7 @@ const defaultScenarios = {
         target: "ストリートライブハウス",
         command: "EDIT",
         key: "S",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">A S</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">S A</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"

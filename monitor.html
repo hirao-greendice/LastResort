@@ -40,6 +40,23 @@
         <button class="hidden-button image-position-left" id="monitorImageLeftButton"></button>
         <button class="hidden-button image-position-right" id="monitorImageRightButton"></button>
         
+        <!-- フォントサイズ数値入力パネル -->
+        <div class="font-size-panel" id="fontSizePanel" style="display: none;">
+            <div class="font-size-panel-content">
+                <div class="font-size-panel-title">フォントサイズ調整</div>
+                <div class="font-size-input-group">
+                    <label>サイズ (50% - 300%):</label>
+                    <input type="number" id="fontSizeInput" min="50" max="300" step="5" value="100">
+                    <span>%</span>
+                </div>
+                <div class="font-size-panel-buttons">
+                    <button id="fontSizeApply">適用</button>
+                    <button id="fontSizeReset">リセット</button>
+                    <button id="fontSizeClose">閉じる</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- エラー画像表示用 -->
         <img id="errorImage" class="error-image" src="error.jpg" alt="Error" style="display: none;">
         <!-- 警告アイコン用 -->

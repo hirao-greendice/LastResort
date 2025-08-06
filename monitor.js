@@ -203,9 +203,18 @@ class MysteryMonitor {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
-            // ENTERキーの処理（常に動作）
+            // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
+                
+                // シナリオ6でwatting_defenseの場合はENTERキーを押されたキーセットに追加
+                if (this.gameState === 'waiting_defense' && this.currentScenario && 
+                    parseInt(this.currentScenario.id) === 6) {
+                    this.pressedKeys.add('ENTER');
+                    this.checkScenario6KeyCombination();
+                    return;
+                }
+                
                 this.handleEnterPress();
                 return;
             }
@@ -268,16 +277,30 @@ class MysteryMonitor {
             
             // 長押し検知の開始
             if (this.gameState === 'waiting_defense' && this.currentScenario && inputKey === this.currentScenario.key) {
-                this.startLongPress();
+                // シナリオ6の場合は特別処理
+                if (parseInt(this.currentScenario.id) === 6) {
+                    this.checkScenario6KeyCombination();
+                } else {
+                    this.startLongPress();
+                }
             } else if (this.gameState === 'waiting_weak') {
                 this.handleTextInput(inputKey);
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            // ENTERキーの処理（常に動作）
+            // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
+                
+                // シナリオ6でwatting_defenseの場合はENTERキーを押されたキーセットから削除
+                if (this.gameState === 'waiting_defense' && this.currentScenario && 
+                    parseInt(this.currentScenario.id) === 6) {
+                    this.pressedKeys.delete('ENTER');
+                    this.checkScenario6KeyCombination();
+                    return;
+                }
+                
                 this.handleEnterRelease();
                 return;
             }
@@ -324,14 +347,25 @@ class MysteryMonitor {
             }
             
             this.pressedKeys.delete(inputKey);
+            if (inputKey.toUpperCase() === 'U') {
+                const hasEnter =
+                  this.pressedKeys.has('ENTER') || this.pressedKeys.has('Enter');
+                this.updateInputDisplay(hasEnter ? 'ENTER' : '', hasEnter);
+              }
+              
             
             // 長押し検知の停止
             if (this.currentScenario && inputKey === this.currentScenario.key && this.longPressTimer) {
-                clearTimeout(this.longPressTimer);
-                this.longPressTimer = null;
-                this.isLongPressing = false;
-                // 長押し終了時にINPUTをクリア
-                this.updateInputDisplay('', false);
+                // シナリオ6の場合は特別処理
+                if (parseInt(this.currentScenario.id) === 6) {
+                    this.checkScenario6KeyCombination();
+                } else {
+                    clearTimeout(this.longPressTimer);
+                    this.longPressTimer = null;
+                    this.isLongPressing = false;
+                    // 長押し終了時にINPUTをクリア
+                    this.updateInputDisplay('', false);
+                }
             }
         });
     }
@@ -730,22 +764,69 @@ class MysteryMonitor {
 
     handleLongPress() {
         if (this.gameState === 'waiting_defense' && !this.defenseSoundPlayed) {
-            // 長押し完了時にのみログを表示
-            this.addMessage(`<span class="prompt-text">></span> <span class="key-text">${this.currentScenario.key}</span>`, true, true);
-            
             const scenarioId = parseInt(this.currentScenario.id);
+            
+            // 長押し完了時にのみログを表示（シナリオ6の場合はU ENTERを表示）
+            if (scenarioId === 6) {
+                this.addMessage(`<span class="prompt-text">></span> <span class="key-text">U ENTER</span>`, true, true);
+            } else {
+                this.addMessage(`<span class="prompt-text">></span> <span class="key-text">${this.currentScenario.key}</span>`, true, true);
+            }
             
             if ([1, 2, 3, 5].includes(scenarioId)) {
                 // 長押し完了時に音声を再生
                 this.defenseSoundPlayed = true; // 一回だけ再生のためのフラグ
                 this.playLongPressSound();
                 console.log('Long press completed, playing defense sound and waiting for it to end');
+            } else if (scenarioId === 6) {
+                // シナリオ6: 特別処理（音声の処理は確認要）
+                this.defenseSoundPlayed = true;
+                this.playLongPressSound();
+                console.log('Long press completed for scenario 6, playing defense sound and waiting for it to end');
             } else {
                 // シナリオ4: 防衛音声がないため、従来通りcompleteGame()を呼び出し
                 console.log('Long press completed for scenario 4, calling completeGame');
                 setTimeout(() => {
                     this.completeGame();
                 }, 1000);
+            }
+        }
+    }
+
+    // シナリオ6用のキー組み合わせチェック
+    checkScenario6KeyCombination() {
+        if (!this.currentScenario || parseInt(this.currentScenario.id) !== 6) return;
+        
+        const hasU = this.pressedKeys.has('U');
+        const hasEnter = this.pressedKeys.has('ENTER');
+        
+        // 両方のキーが押されている場合
+        if (hasU && hasEnter) {
+            if (!this.isLongPressing) {
+                // 長押し開始
+                this.isLongPressing = true;
+                this.updateInputDisplay('U ENTER', true); // 両方のキーを表示
+                
+                this.longPressTimer = setTimeout(() => {
+                    this.handleLongPress();
+                }, this.longPressDelay);
+            }
+        } else {
+            // どちらかのキーが離された場合、長押しを停止
+            if (this.isLongPressing && this.longPressTimer) {
+                clearTimeout(this.longPressTimer);
+                this.longPressTimer = null;
+                this.isLongPressing = false;
+            }
+            
+            // 現在押されているキーを表示（両方離された場合は表示をクリア）
+            if (hasU && !hasEnter) {
+                this.updateInputDisplay('U', true);
+            } else if (!hasU && hasEnter) {
+                this.updateInputDisplay('ENTER', true);
+            } else {
+                // 両方のキーが離された場合は表示をクリア
+                this.updateInputDisplay('', false);
             }
         }
     }
@@ -862,9 +943,9 @@ class MysteryMonitor {
             // 正解の場合、プレイヤーの入力をメッセージエリアに表示
             this.addMessage(`<span class="prompt-text">></span> <span class="command-text">${this.currentInput}</span>`, true, true);
             
-            // シナリオ1,2,3,5でDORIRU.mp3を再生
+            // シナリオ1,2,3,5,6でDORIRU.mp3を再生
             const scenarioId = parseInt(this.currentScenario.id);
-            if ([1, 2, 3, 5].includes(scenarioId)) {
+            if ([1, 2, 3, 5, 6].includes(scenarioId)) {
                 this.playDoriruSound();
             }
             
@@ -905,7 +986,7 @@ class MysteryMonitor {
         // エラー画像を非表示（待機状態時）
         this.hideErrorImage();
         
-        const message = 'DEFENSE SYSTEM > Ready\n\nアルファベット4文字のコマンドを入力してください\n分からない場合には攻撃先を読み取らせてください';
+        const message = 'コマンドリルを使用するには4文字のコマンドを入力してください\n分からない場合は攻撃先を読み込ませてください';
         await this.typeMessage(message);
     }
 
@@ -949,12 +1030,19 @@ class MysteryMonitor {
         this.currentInput = '';
         this.updateInputDisplay();
         
-        const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
-        const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
-        
-        const message = `<span class="facility-name">【${this.currentScenario.target}】</span><span class="action-text">に向けてドリルを発射するには、</span><span class="command-text">${displayCommand}</span><span class="action-text">を入力してください</span>`;
-        console.log('Generated message HTML:', message);
-        await this.typeMessageWithHTML(message);
+        // シナリオ5、6の場合は特別な初期メッセージを表示
+        if (scenarioId === 5 || scenarioId === 6) {
+            const defaultMessage = 'コマンドリルを使用するには4文字のコマンドを入力してください\n分からない場合は攻撃先を読み込ませてください';
+            console.log(`Scenario ${scenarioId}: Showing default initial message`);
+            await this.typeMessage(defaultMessage);
+        } else {
+            const displayCommand = this.currentScenario.hideCommand ? "****" : this.currentScenario.command;
+            const displayKey = this.currentScenario.hideKey ? "#" : this.currentScenario.key;
+            
+            const message = `<span class="facility-name">【${this.currentScenario.target}】</span><span class="action-text">に向けてドリルを発射するには、</span><span class="command-text">${displayCommand}</span><span class="action-text">を入力してください</span>`;
+            console.log('Generated message HTML:', message);
+            await this.typeMessageWithHTML(message);
+        }
     }
 
     async showDefenseMessage() {
@@ -997,13 +1085,30 @@ class MysteryMonitor {
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Parsed scenario ID:', scenarioId);
         
-        if (scenarioId === 3) {
-            // シナリオ3: まずデフォルトメッセージを表示
-            console.log('Scenario 3: Showing default message first');
-            await this.typeMessageUnified(defaultMessage, false);
+        if (scenarioId === 1) {
+            // シナリオ1: エラーメッセージのみ表示
+            const errorMessage = 'ドリルにより、≪NOPPO≫が破壊されました';
+            // const errorMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 1: Showing error message instantly');
+            const errorElement = this.addMessage(errorMessage, true);
+            errorElement.className = 'message-line danger-message';
+            
+        } else if (scenarioId === 2) {
+            // シナリオ2: エラーメッセージのみ表示
+            const errorMessage = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 2: Showing error message instantly');
+            const errorElement = this.addMessage(errorMessage, true);
+            errorElement.className = 'message-line danger-message';
+            
+        } else if (scenarioId === 3) {
+            // シナリオ3: エラーメッセージを表示
+            const errorMessage1 = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 3: Showing first error message instantly');
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルにより、アロハみやげ館が破壊されました';
+            const additionalMessage = 'ドリルにより、アロハみやげ館が破壊されました';
             console.log('Scenario 3: Showing additional message instantly');
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
@@ -1016,13 +1121,30 @@ class MysteryMonitor {
             errorElement.className = 'message-line danger-message';
             
         } else if (scenarioId === 5) {
-            // シナリオ5: まずデフォルトメッセージを表示
-            console.log('Scenario 5: Showing default message first');
-            await this.typeMessageUnified(defaultMessage, false);
+            // シナリオ5: エラーメッセージを表示
+            const errorMessage1 = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing first error message instantly`);
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
             
             // 追加メッセージを即座に表示（タイプアニメーションなし）
-            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによってエックス研究所が破壊されました';
-            console.log('Scenario 5: Showing additional message instantly');
+            const additionalMessage = 'ドリルによってエックス研究所が破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing additional message instantly`);
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
+            
+        } else if (scenarioId === 6) {
+            // シナリオ6: エラーメッセージを表示
+            const errorMessage1 = 'ドリルによってインフォメーションセンターが破壊されました\nドリルによってオアシスカフェが破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing first error message instantly`);
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
+            
+
+
+            // 追加メッセージを即座に表示（タイプアニメーションなし）
+            const additionalMessage = '≪NOPPO≫により、≪未知の生命体≫が撃破されました';
+            console.log(`Scenario ${scenarioId}: Showing additional message instantly`);
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
             
@@ -1266,8 +1388,8 @@ class MysteryMonitor {
                     this.noppoAudio.currentTime = 0;
                     this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
                 }
-            } else if ([3, 5].includes(scenarioId)) {
-                // シナリオ3,5: NOPPOTOIE.mp3を再生
+            } else if ([3, 5, 6].includes(scenarioId)) {
+                // シナリオ3,5,6: NOPPOTOIE.mp3を再生
                 if (this.noppoToieAudio) {
                     this.noppoToieAudio.currentTime = 0;
                     this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
@@ -1292,8 +1414,8 @@ class MysteryMonitor {
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Defense sound ended for scenario:', scenarioId);
         
-        // シナリオ1,2,3,5の場合のみシステムメッセージを表示
-        if ([1, 2, 3, 5].includes(scenarioId)) {
+        // シナリオ1,2,3,5,6の場合のみシステムメッセージを表示
+        if ([1, 2, 3, 5, 6].includes(scenarioId)) {
             this.showSystemCompleteMessage();
         }
     }
@@ -1307,19 +1429,59 @@ class MysteryMonitor {
         this.isLongPressing = false;
         this.updateInputDisplay('');
         
-        const systemMessage = '>>> システム: ドリルが発射されました';
-        await this.typeMessageUnified(systemMessage, false);
-        
-        // 追加のシナリオ固有メッセージがある場合は表示
         const scenarioId = parseInt(this.currentScenario.id);
-        if (scenarioId === 3) {
-            // シナリオ3: 追加メッセージを即座に表示
-            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルにより、アロハみやげ館が破壊されました';
+        console.log('Parsed scenario ID:', scenarioId);
+        
+        if (scenarioId === 1) {
+            // シナリオ1: エラーメッセージのみ表示
+            const errorMessage = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 1: Showing error message instantly');
+            const errorElement = this.addMessage(errorMessage, true);
+            errorElement.className = 'message-line danger-message';
+            
+        } else if (scenarioId === 2) {
+            // シナリオ2: エラーメッセージのみ表示
+            const errorMessage = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 2: Showing error message instantly');
+            const errorElement = this.addMessage(errorMessage, true);
+            errorElement.className = 'message-line danger-message';
+            
+        } else if (scenarioId === 3) {
+            // シナリオ3: エラーメッセージを表示
+            const errorMessage1 = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log('Scenario 3: Showing first error message instantly');
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
+            
+            // 追加メッセージを即座に表示
+            const additionalMessage = 'ドリルにより、【アロハみやげ館】が破壊されました';
+            console.log('Scenario 3: Showing additional message instantly');
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
+            
         } else if (scenarioId === 5) {
-            // シナリオ5: 追加メッセージを即座に表示
-            const additionalMessage = '<img src="danger.png" class="danger-icon" alt="Warning">ドリルによってエックス研究所が破壊されました';
+            // シナリオ5、6: エラーメッセージを表示
+            const errorMessage1 = 'ドリルにより、≪NOPPO≫が破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing first error message instantly`);
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
+            
+            // 追加メッセージを即座に表示
+            const additionalMessage = 'ドリルによって【エックス研究所】が破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing additional message instantly`);
+            const errorElement = this.addMessage(additionalMessage, true);
+            errorElement.className = 'message-line danger-message';
+
+        } else if (scenarioId === 6) {
+            // シナリオ5、6: エラーメッセージを表示
+            const errorMessage1 = 'ドリルによって【インフォメーション】が破壊されました\nドリルによって【オアシスカフェ】が破壊されました';
+            console.log(`Scenario ${scenarioId}: Showing first error message instantly`);
+            const errorElement1 = this.addMessage(errorMessage1, true);
+            errorElement1.className = 'message-line danger-message';
+            
+            // 追加メッセージを即座に表示
+            const additionalMessage = '≪NOPPO≫により≪未知の生命体≫を撃破しました';
+            console.log(`Scenario ${scenarioId}: Showing additional message instantly`);
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
         }
@@ -1790,3 +1952,5 @@ window.addEventListener('unhandledrejection', (e) => {
         }
     }
 }); 
+
+

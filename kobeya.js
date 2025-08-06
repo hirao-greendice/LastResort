@@ -56,7 +56,16 @@ const defaultScenarios = {
         target: "ゾンビアトラクション",
         command: "VIEW",
         key: "Z",
-        secondMessage: "<span class=\"facility-name\">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Z X</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z X</span>の長押しで防衛してください",
+        hideCommand: false,
+        hideKey: true,
+        completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
+    },
+    6: {
+        target: "ゾンビアトラクション",
+        command: "LIVE",
+        key: "U",
+        secondMessage: "<span class=\"facility-name\">【小池】</span>から北にドリルを発射します。<span class=\"key-highlight\">I O</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"

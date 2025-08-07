@@ -26,18 +26,10 @@ class WindowControl {
         
         // キー状態の管理
         this.isEnterPressed = false;
-                  this.isPPressed = false;
-          this.lastPressedKey = 'enter'; // 最後に押されたキーを記録
-          
-          // 動画遅延読み込み管理
-          this.videoLoaded = { enter: false, p: false };
-          this.videoLoadPromises = { enter: null, p: null };
-          this.cacheKeys = { 
-              enter: 'window_video_enter_cache_v1', 
-              p: 'window_video_p_cache_v1' 
-          };
-          
-          // 隠しボタンの要素
+        this.isPPressed = false;
+        this.lastPressedKey = 'enter'; // 最後に押されたキーを記録
+        
+        // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
         this.settingsButton = document.getElementById('settingsButton');
         this.fullscreenButton = document.getElementById('windowFullscreenButton');
@@ -127,7 +119,6 @@ class WindowControl {
         }
         
         this.loadSettings();
-        this.checkVideoCache();
         this.loadWindowVideos();
         this.setupFirebaseListener();
         this.setupVideoControlListener(); // シナリオ6用の動画制御リスナーを追加
@@ -410,20 +401,10 @@ class WindowControl {
         console.log('Active video switched to:', this.activeVideo);
     }
 
-    async playVideoForward() {
+    playVideoForward() {
         this.stopVideoPlayback(); // 既存の再生を停止
         this.isPlayingForward = true;
         this.isPlayingBackward = false;
-        
-        // ENTERキー動画が読み込まれていない場合、遅延読み込み
-        if (!this.videoLoaded.enter) {
-            try {
-                await this.loadVideoLazily('enter');
-            } catch (error) {
-                console.error('Failed to load ENTER video:', error);
-                return;
-            }
-        }
         
         console.log('Starting forward playback from:', this.currentTime, 'at speed:', this.settings.playbackSpeed);
         this.windowVideo.currentTime = this.currentTime;
@@ -478,20 +459,10 @@ class WindowControl {
         }
     }
 
-    async playVideoForwardP() {
+    playVideoForwardP() {
         this.stopVideoPlaybackP(); // 既존의 재생을 정지
         this.isPlayingForwardP = true;
         this.isPlayingBackwardP = false;
-        
-        // Pキー動画が読み込まれていない場合、遅延読み込み
-        if (!this.videoLoaded.p) {
-            try {
-                await this.loadVideoLazily('p');
-            } catch (error) {
-                console.error('Failed to load P video:', error);
-                return;
-            }
-        }
         
         console.log('Starting forward playback P from:', this.currentTimeP, 'at speed:', this.settings.playbackSpeed);
         this.windowVideoP.currentTime = this.currentTimeP;
@@ -1015,76 +986,6 @@ class WindowControl {
         this.activeVideo = 'enter';
         
         console.log('Videos reset to beginning successfully');
-    }
-
-    // 動画キャッシュ状況をチェック
-    checkVideoCache() {
-        try {
-            Object.keys(this.cacheKeys).forEach(videoType => {
-                const cached = localStorage.getItem(this.cacheKeys[videoType]);
-                if (cached) {
-                    console.log(`Window video ${videoType} cache found`);
-                    this.videoLoaded[videoType] = true;
-                } else {
-                    console.log(`No window video ${videoType} cache found`);
-                }
-            });
-        } catch (error) {
-            console.error('Error checking video cache:', error);
-        }
-    }
-
-    // 動画を遅延読み込み
-    async loadVideoLazily(videoType) {
-        if (this.videoLoaded[videoType] || this.videoLoadPromises[videoType]) {
-            return this.videoLoadPromises[videoType] || Promise.resolve();
-        }
-
-        console.log(`Starting lazy loading of window video ${videoType}...`);
-
-        const videoElement = videoType === 'enter' ? this.windowVideo : this.windowVideoP;
-        const videoSrc = videoType === 'enter' ? '100.mp4' : '200.mp4';
-
-        this.videoLoadPromises[videoType] = new Promise((resolve, reject) => {
-            // 動画ソースを設定
-            const source = document.createElement('source');
-            source.src = videoSrc;
-            source.type = 'video/mp4';
-            videoElement.appendChild(source);
-
-            // 読み込み完了時の処理
-            const onLoadedData = () => {
-                console.log(`Window video ${videoType} loaded successfully`);
-                this.videoLoaded[videoType] = true;
-                
-                // キャッシュ状況を保存
-                try {
-                    localStorage.setItem(this.cacheKeys[videoType], 'loaded');
-                } catch (error) {
-                    console.warn(`Failed to cache video ${videoType} status:`, error);
-                }
-                
-                videoElement.removeEventListener('loadeddata', onLoadedData);
-                videoElement.removeEventListener('error', onError);
-                resolve();
-            };
-
-            // エラー時の処理
-            const onError = (error) => {
-                console.error(`Failed to load window video ${videoType}:`, error);
-                videoElement.removeEventListener('loadeddata', onLoadedData);
-                videoElement.removeEventListener('error', onError);
-                reject(error);
-            };
-
-            videoElement.addEventListener('loadeddata', onLoadedData);
-            videoElement.addEventListener('error', onError);
-
-            // 読み込み開始
-            videoElement.load();
-        });
-
-        return this.videoLoadPromises[videoType];
     }
 
 

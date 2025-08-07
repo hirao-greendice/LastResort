@@ -37,7 +37,7 @@ const defaultScenarios = {
         target: "ストリートライブハウス",
         command: "EDIT",
         key: "S",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">S・#</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">S　#</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"
@@ -55,7 +55,7 @@ const defaultScenarios = {
         target: "ゾンビアトラクション",
         command: "VIEW",
         key: "Z",
-        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z・#</span>の長押しで防衛してください",
+        secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z　</span>の長押しで防衛してください",
         hideCommand: false,
         hideKey: true,
         completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"

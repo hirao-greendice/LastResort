@@ -427,14 +427,28 @@ class WindowControl {
     }
 
     playVideoBackward() {
-        this.stopVideoPlayback(); // 既存の再生を停止
+        // 正再生中の場合は現在の再生位置を即座に取得して逆再生に切り替え
+        if (this.isPlayingForward && !this.windowVideo.paused) {
+            this.currentTime = this.windowVideo.currentTime;
+        }
+        
+        // アニメーションフレームのみ停止（動画の停止処理は行わない）
+        if (this.animationFrame) {
+            if (typeof this.animationFrame === 'number') {
+                clearTimeout(this.animationFrame);
+            } else {
+                cancelAnimationFrame(this.animationFrame);
+            }
+            this.animationFrame = null;
+        }
+        
         this.isPlayingForward = false;
         this.isPlayingBackward = true;
         
         console.log('Starting backward playback from:', this.currentTime);
         this.windowVideo.pause();
         
-        // 最適化された逆再生制御を開始
+        // 即座に逆再生制御を開始
         this.updateVideoTime();
     }
 
@@ -485,14 +499,28 @@ class WindowControl {
     }
 
     playVideoBackwardP() {
-        this.stopVideoPlaybackP(); // 既존의 재생을 정지
+        // 正再生中の場合は現在の再生位置を即座に取得して逆再生に切り替え
+        if (this.isPlayingForwardP && !this.windowVideoP.paused) {
+            this.currentTimeP = this.windowVideoP.currentTime;
+        }
+        
+        // アニメーションフレームのみ停止（動画の停止処理は行わない）
+        if (this.animationFrameP) {
+            if (typeof this.animationFrameP === 'number') {
+                clearTimeout(this.animationFrameP);
+            } else {
+                cancelAnimationFrame(this.animationFrameP);
+            }
+            this.animationFrameP = null;
+        }
+        
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = true;
         
         console.log('Starting backward playback P from:', this.currentTimeP);
         this.windowVideoP.pause();
         
-        // 最適化された逆再生制御を開始
+        // 即座に逆再生制御を開始
         this.updateVideoTimeP();
     }
 

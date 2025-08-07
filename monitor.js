@@ -1057,6 +1057,9 @@ class MysteryMonitor {
         // 新しいシナリオが開始されたら全メッセージをクリア
         this.clearAllMessages();
         
+        // 窓動画を最初の位置にリセット
+        this.triggerWindowVideoReset();
+        
         // 画像表示制御
         const scenarioId = parseInt(this.currentScenario.id);
         if (scenarioId === 1) {
@@ -1247,7 +1250,7 @@ class MysteryMonitor {
         
         for (let i = 0; i < message.length; i++) {
             messageElement.textContent += message[i];
-            await this.delay(50);
+            await this.delay(17);
         }
     }
 
@@ -1271,7 +1274,7 @@ class MysteryMonitor {
                     for (let j = 0; j < textBuffer.length; j++) {
                         currentHTML += textBuffer[j];
                         messageElement.innerHTML = currentHTML;
-                        await this.delay(50);
+                        await this.delay(17);
                     }
                     textBuffer = '';
                 }
@@ -1298,7 +1301,7 @@ class MysteryMonitor {
             for (let j = 0; j < textBuffer.length; j++) {
                 currentHTML += textBuffer[j];
                 messageElement.innerHTML = currentHTML;
-                await this.delay(50);
+                await this.delay(17);
             }
         }
         
@@ -1327,7 +1330,7 @@ class MysteryMonitor {
             // 通常のテキストメッセージ
             for (let i = 0; i < message.length; i++) {
                 messageElement.textContent += message[i];
-                await this.delay(50);
+                await this.delay(17);
             }
         }
         
@@ -1555,8 +1558,8 @@ class MysteryMonitor {
             const errorElement = this.addMessage(additionalMessage, true);
             errorElement.className = 'message-line danger-message';
             
-            // 窓画面で動画を逆再生して最初まで戻す
-            this.triggerWindowVideoReverse();
+            // 窓画面で動画を逆再生して最初まで戻す（無効化）
+            // this.triggerWindowVideoReverse();
         }
     }
     
@@ -1648,6 +1651,47 @@ class MysteryMonitor {
             }
         } catch (error) {
             console.error('Error in triggerWindowVideoReverse:', error);
+        }
+    }
+
+    // 窓画面での動画を最初の位置にリセットするメソッド
+    triggerWindowVideoReset() {
+        console.log('Triggering window video reset to beginning');
+        
+        if (!window.firestore && !window.database) {
+            console.error('Firebase not initialized for window video reset control');
+            return;
+        }
+
+        const windowVideoData = {
+            scenario6Playing: false,
+            scenario6Reverse: false,
+            videoReset: true,
+            timestamp: Date.now()
+        };
+
+        try {
+            if (window.useFirestore) {
+                const windowVideoRef = window.firestoreDoc(window.firestore, 'gameData', 'windowVideoControl');
+                window.firestoreSetDoc(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video reset signal sent via Firestore');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video reset signal via Firestore:', error);
+                    });
+            } else {
+                const windowVideoRef = window.dbRef(window.database, 'windowVideoControl');
+                window.dbSet(windowVideoRef, windowVideoData)
+                    .then(() => {
+                        console.log('Window video reset signal sent via Database');
+                    })
+                    .catch((error) => {
+                        console.error('Error sending window video reset signal via Database:', error);
+                    });
+            }
+        } catch (error) {
+            console.error('Error in triggerWindowVideoReset:', error);
         }
     }
 

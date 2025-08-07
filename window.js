@@ -924,7 +924,11 @@ class WindowControl {
     handleVideoControlSignal(data) {
         console.log('Video control signal received:', data);
         
-        if (data.scenario6Playing === true) {
+        if (data.videoReset === true) {
+            // シナリオ切り替え時：動画を最初の位置にリセット
+            console.log('Resetting video to beginning');
+            this.resetVideoToBeginning();
+        } else if (data.scenario6Playing === true) {
             // シナリオ6でUとENTER長押し時：100.mp4を再生開始
             console.log('Starting 100.mp4 playback for scenario 6');
             this.startScenario6Video();
@@ -954,6 +958,34 @@ class WindowControl {
         
         // 逆再生で最初まで戻す
         this.playVideoBackward();
+    }
+
+    resetVideoToBeginning() {
+        console.log('Resetting all videos to beginning position');
+        
+        // 全ての動画再生を停止
+        this.stopVideoPlayback();
+        this.stopVideoPlaybackP();
+        
+        // 両方の動画を最初の位置にリセット
+        this.currentTime = 0;
+        this.currentTimeP = 0;
+        
+        if (this.windowVideo) {
+            this.windowVideo.currentTime = 0;
+            this.windowVideo.pause();
+        }
+        
+        if (this.windowVideoP) {
+            this.windowVideoP.currentTime = 0;
+            this.windowVideoP.pause();
+        }
+        
+        // ENTERキー動画を表示状態にする（デフォルト）
+        this.showVideo('enter');
+        this.activeVideo = 'enter';
+        
+        console.log('Videos reset to beginning successfully');
     }
 
 

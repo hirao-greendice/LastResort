@@ -9,6 +9,11 @@ class DoctorControl {
         this.doctorVideo = document.getElementById('doctorVideo');
         this.fadeOverlay = document.getElementById('fadeOverlay');
         
+        // 動画遅延ロード管理
+        this.videoLoaded = false;
+        this.videoLoadPromise = null;
+        this.cacheKey = 'doctor_video_cache_v1';
+        
         // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
         this.settingsButton = document.getElementById('settingsButton');
@@ -37,6 +42,7 @@ class DoctorControl {
         console.log('Initializing doctor control...');
         
         this.loadSettings();
+        this.checkVideoCache();
         this.setupVideoEvents();
         this.setupFirebaseListener();
         this.setupHiddenButtons();
@@ -229,7 +235,7 @@ class DoctorControl {
         }
     }
 
-    showDoctorVideo() {
+    async showDoctorVideo() {
         console.log('Showing doctor video');
         
         // フェード効果をリセット
@@ -237,6 +243,17 @@ class DoctorControl {
         this.hasVideoEnded = false;
         
         if (this.doctorVideo) {
+            // 動画が読み込まれていない場合、遅延読み込み
+            if (!this.videoLoaded) {
+                try {
+                    await this.loadVideoLazily();
+                } catch (error) {
+                    console.error('Failed to load doctor video:', error);
+                    this.showVideoError();
+                    return;
+                }
+            }
+            
             // メッセージを非表示にして動画を表示
             this.doctorMessage.style.display = 'none';
             this.doctorVideo.style.display = 'block';
@@ -671,6 +688,71 @@ class DoctorControl {
         } catch (error) {
             console.error('Error in notifyVideoEnded:', error);
         }
+    }
+
+    // 動画キャッシュ状況をチェック
+    checkVideoCache() {
+        try {
+            const cached = localStorage.getItem(this.cacheKey);
+            if (cached) {
+                console.log('Doctor video cache found');
+                this.videoLoaded = true;
+            } else {
+                console.log('No doctor video cache found');
+            }
+        } catch (error) {
+            console.error('Error checking doctor video cache:', error);
+        }
+    }
+
+    // 動画を遅延読み込み
+    async loadVideoLazily() {
+        if (this.videoLoaded || this.videoLoadPromise) {
+            return this.videoLoadPromise || Promise.resolve();
+        }
+
+        console.log('Starting lazy loading of doctor video...');
+
+        this.videoLoadPromise = new Promise((resolve, reject) => {
+            // 動画ソースを設定
+            const source = document.createElement('source');
+            source.src = 'doctor.mp4';
+            source.type = 'video/mp4';
+            this.doctorVideo.appendChild(source);
+
+            // 読み込み完了時の処理
+            const onLoadedData = () => {
+                console.log('Doctor video loaded successfully');
+                this.videoLoaded = true;
+                
+                // キャッシュ状況を保存
+                try {
+                    localStorage.setItem(this.cacheKey, 'loaded');
+                } catch (error) {
+                    console.warn('Failed to cache doctor video status:', error);
+                }
+                
+                this.doctorVideo.removeEventListener('loadeddata', onLoadedData);
+                this.doctorVideo.removeEventListener('error', onError);
+                resolve();
+            };
+
+            // エラー時の処理
+            const onError = (error) => {
+                console.error('Failed to load doctor video:', error);
+                this.doctorVideo.removeEventListener('loadeddata', onLoadedData);
+                this.doctorVideo.removeEventListener('error', onError);
+                reject(error);
+            };
+
+            this.doctorVideo.addEventListener('loadeddata', onLoadedData);
+            this.doctorVideo.addEventListener('error', onError);
+
+            // 読み込み開始
+            this.doctorVideo.load();
+        });
+
+        return this.videoLoadPromise;
     }
 }
 

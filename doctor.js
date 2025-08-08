@@ -48,11 +48,8 @@ class DoctorControl {
         this.setupOfflineTripleTap();
         this.updateStatus();
         
-        // 接続状況を定期更新
+        // 接続状況を登録（RTDB onDisconnect で切断時に自動OFFLINE）
         this.reportPresence();
-        setInterval(() => {
-            this.reportPresence();
-        }, 30000); // 30秒ごと
     }
 
     setupVideoEvents() {
@@ -678,14 +675,19 @@ class DoctorControl {
         };
 
         try {
-            if (window.useFirestore) {
+            if (window.database) {
+                const presenceRef = window.dbRef(window.database, 'presence/doctor');
+                window.dbSet(presenceRef, presenceData)
+                    .then(() => {
+                        if (window.dbOnDisconnect) {
+                            window.dbOnDisconnect(presenceRef).set({screen:'doctor',timestamp:Date.now(),status:'offline'});
+                        }
+                    })
+                    .catch(error => console.error('Error reporting presence to Database:', error));
+            } else if (window.useFirestore) {
                 const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'doctor');
                 window.firestoreSetDoc(presenceRef, presenceData)
                     .catch(error => console.error('Error reporting presence to Firestore:', error));
-            } else {
-                const presenceRef = window.dbRef(window.database, 'presence/doctor');
-                window.dbSet(presenceRef, presenceData)
-                    .catch(error => console.error('Error reporting presence to Database:', error));
             }
         } catch (error) {
             console.error('Error in reportPresence:', error);

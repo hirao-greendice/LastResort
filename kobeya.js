@@ -1098,29 +1098,24 @@ function setupConnectionMonitoring() {
 }
 
 function reportPresence() {
-    if (!window.firestore && !window.database) {
-        return;
-    }
-
-    const presenceData = {
-        screen: 'kobeya',
-        timestamp: Date.now(),
-        status: 'online'
-    };
-
+    if (!window.firestore && !window.database) { return; }
+    const presenceData = { screen: 'kobeya', timestamp: Date.now(), status: 'online' };
     try {
-        if (window.useFirestore) {
+        if (window.database) {
+            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
+            window.dbSet(presenceRef, presenceData)
+                .then(() => {
+                    if (window.dbOnDisconnect) {
+                        window.dbOnDisconnect(presenceRef).set({screen:'kobeya',timestamp:Date.now(),status:'offline'});
+                    }
+                })
+                .catch(error => console.error('Error reporting presence to Database:', error));
+        } else if (window.useFirestore) {
             const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'kobeya');
             window.firestoreSetDoc(presenceRef, presenceData)
                 .catch(error => console.error('Error reporting presence to Firestore:', error));
-        } else {
-            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
-            window.dbSet(presenceRef, presenceData)
-                .catch(error => console.error('Error reporting presence to Database:', error));
         }
-    } catch (error) {
-        console.error('Error in reportPresence:', error);
-    }
+    } catch (error) { console.error('Error in reportPresence:', error); }
 }
 
 function monitorOtherConnections() {
@@ -1128,18 +1123,18 @@ function monitorOtherConnections() {
     
     terminals.forEach(terminal => {
         try {
-            if (window.useFirestore) {
-                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
-                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
+            if (window.database) {
+                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
+                window.dbOnValue(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.val());
                 }, (error) => {
                     console.error(`Error monitoring ${terminal} presence:`, error);
                     updateConnectionStatus(terminal, null);
                 });
-            } else {
-                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
-                window.dbOnValue(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.val());
+            } else if (window.useFirestore) {
+                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
+                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
                 }, (error) => {
                     console.error(`Error monitoring ${terminal} presence:`, error);
                     updateConnectionStatus(terminal, null);

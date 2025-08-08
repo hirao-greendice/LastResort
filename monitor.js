@@ -2297,22 +2297,23 @@ class MysteryMonitor {
 // モニター初期化関数
 window.initGame = () => {
     const monitor = new MysteryMonitor();
-    // Presence reporting for monitor screen
-    function reportMonitorPresence(){
+    // Presence reporting for monitor screen (use RTDB onDisconnect to avoid polling)
+    (function setupPresence(){
         if(!window.firestore && !window.database) return;
         const data={screen:'monitor',timestamp:Date.now(),status:'online'};
         try{
-            if(window.useFirestore){
+            if(window.database){
+                const ref=window.dbRef(window.database,'presence/monitor');
+                window.dbSet(ref,data).catch(e=>console.error('presence db set',e));
+                if(window.dbOnDisconnect){
+                    window.dbOnDisconnect(ref).set({screen:'monitor',timestamp:Date.now(),status:'offline'}).catch(e=>console.error('presence onDisconnect',e));
+                }
+            }else if(window.useFirestore){
                 const ref=window.firestoreDoc(window.firestore,'presence','monitor');
                 window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));
-            }else if(window.database){
-                const ref=window.dbRef(window.database,'presence/monitor');
-                window.dbSet(ref,data).catch(e=>console.error('presence db',e));
             }
         }catch(err){console.error('presence error',err);}
-    }
-    reportMonitorPresence();
-    setInterval(reportMonitorPresence,30000);
+    })();
     
     // デバッグ用のリセット機能（Escキーで待機状態に戻る）
     document.addEventListener('keydown', (e) => {

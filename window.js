@@ -7,7 +7,6 @@ class WindowControl {
         this.windowFrame = document.querySelector('.window-frame');
         this.windowVideo = document.getElementById('windowVideo');
         this.windowVideo300 = document.getElementById('windowVideo300');
-        this.windowVideo400 = document.getElementById('windowVideo400');
         this.windowVideoP = document.getElementById('windowVideoP');
         
         // 動画制御用プロパティ（ENTERキー用）
@@ -22,10 +21,6 @@ class WindowControl {
         this.isPlayingBackwardP = false;
         this.currentTimeP = 0;
         this.animationFrameP = null;
-        // 400.mp4 長押し再生用
-        this.is400Playing = false;
-        this.pLongPressTimer = null;
-        this.pLongPressMs = 1000; // 長押し判定 1秒
         
         // 現在アクティブな動画を追跡
         this.activeVideo = 'enter'; // 'enter' または 'p'
@@ -211,8 +206,8 @@ class WindowControl {
                 this.stopVideoPlayback();
             });
             
-            // 400.mp4 (Pキー用)
-            console.log('Window video P set to 400.mp4');
+            // 200.mp4 (Pキー用)
+            console.log('Window video P set to 200.mp4');
             
             this.windowVideoP.addEventListener('loadedmetadata', () => {
                 console.log('Window video (P) metadata loaded successfully');
@@ -227,7 +222,7 @@ class WindowControl {
             });
             
             this.windowVideoP.addEventListener('error', (error) => {
-                console.error('Failed to load 400.mp4:', error);
+                console.error('Failed to load 200.mp4:', error);
                 // P키 동영상이 로드되지 않아도 시스템은 계속 동작
                 console.log('P key video unavailable, continuing with ENTER video only');
             });
@@ -261,29 +256,6 @@ class WindowControl {
                 });
                 this.windowVideo300.addEventListener('error', (error) => {
                     console.error('Failed to load 300.mp4:', error);
-                });
-            }
-            // 400.mp4 (P長押しで前面再生)
-            if (this.windowVideo400) {
-                console.log('Window video 400 set to 400.mp4');
-                this.windowVideo400.addEventListener('loadedmetadata', () => {
-                    console.log('Window video (400) metadata loaded successfully');
-                    this.applySettings();
-                    this.updateVideoTransform();
-                });
-                this.windowVideo400.addEventListener('ended', () => {
-                    console.log('Video (400) ended');
-                    this.is400Playing = false;
-                    this.windowVideo400.style.display = 'none';
-                    this.windowVideo400.style.zIndex = '';
-                    // 100 or 400/300の元の表示状態へ（デフォルトは100）
-                    if (this.windowVideo) {
-                        this.windowVideo.style.display = 'block';
-                        this.windowVideo.style.zIndex = '';
-                    }
-                });
-                this.windowVideo400.addEventListener('error', (error) => {
-                    console.error('Failed to load 400.mp4:', error);
                 });
             }
             
@@ -427,7 +399,7 @@ class WindowControl {
     }
 
     updateWindowState() {
-            if (this.isWindowChangeEnabled) {
+        if (this.isWindowChangeEnabled) {
             // ENTERキーの処理
             if (this.isScrolling) {
                 // ENTER長押しで300.mp4再生（1秒）
@@ -438,18 +410,16 @@ class WindowControl {
                 this.cancelEnterLongPressTimer();
             }
             
-                // Pキーの処理（正再生＋長押しで400.mp4前面再生）
-                if (this.isPPressed) {
-                    console.log('P pressed - playing video P forward');
-                    this.lastPressedKey = 'p'; // 最後に押されたキーを更新
-                    this.playVideoForwardP();
-                    this.showVideo('p');
-                    this.startPLongPressTimer();
-                } else {
-                    console.log('P released - playing video P backward');
-                    this.cancelPLongPressTimer();
-                    this.playVideoBackwardP();
-                }
+        // Pキーの処理（従来どおり）
+        if (this.isPPressed) {
+                console.log('P pressed - playing video P forward');
+                this.lastPressedKey = 'p'; // 最後に押されたキーを更新
+                this.playVideoForwardP();
+                this.showVideo('p');
+            } else {
+                console.log('P released - playing video P backward');
+                this.playVideoBackwardP();
+            }
             
             // 両方のキーが離されている場合の表示は不要（300再生は独立）
         } else {
@@ -466,9 +436,6 @@ class WindowControl {
         if (videoType === 'enter') {
             this.windowVideo.style.display = 'block';
             this.windowVideoP.style.display = 'none';
-            if (this.windowVideo400 && !this.is400Playing) {
-                this.windowVideo400.style.display = 'none';
-            }
             if (this.windowVideo300 && !this.is300Playing) {
                 this.windowVideo300.style.display = 'none';
             }
@@ -476,9 +443,6 @@ class WindowControl {
         } else if (videoType === 'p') {
             this.windowVideo.style.display = 'none';
             this.windowVideoP.style.display = 'block';
-            if (this.windowVideo400 && !this.is400Playing) {
-                this.windowVideo400.style.display = 'none';
-            }
             if (this.windowVideo300 && !this.is300Playing) {
                 this.windowVideo300.style.display = 'none';
             }
@@ -667,49 +631,6 @@ class WindowControl {
         this.windowVideo300.play().catch(err => {
             console.error('Error playing 300.mp4:', err);
             this.is300Playing = false;
-        });
-    }
-
-    // ===== 400.mp4 再生（P長押しで発火） =====
-    startPLongPressTimer() {
-        if (this.pLongPressTimer || this.is400Playing) return;
-        this.pLongPressTimer = setTimeout(() => {
-            this.pLongPressTimer = null;
-            this.start400Video();
-        }, this.pLongPressMs);
-    }
-
-    cancelPLongPressTimer() {
-        if (this.pLongPressTimer) {
-            clearTimeout(this.pLongPressTimer);
-            this.pLongPressTimer = null;
-        }
-    }
-
-    start400Video() {
-        if (!this.windowVideo400) return;
-        console.log('Starting 400.mp4 playback due to long press (P)');
-
-        // P通常動画と100を確実に非表示、400を前面に表示
-        if (this.windowVideo) {
-            this.windowVideo.style.display = 'none';
-            this.windowVideo.style.zIndex = '1';
-        }
-        if (this.windowVideoP) {
-            this.windowVideoP.style.display = 'none';
-            this.windowVideoP.style.zIndex = '1';
-        }
-        this.windowVideo400.style.display = 'block';
-        this.windowVideo400.style.zIndex = '2';
-
-        // サイズ等はapplySettings/transformで同期済み
-        try {
-            this.windowVideo400.currentTime = 0;
-        } catch (e) {}
-        this.is400Playing = true;
-        this.windowVideo400.play().catch(err => {
-            console.error('Error playing 400.mp4:', err);
-            this.is400Playing = false;
         });
     }
 
@@ -994,18 +915,6 @@ class WindowControl {
             videoP.style.opacity = this.settings.imageOpacity / 100;
             videoP.style.transformOrigin = 'center center';
         }
-
-        // 400.mp4 も100.mp4と同じ設定を適用
-        const video400 = this.windowVideo400;
-        if (video400) {
-            video400.style.width = this.settings.imageWidth + '%';
-            video400.style.height = (this.settings.imageHeight * 2) + 'vh';
-            video400.style.top = this.settings.imageTop + 'px';
-            video400.style.left = this.settings.imageLeft + 'px';
-            video400.style.transitionDuration = this.settings.scrollDuration + 's';
-            video400.style.opacity = this.settings.imageOpacity / 100;
-            video400.style.transformOrigin = 'center center';
-        }
         
         // transformを統一的に更新
         this.updateVideoTransform();
@@ -1033,14 +942,6 @@ class WindowControl {
             const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
             const translateY = this.settings.scrollDistance;
             videoP.style.transform = `${transform} translateY(${translateY}%)`;
-        }
-
-        // 400.mp4 も同じ transform を適用
-        const video400 = this.windowVideo400;
-        if (video400) {
-            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            const translateY = this.settings.scrollDistance;
-            video400.style.transform = `${transform} translateY(${translateY}%)`;
         }
     }
 

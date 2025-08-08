@@ -907,6 +907,8 @@ class MysteryMonitor {
         console.log('Resetting monitor...');
         // リセット時は窓変化を必ずOFFにする
         this.disableWindowControlInFirebase();
+        // 窓画面の動画を最初に戻す（シナリオ切替時と同様の挙動に統一）
+        this.triggerWindowVideoReset();
         this.clearAllMessages();
         this.gameState = 'waiting';
         this.currentInput = '';

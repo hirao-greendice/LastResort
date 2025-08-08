@@ -1204,22 +1204,31 @@ function updateConnectionStatus(terminal, data) {
         'doctor': '博士映像'
     };
     
-    if (data && data.timestamp) {
-        const timeDiff = Date.now() - data.timestamp;
-        
-        if (timeDiff < 60000) { // 1分以内
+    if (data && (data.timestamp || data.status)) {
+        // status フィールドがあれば最優先
+        if (data.status === 'online') {
             statusElement.textContent = 'ONLINE';
             statusElement.className = 'connection-status status-online';
-        } else if (timeDiff < 300000) { // 5分以内
-            statusElement.textContent = 'AWAY';
-            statusElement.className = 'connection-status status-unknown';
-        } else {
+        } else if (data.status === 'offline') {
             statusElement.textContent = 'OFFLINE';
             statusElement.className = 'connection-status status-offline';
+        } else if (data.timestamp) {
+            const timeDiff = Date.now() - data.timestamp;
+            if (timeDiff < 60000) {
+                statusElement.textContent = 'ONLINE';
+                statusElement.className = 'connection-status status-online';
+            } else if (timeDiff < 300000) {
+                statusElement.textContent = 'AWAY';
+                statusElement.className = 'connection-status status-unknown';
+            } else {
+                statusElement.textContent = 'OFFLINE';
+                statusElement.className = 'connection-status status-offline';
+            }
         }
     } else {
-        statusElement.textContent = '---';
-        statusElement.className = 'connection-status status-unknown';
+        // presence データが無い = 端末未起動/切断扱い
+        statusElement.textContent = 'OFFLINE';
+        statusElement.className = 'connection-status status-offline';
     }
     
     // 最終更新時刻を更新

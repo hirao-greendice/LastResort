@@ -213,11 +213,7 @@ class MysteryMonitor {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
-            // シナリオ6ではPキーを完全無効化
-            if ((e.key === 'p' || e.key === 'P') && this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-                e.preventDefault();
-                return;
-            }
+            // Pキーは常に処理可能（シナリオ6でも受け付ける）
             // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -304,11 +300,7 @@ class MysteryMonitor {
         });
 
         document.addEventListener('keyup', (e) => {
-            // シナリオ6ではPキーを完全無効化
-            if ((e.key === 'p' || e.key === 'P') && this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-                e.preventDefault();
-                return;
-            }
+            // Pキーは常に処理可能（シナリオ6でも受け付ける）
             // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -926,10 +918,6 @@ class MysteryMonitor {
     }
 
     handlePPress() {
-        // シナリオ6ではPキーを無効化
-        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-            return;
-        }
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, true);
@@ -939,10 +927,6 @@ class MysteryMonitor {
     }
 
     handlePRelease() {
-        // シナリオ6ではPキーを無効化
-        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-            return;
-        }
         console.log('P released - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, false);

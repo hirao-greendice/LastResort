@@ -213,7 +213,11 @@ class MysteryMonitor {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
-            // Pキーは常に処理可能（シナリオ6でも受け付ける）
+            // シナリオ6ではPキーを完全無効化
+            if ((e.key === 'p' || e.key === 'P') && this.currentScenario && parseInt(this.currentScenario.id) === 6) {
+                e.preventDefault();
+                return;
+            }
             // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -300,7 +304,11 @@ class MysteryMonitor {
         });
 
         document.addEventListener('keyup', (e) => {
-            // Pキーは常に処理可能（シナリオ6でも受け付ける）
+            // シナリオ6ではPキーを完全無効化
+            if ((e.key === 'p' || e.key === 'P') && this.currentScenario && parseInt(this.currentScenario.id) === 6) {
+                e.preventDefault();
+                return;
+            }
             // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -918,6 +926,10 @@ class MysteryMonitor {
     }
 
     handlePPress() {
+        // シナリオ6ではPキーを無効化
+        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
+            return;
+        }
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, true);
@@ -927,6 +939,10 @@ class MysteryMonitor {
     }
 
     handlePRelease() {
+        // シナリオ6ではPキーを無効化
+        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
+            return;
+        }
         console.log('P released - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, false);
@@ -2281,23 +2297,22 @@ class MysteryMonitor {
 // モニター初期化関数
 window.initGame = () => {
     const monitor = new MysteryMonitor();
-    // Presence reporting for monitor screen (use RTDB onDisconnect to avoid polling)
-    (function setupPresence(){
+    // Presence reporting for monitor screen
+    function reportMonitorPresence(){
         if(!window.firestore && !window.database) return;
         const data={screen:'monitor',timestamp:Date.now(),status:'online'};
         try{
-            if(window.database){
-                const ref=window.dbRef(window.database,'presence/monitor');
-                window.dbSet(ref,data).catch(e=>console.error('presence db set',e));
-                if(window.dbOnDisconnect){
-                    window.dbOnDisconnect(ref).set({screen:'monitor',timestamp:Date.now(),status:'offline'}).catch(e=>console.error('presence onDisconnect',e));
-                }
-            }else if(window.useFirestore){
+            if(window.useFirestore){
                 const ref=window.firestoreDoc(window.firestore,'presence','monitor');
                 window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));
+            }else if(window.database){
+                const ref=window.dbRef(window.database,'presence/monitor');
+                window.dbSet(ref,data).catch(e=>console.error('presence db',e));
             }
         }catch(err){console.error('presence error',err);}
-    })();
+    }
+    reportMonitorPresence();
+    setInterval(reportMonitorPresence,30000);
     
     // デバッグ用のリセット機能（Escキーで待機状態に戻る）
     document.addEventListener('keydown', (e) => {

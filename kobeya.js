@@ -953,7 +953,7 @@ function doubleTapResetMonitorWithNoise() {
         // ボタンの表示を更新（準備状態を示す）
         updateNoiseResetButtonReadyState(true);
         
-        // 通知を表示
+        // 通知を表示（文言変更）
         showNotification('リセット画面ノイズ有 準備完了\nもう一度タップで実行', 'info');
         
         // 5秒後に準備状態をクリア
@@ -1084,8 +1084,11 @@ function setupConnectionMonitoring() {
 
     // 自分の接続状況を報告
     reportPresence();
-    // RTDB接続状態の監視（切断/再接続を即時UI反映 & 再接続時にpresenceを再登録）
-    setupRealtimeConnectionListener();
+    
+    // 定期的に接続状況を報告（30秒ごと）
+    setInterval(() => {
+        reportPresence();
+    }, 30000);
     
     // 他の端末の接続状況を監視
     monitorOtherConnections();
@@ -1095,73 +1098,28 @@ function setupConnectionMonitoring() {
 }
 
 function reportPresence() {
-    if (!window.firestore && !window.database) { return; }
-    const presenceData = { screen: 'kobeya', timestamp: Date.now(), status: 'online' };
+    if (!window.firestore && !window.database) {
+        return;
+    }
+
+    const presenceData = {
+        screen: 'kobeya',
+        timestamp: Date.now(),
+        status: 'online'
+    };
+
     try {
-        if (window.database) {
-            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
-            window.dbSet(presenceRef, presenceData)
-                .then(() => {
-                    if (window.dbOnDisconnect) {
-                        window.dbOnDisconnect(presenceRef).set({screen:'kobeya',timestamp:Date.now(),status:'offline'});
-                    }
-                })
-                .catch(error => console.error('Error reporting presence to Database:', error));
-        } else if (window.useFirestore) {
+        if (window.useFirestore) {
             const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'kobeya');
             window.firestoreSetDoc(presenceRef, presenceData)
                 .catch(error => console.error('Error reporting presence to Firestore:', error));
+        } else {
+            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
+            window.dbSet(presenceRef, presenceData)
+                .catch(error => console.error('Error reporting presence to Database:', error));
         }
-    } catch (error) { console.error('Error in reportPresence:', error); }
-}
-
-// RTDB接続状態の監視とUI反映、再接続時のpresence再登録
-function setupRealtimeConnectionListener() {
-    if (!window.database || !window.dbRef || !window.dbOnValue) return;
-    try {
-        const connectedRef = window.dbRef(window.database, '.info/connected');
-        window.dbOnValue(connectedRef, (snapshot) => {
-            const connected = !!snapshot.val();
-            updateSelfConnectionUI(connected);
-            updateTopConnectionText(connected);
-            if (connected) {
-                // 再接続時にpresenceを再登録
-                reportPresence();
-            }
-        }, (error) => {
-            console.error('Error monitoring RTDB .info/connected:', error);
-        });
-    } catch (e) {
-        console.error('setupRealtimeConnectionListener failed:', e);
-    }
-}
-
-function updateSelfConnectionUI(connected) {
-    try {
-        const selfItem = document.querySelector('.connection-item.self-status .connection-status');
-        if (selfItem) {
-            if (connected) {
-                selfItem.textContent = 'ONLINE';
-                selfItem.className = 'connection-status status-online';
-            } else {
-                selfItem.textContent = 'OFFLINE';
-                selfItem.className = 'connection-status status-offline';
-            }
-        }
-        // 最終更新時刻の更新
-        updateLastSeen();
-    } catch (e) { console.error('updateSelfConnectionUI error:', e); }
-}
-
-function updateTopConnectionText(connected) {
-    const el = document.getElementById('connectionStatus');
-    if (!el) return;
-    if (connected) {
-        el.textContent = 'Firebase接続状態: Realtime Database接続済み ✓';
-        el.style.color = '#00ff00';
-    } else {
-        el.textContent = 'Firebase接続状態: 切断 ✗';
-        el.style.color = '#ff0000';
+    } catch (error) {
+        console.error('Error in reportPresence:', error);
     }
 }
 
@@ -1170,18 +1128,18 @@ function monitorOtherConnections() {
     
     terminals.forEach(terminal => {
         try {
-            if (window.database) {
-                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
-                window.dbOnValue(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.val());
+            if (window.useFirestore) {
+                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
+                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
                 }, (error) => {
                     console.error(`Error monitoring ${terminal} presence:`, error);
                     updateConnectionStatus(terminal, null);
                 });
-            } else if (window.useFirestore) {
-                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
-                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
+            } else {
+                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
+                window.dbOnValue(presenceRef, (snapshot) => {
+                    updateConnectionStatus(terminal, snapshot.val());
                 }, (error) => {
                     console.error(`Error monitoring ${terminal} presence:`, error);
                     updateConnectionStatus(terminal, null);
@@ -1204,31 +1162,22 @@ function updateConnectionStatus(terminal, data) {
         'doctor': '博士映像'
     };
     
-    if (data && (data.timestamp || data.status)) {
-        // status フィールドがあれば最優先
-        if (data.status === 'online') {
+    if (data && data.timestamp) {
+        const timeDiff = Date.now() - data.timestamp;
+        
+        if (timeDiff < 60000) { // 1分以内
             statusElement.textContent = 'ONLINE';
             statusElement.className = 'connection-status status-online';
-        } else if (data.status === 'offline') {
+        } else if (timeDiff < 300000) { // 5分以内
+            statusElement.textContent = 'AWAY';
+            statusElement.className = 'connection-status status-unknown';
+        } else {
             statusElement.textContent = 'OFFLINE';
             statusElement.className = 'connection-status status-offline';
-        } else if (data.timestamp) {
-            const timeDiff = Date.now() - data.timestamp;
-            if (timeDiff < 60000) {
-                statusElement.textContent = 'ONLINE';
-                statusElement.className = 'connection-status status-online';
-            } else if (timeDiff < 300000) {
-                statusElement.textContent = 'AWAY';
-                statusElement.className = 'connection-status status-unknown';
-            } else {
-                statusElement.textContent = 'OFFLINE';
-                statusElement.className = 'connection-status status-offline';
-            }
         }
     } else {
-        // presence データが無い = 端末未起動/切断扱い
-        statusElement.textContent = 'OFFLINE';
-        statusElement.className = 'connection-status status-offline';
+        statusElement.textContent = '---';
+        statusElement.className = 'connection-status status-unknown';
     }
     
     // 最終更新時刻を更新

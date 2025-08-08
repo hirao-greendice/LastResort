@@ -954,7 +954,7 @@ function doubleTapResetMonitorWithNoise() {
         updateNoiseResetButtonReadyState(true);
         
         // 通知を表示
-        showNotification('ノイズ画面リセット準備完了\nもう一度タップで実行', 'info');
+        showNotification('リセット画面ノイズ有 準備完了\nもう一度タップで実行', 'info');
         
         // 5秒後に準備状態をクリア
         doubleTapState.timeouts[stateKey] = setTimeout(() => {

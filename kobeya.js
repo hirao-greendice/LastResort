@@ -1085,11 +1085,6 @@ function setupConnectionMonitoring() {
     // 自分の接続状況を報告
     reportPresence();
     
-    // 定期的に接続状況を報告（30秒ごと）
-    setInterval(() => {
-        reportPresence();
-    }, 30000);
-    
     // 他の端末の接続状況を監視
     monitorOtherConnections();
     

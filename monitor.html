@@ -15,7 +15,7 @@
         
         <div class="terminal-content">
             <div class="message-area" id="messageArea">
-                <div class="prompt">COMMAND&gt;</div>
+                <div class="prompt">DEFENSE&gt;</div>
                 <div class="message-container" id="messageContainer">
                     <div class="message-line">COMMAND System Initializing...</div>
                 </div>
@@ -125,7 +125,7 @@
             const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
                 console.log('Firestore connection test successful');
                 const statusElement = document.querySelector('.terminal-status');
-                statusElement.textContent = 'STATUS: ACTIVE - Defense Network Online ✓';
+                statusElement.textContent = 'STATUS: ACTIVE - Command Network Online ✓';
                 window.useFirestore = true;
                 setTimeout(() => {
                     window.initGame();

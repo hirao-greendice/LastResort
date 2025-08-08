@@ -108,6 +108,10 @@ class MysteryMonitor {
         
         // エラー画像要素
         this.errorImage = document.getElementById('errorImage');
+        // エラー画像の遅延非表示タイマー
+        this.hideErrorImageTimer = null;
+        // 待機状態でノイズ画像を保持するフラグ
+        this.keepErrorImageOnWaiting = false;
         this.setupErrorImageHandlers();
         
         // 音声要素
@@ -726,7 +730,14 @@ class MysteryMonitor {
                 const data = snapshot.data();
                 if (data.action === 'reset') {
                     // リセット処理
+                    this.keepErrorImageOnWaiting = false;
                     this.resetMonitor();
+                } else if (data.action === 'reset_with_noise') {
+                    // ノイズ画像を表示して待機画面へ
+                    this.keepErrorImageOnWaiting = true;
+                    this.resetMonitor();
+                    // 待機メッセージ表示後にノイズ画像を出し続ける
+                    this.showErrorImage();
                 } else {
                     this.currentScenario = data;
                     console.log('Starting scenario:', this.currentScenario);
@@ -751,7 +762,14 @@ class MysteryMonitor {
             if (data) {
                 if (data.action === 'reset') {
                     // リセット処理
+                    this.keepErrorImageOnWaiting = false;
                     this.resetMonitor();
+                } else if (data.action === 'reset_with_noise') {
+                    // ノイズ画像を表示して待機画面へ
+                    this.keepErrorImageOnWaiting = true;
+                    this.resetMonitor();
+                    // 待機メッセージ表示後にノイズ画像を出し続ける
+                    this.showErrorImage();
                 } else {
                     this.currentScenario = data;
                     console.log('Starting scenario:', this.currentScenario);
@@ -786,8 +804,10 @@ class MysteryMonitor {
         // 全ての音声を停止
         this.stopAllAudio();
         
-        // エラー画像を非表示
-        this.hideErrorImage();
+        // エラー画像の扱い
+        if (!this.keepErrorImageOnWaiting) {
+            this.hideErrorImage();
+        }
         
         this.showWaitingMessage();
     }
@@ -1031,8 +1051,10 @@ class MysteryMonitor {
         this.currentInput = '';
         this.updateInputDisplay();
         
-        // エラー画像を非表示（待機状態時）
-        this.hideErrorImage();
+        // リセット起因でノイズ画像を保持したい場合は消さない
+        if (!this.keepErrorImageOnWaiting) {
+            this.hideErrorImage();
+        }
         
         const message = 'コマンドリルを使用するには4文字のコマンドを入力してください\n分からない場合は攻撃先を読み込ませてください';
         this.addMessage(message);

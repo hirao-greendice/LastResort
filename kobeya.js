@@ -15,6 +15,14 @@ let pendingScenarioId = null;
 let pendingResetAction = false;
 let pendingWindowChangeAction = false;
 
+// 二回タップ管理用変数
+let doubleTapState = {
+    scenario: null,    // 準備中のシナリオID
+    reset: false,      // リセットボタンの準備状態
+    window: false,     // 窓変化ボタンの準備状態
+    timeouts: {}       // 各ボタンのタイムアウト管理
+};
+
 // デフォルトのシナリオデータ
 const defaultScenarios = {
     1: {
@@ -202,7 +210,91 @@ function loadScenariosFromDatabase() {
     });
 }
 
-// 確認ダイアログを表示してシナリオ選択
+// 二回タップでシナリオ選択
+function doubleTapSelectScenario(scenarioId) {
+    console.log('Double tap scenario selection:', scenarioId);
+    
+    if (!scenarios[scenarioId]) {
+        console.error('Invalid scenario ID:', scenarioId);
+        showNotification('無効なシナリオです', 'error');
+        return;
+    }
+    
+    // 一回目のタップかどうか確認
+    if (doubleTapState.scenario !== scenarioId) {
+        // 一回目のタップ - 準備状態に設定
+        console.log('First tap for scenario:', scenarioId);
+        
+        // 他のシナリオの準備状態をクリア
+        clearScenarioReadyState();
+        clearResetReadyState();
+        
+        // 準備状態を設定
+        doubleTapState.scenario = scenarioId;
+        
+        // ボタンの表示を更新（準備状態を示す）
+        updateScenarioButtonReadyState(scenarioId, true);
+        
+        // 通知を表示
+        const scenario = scenarios[scenarioId];
+        showNotification(`シナリオ ${scenarioId}「${scenario.target}」準備完了\nもう一度タップで実行`, 'info');
+        
+        // 5秒後に準備状態をクリア
+        doubleTapState.timeouts[`scenario_${scenarioId}`] = setTimeout(() => {
+            clearScenarioReadyState();
+        }, 5000);
+        
+    } else {
+        // 二回目のタップ - 実行
+        console.log('Second tap for scenario:', scenarioId, '- executing');
+        
+        // 準備状態をクリア
+        clearScenarioReadyState();
+        
+        // シナリオを実行
+        selectScenario(scenarioId);
+    }
+}
+
+// シナリオボタンの準備状態をクリア
+function clearScenarioReadyState() {
+    if (doubleTapState.scenario !== null) {
+        // タイムアウトをクリア
+        const timeoutKey = `scenario_${doubleTapState.scenario}`;
+        if (doubleTapState.timeouts[timeoutKey]) {
+            clearTimeout(doubleTapState.timeouts[timeoutKey]);
+            delete doubleTapState.timeouts[timeoutKey];
+        }
+        
+        // ボタンの表示を通常状態に戻す
+        updateScenarioButtonReadyState(doubleTapState.scenario, false);
+        
+        // 準備状態をクリア
+        doubleTapState.scenario = null;
+    }
+}
+
+// シナリオボタンの準備状態表示を更新
+function updateScenarioButtonReadyState(scenarioId, isReady) {
+    const buttons = document.querySelectorAll('.scenario-button');
+    const button = buttons[scenarioId - 1]; // シナリオIDは1から始まる
+    
+    if (button) {
+        if (isReady) {
+            button.style.backgroundColor = '#ffff00';
+            button.style.color = '#000000';
+            button.style.transform = 'scale(1.05)';
+            button.style.boxShadow = '0 0 20px #ffff00';
+        } else {
+            button.style.backgroundColor = '';
+            button.style.color = '';
+            button.style.transform = '';
+            button.style.boxShadow = '';
+        }
+    }
+}
+
+// 確認ダイアログを表示してシナリオ選択（旧関数 - 後方互換性のため残す）
 function confirmSelectScenario(scenarioId) {
     console.log('Confirming scenario selection:', scenarioId);
     
@@ -408,7 +500,92 @@ function updateImageDisplayInFirebase(enabled) {
     }
 }
 
-// 窓変化確認ダイアログを表示
+// 二回タップで窓変化切り替え
+function doubleTapToggleWindowChange() {
+    console.log('Double tap window change toggle');
+    
+    // 一回目のタップかどうか確認
+    if (!doubleTapState.window) {
+        // 一回目のタップ - 準備状態に設定
+        console.log('First tap for window change');
+        
+        // 他の準備状態をクリア
+        clearAllReadyStates();
+        
+        // 準備状態を設定
+        doubleTapState.window = true;
+        
+        // ボタンの表示を更新（準備状態を示す）
+        updateWindowButtonReadyState(true);
+        
+        // 現在の状態に応じてメッセージを設定
+        const currentState = isWindowChangeEnabled ? 'OFF' : 'ON';
+        const actionMessage = isWindowChangeEnabled ? '無効' : '有効';
+        
+        // 通知を表示
+        showNotification(`窓変化${actionMessage}化準備完了\nもう一度タップで実行`, 'info');
+        
+        // 5秒後に準備状態をクリア
+        doubleTapState.timeouts.window = setTimeout(() => {
+            clearWindowReadyState();
+        }, 5000);
+        
+    } else {
+        // 二回目のタップ - 実行
+        console.log('Second tap for window change - executing');
+        
+        // 準備状態をクリア
+        clearWindowReadyState();
+        
+        // 窓変化を実行
+        toggleWindowChange();
+    }
+}
+
+// 窓変化ボタンの準備状態をクリア
+function clearWindowReadyState() {
+    if (doubleTapState.window) {
+        // タイムアウトをクリア
+        if (doubleTapState.timeouts.window) {
+            clearTimeout(doubleTapState.timeouts.window);
+            delete doubleTapState.timeouts.window;
+        }
+        
+        // ボタンの表示を通常状態に戻す
+        updateWindowButtonReadyState(false);
+        
+        // 準備状態をクリア
+        doubleTapState.window = false;
+    }
+}
+
+// 窓変化ボタンの準備状態表示を更新
+function updateWindowButtonReadyState(isReady) {
+    const windowButton = document.getElementById('windowToggleBtn');
+    
+    if (windowButton) {
+        if (isReady) {
+            windowButton.style.backgroundColor = '#ffff00';
+            windowButton.style.color = '#000000';
+            windowButton.style.transform = 'scale(1.05)';
+            windowButton.style.boxShadow = '0 0 20px #ffff00';
+        } else {
+            windowButton.style.backgroundColor = '';
+            windowButton.style.color = '';
+            windowButton.style.transform = '';
+            windowButton.style.boxShadow = '';
+        }
+    }
+}
+
+// 全ての準備状態をクリア
+function clearAllReadyStates() {
+    clearScenarioReadyState();
+    clearResetReadyState();
+    // 窓変化は一回タップ動作なので準備状態をクリアしない
+}
+
+// 窓変化確認ダイアログを表示（旧関数 - 後方互換性のため残す）
 function confirmToggleWindowChange() {
     console.log('Confirming window change toggle');
     
@@ -586,7 +763,81 @@ function updateDoctorVideoInFirebase(enabled) {
     }
 }
 
-// リセット確認ダイアログを表示
+// 二回タップでリセット
+function doubleTapResetMonitor() {
+    console.log('Double tap reset monitor');
+    
+    // 一回目のタップかどうか確認
+    if (!doubleTapState.reset) {
+        // 一回目のタップ - 準備状態に設定
+        console.log('First tap for reset');
+        
+        // 他の準備状態をクリア（窓変化以外）
+        clearScenarioReadyState();
+        
+        // 準備状態を設定
+        doubleTapState.reset = true;
+        
+        // ボタンの表示を更新（準備状態を示す）
+        updateResetButtonReadyState(true);
+        
+        // 通知を表示
+        showNotification('画面リセット準備完了\nもう一度タップで実行', 'info');
+        
+        // 5秒後に準備状態をクリア
+        doubleTapState.timeouts.reset = setTimeout(() => {
+            clearResetReadyState();
+        }, 5000);
+        
+    } else {
+        // 二回目のタップ - 実行
+        console.log('Second tap for reset - executing');
+        
+        // 準備状態をクリア
+        clearResetReadyState();
+        
+        // リセットを実行
+        resetMonitor();
+    }
+}
+
+// リセットボタンの準備状態をクリア
+function clearResetReadyState() {
+    if (doubleTapState.reset) {
+        // タイムアウトをクリア
+        if (doubleTapState.timeouts.reset) {
+            clearTimeout(doubleTapState.timeouts.reset);
+            delete doubleTapState.timeouts.reset;
+        }
+        
+        // ボタンの表示を通常状態に戻す
+        updateResetButtonReadyState(false);
+        
+        // 準備状態をクリア
+        doubleTapState.reset = false;
+    }
+}
+
+// リセットボタンの準備状態表示を更新
+function updateResetButtonReadyState(isReady) {
+    const resetButton = document.querySelector('.reset-button');
+    
+    if (resetButton) {
+        if (isReady) {
+            resetButton.style.backgroundColor = '#ffff00';
+            resetButton.style.color = '#000000';
+            resetButton.style.transform = 'scale(1.05)';
+            resetButton.style.boxShadow = '0 0 20px #ffff00';
+        } else {
+            resetButton.style.backgroundColor = '';
+            resetButton.style.color = '';
+            resetButton.style.transform = '';
+            resetButton.style.boxShadow = '';
+        }
+    }
+}
+
+// リセット確認ダイアログを表示（旧関数 - 後方互換性のため残す）
 function confirmResetMonitor() {
     console.log('Confirming monitor reset');
     
@@ -654,6 +905,138 @@ function resetMonitor() {
     } catch (error) {
         console.error('Error in resetMonitor:', error);
         showNotification('リセット処理でエラーが発生しました', 'error');
+    }
+}
+
+// 二回タップでノイズ画像表示リセット
+function doubleTapResetMonitorWithNoise() {
+    console.log('Double tap noise reset monitor');
+    
+    // 一回目のタップかどうか確認
+    const stateKey = 'noiseReset';
+    if (!doubleTapState[stateKey]) {
+        // 一回目のタップ - 準備状態に設定
+        console.log('First tap for noise reset');
+        
+        // 他の準備状態をクリア（窓変化以外）
+        clearScenarioReadyState();
+        clearResetReadyState();
+        
+        // 準備状態を設定
+        doubleTapState[stateKey] = true;
+        
+        // ボタンの表示を更新（準備状態を示す）
+        updateNoiseResetButtonReadyState(true);
+        
+        // 通知を表示
+        showNotification('ノイズ画面リセット準備完了\nもう一度タップで実行', 'info');
+        
+        // 5秒後に準備状態をクリア
+        doubleTapState.timeouts[stateKey] = setTimeout(() => {
+            clearNoiseResetReadyState();
+        }, 5000);
+        
+    } else {
+        // 二回目のタップ - 実行
+        console.log('Second tap for noise reset - executing');
+        
+        // 準備状態をクリア
+        clearNoiseResetReadyState();
+        
+        // ノイズ画像表示リセットを実行
+        resetMonitorWithNoise();
+    }
+}
+
+// ノイズリセットボタンの準備状態をクリア
+function clearNoiseResetReadyState() {
+    const stateKey = 'noiseReset';
+    if (doubleTapState[stateKey]) {
+        // タイムアウトをクリア
+        if (doubleTapState.timeouts[stateKey]) {
+            clearTimeout(doubleTapState.timeouts[stateKey]);
+            delete doubleTapState.timeouts[stateKey];
+        }
+        
+        // ボタンの表示を通常状態に戻す
+        updateNoiseResetButtonReadyState(false);
+        
+        // 準備状態をクリア
+        doubleTapState[stateKey] = false;
+    }
+}
+
+// ノイズリセットボタンの準備状態表示を更新
+function updateNoiseResetButtonReadyState(isReady) {
+    const noiseResetButton = document.querySelector('.noise-reset-button');
+    
+    if (noiseResetButton) {
+        if (isReady) {
+            noiseResetButton.style.backgroundColor = '#ffff00';
+            noiseResetButton.style.color = '#000000';
+            noiseResetButton.style.transform = 'scale(1.05)';
+            noiseResetButton.style.boxShadow = '0 0 20px #ffff00';
+        } else {
+            noiseResetButton.style.backgroundColor = '';
+            noiseResetButton.style.color = '';
+            noiseResetButton.style.transform = '';
+            noiseResetButton.style.boxShadow = '';
+        }
+    }
+}
+
+// ノイズ画像表示リセット機能
+function resetMonitorWithNoise() {
+    console.log('Resetting monitor with noise...');
+    
+    if (!window.firestore && !window.database) {
+        console.error('Firebase not initialized');
+        showNotification('Firebase未初期化', 'error');
+        return;
+    }
+ 
+    const resetData = {
+        action: 'reset_with_noise',
+        timestamp: Date.now()
+    };
+ 
+    try {
+        if (window.useFirestore) {
+            // Firestore使用
+            const currentScenarioRef = window.firestoreDoc(window.firestore, 'gameData', 'currentScenario');
+            window.firestoreSetDoc(currentScenarioRef, resetData)
+                .then(() => {
+                    console.log('Monitor noise reset signal sent via Firestore');
+                    showNotification('モニターをノイズ画像付きでリセットしました', 'success');
+                    
+                    // 現在選択されているシナリオの表示を更新
+                    currentScenario = null;
+                    updateActiveButton();
+                })
+                .catch((error) => {
+                    console.error('Error resetting monitor with noise via Firestore:', error);
+                    showNotification('ノイズリセット失敗: ' + error.message, 'error');
+                });
+        } else {
+            // Realtime Database使用
+            const currentScenarioRef = window.dbRef(window.database, 'currentScenario');
+            window.dbSet(currentScenarioRef, resetData)
+                .then(() => {
+                    console.log('Monitor noise reset signal sent via Database');
+                    showNotification('モニターをノイズ画像付きでリセットしました', 'success');
+                    
+                    // 現在選択されているシナリオの表示を更新
+                    currentScenario = null;
+                    updateActiveButton();
+                })
+                .catch((error) => {
+                    console.error('Error resetting monitor with noise via Database:', error);
+                    showNotification('ノイズリセット失敗: ' + error.message, 'error');
+                });
+        }
+    } catch (error) {
+        console.error('Error in resetMonitorWithNoise:', error);
+        showNotification('ノイズリセット処理でエラーが発生しました', 'error');
     }
 }
 

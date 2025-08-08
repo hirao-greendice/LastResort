@@ -150,6 +150,30 @@
             background: #00dd00;
         }
         
+        .noise-reset-button {
+            position: fixed;
+            bottom: 120px;
+            right: 30px;
+            width: 120px;
+            height: 80px;
+            background: #aa6600;
+            color: #ffffff;
+            border: none;
+            font-family: 'Courier Prime', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .noise-reset-button:hover {
+            background: #dd8800;
+        }
+        
         .back-button {
             position: fixed;
             top: 30px;
@@ -427,6 +451,14 @@
                 font-size: 16px;
             }
             
+            .noise-reset-button {
+                bottom: 90px;
+                right: 20px;
+                width: 100px;
+                height: 60px;
+                font-size: 16px;
+            }
+            
             .fullscreen-button {
                 bottom: 20px;
                 left: 20px;
@@ -469,7 +501,7 @@
             ノイズ<br>OFF
         </button>
         
-        <button class="special-button window-button off" id="windowToggleBtn" onclick="confirmToggleWindowChange()">
+        <button class="special-button window-button off" id="windowToggleBtn" onclick="toggleWindowChange()">
             窓変化<br>OFF
         </button>
         
@@ -479,45 +511,49 @@
     </div>
     
     <div class="scenario-buttons">
-        <button class="scenario-button" onclick="confirmSelectScenario(1)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(1)">
             <div class="scenario-name">アロハ</div>
             <div class="scenario-command">LAND</div>
             <div class="scenario-key">A</div>
         </button>
         
-        <button class="scenario-button" onclick="confirmSelectScenario(2)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(2)">
             <div class="scenario-name">クイーン</div>
             <div class="scenario-command">FLAG</div>
             <div class="scenario-key">Q</div>
         </button>
         
-        <button class="scenario-button" onclick="confirmSelectScenario(3)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(3)">
             <div class="scenario-name">ストリート</div>
             <div class="scenario-command">EDIT</div>
             <div class="scenario-key">S</div>
         </button>
         
-        <button class="scenario-button" onclick="confirmSelectScenario(4)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(4)">
             <div class="scenario-name">ゾンビ１</div>
             <div class="scenario-command">UNIT</div>
             <div class="scenario-key">Z</div>
         </button>
         
-        <button class="scenario-button" onclick="confirmSelectScenario(5)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(5)">
             <div class="scenario-name">ゾンビ２</div>
             <div class="scenario-command">VIEW</div>
             <div class="scenario-key">Z</div>
         </button>
         
-        <button class="scenario-button" onclick="confirmSelectScenario(6)">
+        <button class="scenario-button" onclick="doubleTapSelectScenario(6)">
             <div class="scenario-name">クリア</div>
             <div class="scenario-command">LIVE</div>
             <div class="scenario-key">U・ENTER</div>
         </button>
     </div>
     
-    <button class="reset-button" onclick="confirmResetMonitor()">
+    <button class="reset-button" onclick="doubleTapResetMonitor()">
         画面<br>リセット
+    </button>
+    
+    <button class="noise-reset-button" onclick="doubleTapResetMonitorWithNoise()">
+        ノイズ画面<br>リセット
     </button>
     
     <button class="fullscreen-button" onclick="toggleFullscreen()">

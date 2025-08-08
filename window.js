@@ -14,12 +14,14 @@ class WindowControl {
         this.currentTime = 0;
         this.playbackRate = 1;
         this.animationFrame = null;
+        this.isSeekingBackward = false;
         
         // P키용 동画制御プロパティ
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
         this.currentTimeP = 0;
         this.animationFrameP = null;
+        this.isSeekingBackwardP = false;
         
         // 現在アクティブな動画を追跡
         this.activeVideo = 'enter'; // 'enter' または 'p'
@@ -235,45 +237,77 @@ class WindowControl {
         this.windowVideoP.autoplay = false;
         this.windowVideoP.loop = false;
         
-        // ENTERキー動画用の逆再生制御（最適化版）
+        // ENTERキー動画用の逆再生制御（seek完了待ち方式）
         this.updateVideoTime = () => {
-            if (this.isPlayingBackward && this.currentTime > 0) {
-                // フレームレートを30FPSに制限してパフォーマンスを向上
-                const deltaTime = (1/30) * this.settings.playbackSpeed;
-                this.currentTime -= deltaTime;
-                
-                if (this.currentTime < 0) {
-                    this.currentTime = 0;
-                    this.windowVideo.currentTime = 0;
-                    this.stopVideoPlayback();
-                } else {
-                    this.windowVideo.currentTime = this.currentTime;
-                    // setTimeoutを使用してより安定した逆再生を実現
+            if (!this.isPlayingBackward || this.currentTime <= 0) return;
+            if (this.isSeekingBackward) return;
+
+            // 実際の位置を取得（ズレ吸収）
+            if (typeof this.windowVideo.currentTime === 'number') {
+                this.currentTime = this.windowVideo.currentTime;
+            }
+
+            this.isSeekingBackward = true;
+            const step = (1/30) * this.settings.playbackSpeed;
+            const targetTime = Math.max(0, this.currentTime - step);
+
+            const handleSeeked = () => {
+                this.windowVideo.removeEventListener('seeked', handleSeeked);
+                this.currentTime = this.windowVideo.currentTime;
+                this.isSeekingBackward = false;
+
+                // 再生方向が切り替わっていたら何もしない
+                if (!this.isPlayingBackward) {
+                    return;
+                }
+
+                if (this.currentTime > 0) {
                     this.animationFrame = setTimeout(() => {
                         requestAnimationFrame(this.updateVideoTime);
-                    }, 1000/30); // 30FPS
+                    }, 1000/30);
+                } else {
+                    this.stopVideoPlayback();
                 }
-            }
+            };
+
+            this.windowVideo.addEventListener('seeked', handleSeeked, { once: true });
+            this.windowVideo.currentTime = targetTime;
         };
         
-        // Pキー動画用の逆再生制御（最適化版）
+        // Pキー動画用の逆再生制御（seek完了待ち方式）
         this.updateVideoTimeP = () => {
-            if (this.isPlayingBackwardP && this.currentTimeP > 0) {
-                // フレームレートを30FPSに制限してパフォーマンスを向上
-                const deltaTime = (1/30) * this.settings.playbackSpeed;
-                this.currentTimeP -= deltaTime; // 재생속도에 응じて 역재생
-                if (this.currentTimeP < 0) {
-                    this.currentTimeP = 0;
-                    this.windowVideoP.currentTime = 0;
-                    this.stopVideoPlaybackP();
-                } else {
-                    this.windowVideoP.currentTime = this.currentTimeP;
-                    // setTimeoutを使用してより安定した逆再生を実現
+            if (!this.isPlayingBackwardP || this.currentTimeP <= 0) return;
+            if (this.isSeekingBackwardP) return;
+
+            if (typeof this.windowVideoP.currentTime === 'number') {
+                this.currentTimeP = this.windowVideoP.currentTime;
+            }
+
+            this.isSeekingBackwardP = true;
+            const step = (1/30) * this.settings.playbackSpeed;
+            const targetTime = Math.max(0, this.currentTimeP - step);
+
+            const handleSeeked = () => {
+                this.windowVideoP.removeEventListener('seeked', handleSeeked);
+                this.currentTimeP = this.windowVideoP.currentTime;
+                this.isSeekingBackwardP = false;
+
+                // 再生方向が切り替わっていたら何もしない
+                if (!this.isPlayingBackwardP) {
+                    return;
+                }
+
+                if (this.currentTimeP > 0) {
                     this.animationFrameP = setTimeout(() => {
                         requestAnimationFrame(this.updateVideoTimeP);
-                    }, 1000/30); // 30FPS
+                    }, 1000/30);
+                } else {
+                    this.stopVideoPlaybackP();
                 }
-            }
+            };
+
+            this.windowVideoP.addEventListener('seeked', handleSeeked, { once: true });
+            this.windowVideoP.currentTime = targetTime;
         };
     }
 
@@ -456,6 +490,7 @@ class WindowControl {
         console.log('Stopping video playback');
         this.isPlayingForward = false;
         this.isPlayingBackward = false;
+        this.isSeekingBackward = false;
         
         if (this.windowVideo) {
             this.windowVideo.pause();
@@ -528,6 +563,7 @@ class WindowControl {
         console.log('Stopping video P playback');
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
+        this.isSeekingBackwardP = false;
         
         if (this.windowVideoP) {
             this.windowVideoP.pause();

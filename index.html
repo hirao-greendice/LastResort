@@ -410,7 +410,9 @@
     <div class="container">
         <div class="title">謎解き公演システム</div>
         <div class="subtitle">MYSTERY ESCAPE CONTROL PANEL</div>
-        <div id="versionDisplay" style="margin: 10px 0 20px; font-size: 14px; color: #888;"></div>
+        <div id="appVersion" style="margin: 12px 0 24px; font-size: 14px; color: #00ff00; text-shadow: 0 0 8px rgba(0,255,0,0.4);">
+            バージョン: 読み込み中...
+        </div>
         
         <div class="button-container">
             <a href="staff.html" class="system-button hidden">STAFF</a>
@@ -431,23 +433,6 @@
     <script>
         // ポップアップの制御
         document.addEventListener('DOMContentLoaded', function() {
-            // バージョン表示（sw.js の CACHE_VERSION から）
-            try {
-                // sw.js の文字列を取得して CACHE_VERSION を抽出
-                fetch('sw.js', { cache: 'no-cache' })
-                  .then(r => r.text())
-                  .then(txt => {
-                      const m = txt.match(/const\s+CACHE_VERSION\s*=\s*'([^']+)'/);
-                      const ver = m ? m[1] : 'unknown';
-                      const el = document.getElementById('versionDisplay');
-                      if (el) el.textContent = `Version: ${ver}`;
-                  })
-                  .catch(() => {
-                      const el = document.getElementById('versionDisplay');
-                      if (el) el.textContent = 'Version: unknown';
-                  });
-            } catch (_) {}
-
             const helpButton = document.getElementById('helpButton');
             const modalOverlay = document.getElementById('modalOverlay');
             const closeButton = document.getElementById('closeButton');
@@ -479,6 +464,30 @@
                     document.body.style.overflow = 'auto';
                 }
             });
+            // バージョン取得（Service Worker から）
+            (function fetchVersion(){
+                const el = document.getElementById('appVersion');
+                function setVer(v){ if(el) el.textContent = 'バージョン: ' + v; }
+                // 1) 既にSWがアクティブならメッセージで取得
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.addEventListener('message', (evt) => {
+                        if (evt.data && evt.data.type === 'VERSION' && evt.data.version) {
+                            setVer(evt.data.version);
+                        }
+                    });
+                    try { navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }); } catch(_) {}
+                }
+                // 2) 念のため、登録完了後にも取得を試みる
+                if (navigator.serviceWorker) {
+                    navigator.serviceWorker.ready.then((reg) => {
+                        setTimeout(() => {
+                            if (navigator.serviceWorker.controller) {
+                                try { navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' }); } catch(_) {}
+                            }
+                        }, 300);
+                    }).catch(() => {});
+                }
+            })();
         });
     </script>
 </body>

@@ -1131,22 +1131,23 @@ class WindowControl {
 // 窓制御初期化
 window.addEventListener('DOMContentLoaded', () => {
     new WindowControl();
-    // Presence reporting for window screen
-    function reportWindowPresence(){
+    // Presence reporting for window screen (use RTDB onDisconnect)
+    (function setupPresence(){
         if(!window.firestore && !window.database) return;
         const data={screen:'window',timestamp:Date.now(),status:'online'};
         try{
-            if(window.useFirestore){
+            if(window.database){
+                const ref=window.dbRef(window.database,'presence/window');
+                window.dbSet(ref,data).catch(e=>console.error('presence db set',e));
+                if(window.dbOnDisconnect){
+                    window.dbOnDisconnect(ref).set({screen:'window',timestamp:Date.now(),status:'offline'}).catch(e=>console.error('presence onDisconnect',e));
+                }
+            }else if(window.useFirestore){
                 const ref=window.firestoreDoc(window.firestore,'presence','window');
                 window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));
-            }else if(window.database){
-                const ref=window.dbRef(window.database,'presence/window');
-                window.dbSet(ref,data).catch(e=>console.error('presence db',e));
             }
         }catch(err){console.error('presence error',err);}
-    }
-    reportWindowPresence();
-    setInterval(reportWindowPresence,30000);
+    })();
 });
 
 // エラーハンドリング

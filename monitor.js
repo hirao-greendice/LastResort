@@ -234,19 +234,23 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
+            // Pキーの処理（常に窓制御として扱う。シナリオ6は無効）
             if (e.key === 'p' || e.key === 'P') {
-                // コマンド入力中は通常のキー入力として処理
-                if (this.gameState === 'waiting_weak') {
-                    // 通常のキー入力処理に進む（returnしない）
-                } else {
-                    // 窓制御として処理
+                e.preventDefault();
+                this.handlePPress();
+                return;
+            }
+            
+            // マッピング後のPも窓制御として扱う（常に有効。シナリオ6は無効）
+            if (this.externalKeyboardMode) {
+                const mapped = this.keyMapping[e.code];
+                if (mapped === 'P') {
                     e.preventDefault();
                     this.handlePPress();
                     return;
                 }
             }
-            
+
             // キーボードが切断されている場合は入力を無効化
             if (!this.keyboardConnected) {
                 console.log('Keyboard input blocked - disconnected');
@@ -325,19 +329,23 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
+            // Pキーの処理（常に窓制御として扱う。シナリオ6は無効）
             if (e.key === 'p' || e.key === 'P') {
-                // コマンド入力中は通常のキー入力として処理
-                if (this.gameState === 'waiting_weak') {
-                    // 通常のキー入力処理に進む（returnしない）
-                } else {
-                    // 窓制御として処理
+                e.preventDefault();
+                this.handlePRelease();
+                return;
+            }
+            
+            // マッピング後のPも窓制御として扱う（常に有効。シナリオ6は無効）
+            if (this.externalKeyboardMode) {
+                const mapped = this.keyMapping[e.code];
+                if (mapped === 'P') {
                     e.preventDefault();
                     this.handlePRelease();
                     return;
                 }
             }
-            
+
             // キーボードが切断されている場合は入力を無効化
             if (!this.keyboardConnected) {
                 console.log('Keyboard input blocked - disconnected');
@@ -926,10 +934,6 @@ class MysteryMonitor {
     }
 
     handlePPress() {
-        // シナリオ6ではPキーを無効化
-        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-            return;
-        }
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, true);
@@ -939,10 +943,6 @@ class MysteryMonitor {
     }
 
     handlePRelease() {
-        // シナリオ6ではPキーを無効化
-        if (this.currentScenario && parseInt(this.currentScenario.id) === 6) {
-            return;
-        }
         console.log('P released - window control enabled:', this.windowControlEnabled);
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(false, false);

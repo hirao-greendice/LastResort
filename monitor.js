@@ -121,6 +121,8 @@ class MysteryMonitor {
         this.noppoToieAudio = document.getElementById('noppoToieAudio');
         this.noppoKakuseiAudio = document.getElementById('noppoKakuseiAudio');
         this.defenseSoundPlayed = false; // 防衛音声再生済みフラグ
+        // 途切れ対策用フラグ
+        this.doriruLoopPrestarted = false;
         this.setupAudioHandlers();
         
         // 画像表示制御（シナリオ2用）
@@ -1378,11 +1380,31 @@ class MysteryMonitor {
     setupAudioHandlers() {
         
         if (this.doriruAudio) {
-            // DORIRU.mp3が終了したらDORIRULOOP.mp3を開始
+            // 初期音量
+            this.doriruAudio.volume = 1;
+            // DORIRU.mp3の終わり0.25秒前にループ音を先行起動（音量は変更しない）
+            this.doriruAudio.addEventListener('timeupdate', () => {
+                if (!this.doriruLoopAudio) return;
+                // duration 取得が未定義のタイミングを回避
+                if (!isFinite(this.doriruAudio.duration) || this.doriruAudio.duration === 0) return;
+                const remaining = this.doriruAudio.duration - this.doriruAudio.currentTime;
+                if (remaining <= 0.25 && !this.doriruLoopPrestarted) {
+                    this.doriruLoopPrestarted = true;
+                    try {
+                        // 先頭から再生（ファイル頭に無音がある場合でも先にバッファを温められる）
+                        this.doriruLoopAudio.currentTime = 0;
+                        this.doriruLoopAudio.play().catch(e => console.error('DORIRU LOOP prestart error:', e));
+                    } catch (e) {
+                        console.error('DORIRU LOOP prestart exception:', e);
+                    }
+                }
+            });
+            // 念のため ended でも開始（timeupdate が走らないブラウザ対策）
             this.doriruAudio.addEventListener('ended', () => {
-                console.log('DORIRU ended, starting DORIRULOOP');
-                if (this.doriruLoopAudio) {
+                console.log('DORIRU ended, ensuring DORIRULOOP is playing');
+                if (this.doriruLoopAudio && this.doriruLoopAudio.paused) {
                     this.doriruLoopAudio.currentTime = 0;
+                    this.doriruLoopAudio.volume = 1;
                     this.doriruLoopAudio.play().catch(e => console.error('DORIRU LOOP playback error:', e));
                 }
             });
@@ -1393,6 +1415,7 @@ class MysteryMonitor {
         }
         
         if (this.doriruLoopAudio) {
+            this.doriruLoopAudio.volume = 1;
             // DORIRULOOP.mp3のシームレスループ制御
             this.doriruLoopAudio.addEventListener('timeupdate', () => {
                 // 音声の終わり0.1秒前で先頭に戻る（シームレスループ）
@@ -1417,6 +1440,7 @@ class MysteryMonitor {
         }
         
         if (this.noppoAudio) {
+            // ボリュームは変更しない
             this.noppoAudio.addEventListener('error', (e) => {
                 console.error('NOPPO audio failed to load:', e);
             });
@@ -1428,6 +1452,7 @@ class MysteryMonitor {
         }
         
         if (this.noppoToieAudio) {
+            // ボリュームは変更しない
             this.noppoToieAudio.addEventListener('error', (e) => {
                 console.error('NOPPO TOIE audio failed to load:', e);
             });
@@ -1439,6 +1464,7 @@ class MysteryMonitor {
         }
         
         if (this.noppoKakuseiAudio) {
+            // ボリュームは変更しない
             this.noppoKakuseiAudio.addEventListener('error', (e) => {
                 console.error('NOPPO KAKUSEI audio failed to load:', e);
             });
@@ -1457,42 +1483,45 @@ class MysteryMonitor {
         this.stopAllAudio();
         
         if (this.doriruAudio) {
+            this.doriruLoopPrestarted = false; // 次の先行開始を許可
             this.doriruAudio.currentTime = 0;
+            this.doriruAudio.volume = 1;
             this.doriruAudio.play().catch(e => console.error('DORIRU playback error:', e));
             // DORIRU終了後、自動でDORIRULOOPが開始される（endedイベントで処理）
         }
     }
     
-    // 長押し時の音声を再生するメソッド
+    // 長押し時の音声を再生するメソッド（ループ音からのクロスフェードあり）
     playLongPressSound() {
         if (!this.currentScenario) return;
         
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Long press completed for scenario:', scenarioId);
         
-            // 長押し完了時に即座に防衛音声を再生
-    console.log('Playing defense sound immediately for scenario:', scenarioId);
-    if ([1, 2].includes(scenarioId)) {
+        // 長押し完了時に即座に防衛音声を再生
+        console.log('Playing defense sound immediately for scenario:', scenarioId);
+        if ([1, 2].includes(scenarioId)) {
         // シナリオ1,2: NOPPO.mp3を再生
         if (this.noppoAudio) {
-            this.noppoAudio.currentTime = 0;
-            this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
+                // ループ音は止めずに先行再生したまま、新音声を即時フル音量で開始
+                this.noppoAudio.currentTime = 0;
+                this.noppoAudio.play().catch(e => console.error('NOPPO playback error:', e));
         }
     } else if ([3, 5].includes(scenarioId)) {
         // シナリオ3,5: NOPPOTOIE.mp3を再生
         if (this.noppoToieAudio) {
-            this.noppoToieAudio.currentTime = 0;
-            this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
+                this.noppoToieAudio.currentTime = 0;
+                this.noppoToieAudio.play().catch(e => console.error('NOPPO TOIE playback error:', e));
         }
     } else if (scenarioId === 6) {
         // シナリオ6: NOPPOkakusei.mp3を再生
         if (this.noppoKakuseiAudio) {
-            this.noppoKakuseiAudio.currentTime = 0;
-            this.noppoKakuseiAudio.play().catch(e => console.error('NOPPO KAKUSEI playback error:', e));
+                this.noppoKakuseiAudio.currentTime = 0;
+                this.noppoKakuseiAudio.play().catch(e => console.error('NOPPO KAKUSEI playback error:', e));
         }
     }
         
-        // 長押し完了から3秒後にDORIRULOOPを停止
+        // 長押し完了から3秒後にDORIRULOOPを確実に停止（保険）
         setTimeout(() => {
             if (this.doriruLoopAudio) {
                 this.doriruLoopAudio.pause();
@@ -1509,6 +1538,13 @@ class MysteryMonitor {
         const scenarioId = parseInt(this.currentScenario.id);
         console.log('Defense sound ended for scenario:', scenarioId);
         
+        // 念のためループ音を停止（フェード中断の保険）
+        if (this.doriruLoopAudio && !this.doriruLoopAudio.paused) {
+            this.doriruLoopAudio.pause();
+            this.doriruLoopAudio.currentTime = 0;
+            this.doriruLoopAudio.volume = 1;
+        }
+
         // シナリオ1,2,3,5,6の場合のみシステムメッセージを表示
         if ([1, 2, 3, 5, 6].includes(scenarioId)) {
             this.showSystemCompleteMessage();
@@ -1589,13 +1625,18 @@ class MysteryMonitor {
     stopAllAudio() {
         [this.doriruAudio, this.doriruLoopAudio, this.noppoAudio, this.noppoToieAudio, this.noppoKakuseiAudio].forEach(audio => {
             if (audio) {
-                audio.pause();
-                audio.currentTime = 0;
+                try {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 1;
+                } catch (_) {}
             }
         });
         // フラグもリセット
         this.defenseSoundPlayed = false;
     }
+
+    // フェード系ユーティリティは不要（音量は変更しない方針）
 
     // 窓画面での動画再生を開始するメソッド
     triggerWindowVideoPlayback() {

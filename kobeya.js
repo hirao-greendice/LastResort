@@ -248,6 +248,14 @@ function doubleTapSelectScenario(scenarioId) {
         // 二回目のタップ - 実行
         console.log('Second tap for scenario:', scenarioId, '- executing');
         
+        // 二回目タップ時の視覚: 薄い赤
+        const buttons = document.querySelectorAll('.scenario-button');
+        const button = buttons[scenarioId - 1];
+        if (button) {
+            button.style.backgroundColor = '#ffb3b3';
+            button.style.boxShadow = '0 0 20px #ffb3b3';
+        }
+
         // 準備状態をクリア
         clearScenarioReadyState();
         
@@ -281,10 +289,11 @@ function updateScenarioButtonReadyState(scenarioId, isReady) {
     
     if (button) {
         if (isReady) {
-            button.style.backgroundColor = '#ffff00';
+            // 一回目タップ: 薄い黄色
+            button.style.backgroundColor = '#fff3b0';
             button.style.color = '#000000';
             button.style.transform = 'scale(1.05)';
-            button.style.boxShadow = '0 0 20px #ffff00';
+            button.style.boxShadow = '0 0 20px #fff3b0';
         } else {
             button.style.backgroundColor = '';
             button.style.color = '';
@@ -534,6 +543,13 @@ function doubleTapToggleWindowChange() {
         // 二回目のタップ - 実行
         console.log('Second tap for window change - executing');
         
+        // 二回目タップ時の視覚: 薄い赤
+        const windowButton = document.getElementById('windowToggleBtn');
+        if (windowButton) {
+            windowButton.style.backgroundColor = '#ffb3b3';
+            windowButton.style.boxShadow = '0 0 20px #ffb3b3';
+        }
+
         // 準備状態をクリア
         clearWindowReadyState();
         
@@ -565,10 +581,11 @@ function updateWindowButtonReadyState(isReady) {
     
     if (windowButton) {
         if (isReady) {
-            windowButton.style.backgroundColor = '#ffff00';
+            // 一回目タップ: 薄い黄色
+            windowButton.style.backgroundColor = '#fff3b0';
             windowButton.style.color = '#000000';
             windowButton.style.transform = 'scale(1.05)';
-            windowButton.style.boxShadow = '0 0 20px #ffff00';
+            windowButton.style.boxShadow = '0 0 20px #fff3b0';
         } else {
             windowButton.style.backgroundColor = '';
             windowButton.style.color = '';
@@ -793,6 +810,13 @@ function doubleTapResetMonitor() {
         // 二回目のタップ - 実行
         console.log('Second tap for reset - executing');
         
+        // 二回目タップ時の視覚: 薄い赤
+        const resetButton = document.querySelector('.reset-button');
+        if (resetButton) {
+            resetButton.style.backgroundColor = '#ffb3b3';
+            resetButton.style.boxShadow = '0 0 20px #ffb3b3';
+        }
+
         // 準備状態をクリア
         clearResetReadyState();
         
@@ -824,10 +848,11 @@ function updateResetButtonReadyState(isReady) {
     
     if (resetButton) {
         if (isReady) {
-            resetButton.style.backgroundColor = '#ffff00';
+            // 一回目タップ: 薄い黄色
+            resetButton.style.backgroundColor = '#fff3b0';
             resetButton.style.color = '#000000';
             resetButton.style.transform = 'scale(1.05)';
-            resetButton.style.boxShadow = '0 0 20px #ffff00';
+            resetButton.style.boxShadow = '0 0 20px #fff3b0';
         } else {
             resetButton.style.backgroundColor = '';
             resetButton.style.color = '';
@@ -940,6 +965,13 @@ function doubleTapResetMonitorWithNoise() {
         // 二回目のタップ - 実行
         console.log('Second tap for noise reset - executing');
         
+        // 二回目タップ時の視覚: 薄い赤
+        const noiseResetButton = document.querySelector('.noise-reset-button');
+        if (noiseResetButton) {
+            noiseResetButton.style.backgroundColor = '#ffb3b3';
+            noiseResetButton.style.boxShadow = '0 0 20px #ffb3b3';
+        }
+
         // 準備状態をクリア
         clearNoiseResetReadyState();
         
@@ -972,10 +1004,11 @@ function updateNoiseResetButtonReadyState(isReady) {
     
     if (noiseResetButton) {
         if (isReady) {
-            noiseResetButton.style.backgroundColor = '#ffff00';
+            // 一回目タップ: 薄い黄色
+            noiseResetButton.style.backgroundColor = '#fff3b0';
             noiseResetButton.style.color = '#000000';
             noiseResetButton.style.transform = 'scale(1.05)';
-            noiseResetButton.style.boxShadow = '0 0 20px #ffff00';
+            noiseResetButton.style.boxShadow = '0 0 20px #fff3b0';
         } else {
             noiseResetButton.style.backgroundColor = '';
             noiseResetButton.style.color = '';

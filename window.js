@@ -6,6 +6,7 @@ class WindowControl {
         this.windowContent = document.getElementById('windowContent');
         this.windowFrame = document.querySelector('.window-frame');
         this.windowVideo = document.getElementById('windowVideo');
+        this.windowVideo300 = document.getElementById('windowVideo300');
         this.windowVideoP = document.getElementById('windowVideoP');
         
         // 動画制御用プロパティ（ENTERキー用）
@@ -14,14 +15,12 @@ class WindowControl {
         this.currentTime = 0;
         this.playbackRate = 1;
         this.animationFrame = null;
-        this.isSeekingBackward = false;
         
         // P키용 동画制御プロパティ
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
         this.currentTimeP = 0;
         this.animationFrameP = null;
-        this.isSeekingBackwardP = false;
         
         // 現在アクティブな動画を追跡
         this.activeVideo = 'enter'; // 'enter' または 'p'
@@ -41,6 +40,11 @@ class WindowControl {
         this.homeClickCount = 0;
         this.homeClickTimer = null;
         this.isFullscreen = false;
+        
+        // 300.mp4 再生用フラグ/タイマー
+        this.is300Playing = false;
+        this.enterLongPressTimer = null;
+        this.enterLongPressMs = 1000; // 長押し判定 1秒
         
         // 設定値のデフォルト
         this.settings = {
@@ -127,6 +131,7 @@ class WindowControl {
         this.setupHiddenButtons();
         this.setupControlPanel();
         this.setupFullscreenListener();
+        this.applyInitialFullscreenClass();
         
         // デフォルトプリセットを有効にする
         setTimeout(() => {
@@ -140,8 +145,10 @@ class WindowControl {
             this.isFullscreen = !!document.fullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                document.body.classList.remove('not-fullscreen');
             } else {
                 document.body.classList.remove('fullscreen');
+                document.body.classList.add('not-fullscreen');
             }
         });
         
@@ -150,10 +157,23 @@ class WindowControl {
             this.isFullscreen = !!document.webkitFullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
+                document.body.classList.remove('not-fullscreen');
             } else {
                 document.body.classList.remove('fullscreen');
+                document.body.classList.add('not-fullscreen');
             }
         });
+    }
+
+    applyInitialFullscreenClass() {
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+        if (isFs) {
+            document.body.classList.add('fullscreen');
+            document.body.classList.remove('not-fullscreen');
+        } else {
+            document.body.classList.remove('fullscreen');
+            document.body.classList.add('not-fullscreen');
+        }
     }
 
     loadWindowVideos() {
@@ -214,6 +234,30 @@ class WindowControl {
             
             // 動画の再生制御を設定
             this.setupVideoControls();
+
+            // 300.mp4 (ENTER長押しで前面再生)
+            if (this.windowVideo300) {
+                console.log('Window video 300 set to 300.mp4');
+                this.windowVideo300.addEventListener('loadedmetadata', () => {
+                    console.log('Window video (300) metadata loaded successfully');
+                    this.applySettings();
+                    this.updateVideoTransform();
+                });
+                this.windowVideo300.addEventListener('ended', () => {
+                    console.log('Video (300) ended');
+                    this.is300Playing = false;
+                    this.windowVideo300.style.display = 'none';
+                    this.windowVideo300.style.zIndex = '';
+                    // 100を元の表示状態に戻す（デフォルト表示）
+                    if (this.windowVideo) {
+                        this.windowVideo.style.display = 'block';
+                        this.windowVideo.style.zIndex = '';
+                    }
+                });
+                this.windowVideo300.addEventListener('error', (error) => {
+                    console.error('Failed to load 300.mp4:', error);
+                });
+            }
             
         } catch (error) {
             console.error('Error loading videos:', error);
@@ -236,78 +280,50 @@ class WindowControl {
         this.windowVideo.loop = false;
         this.windowVideoP.autoplay = false;
         this.windowVideoP.loop = false;
+        if (this.windowVideo300) {
+            this.windowVideo300.autoplay = false;
+            this.windowVideo300.loop = false;
+        }
         
-        // ENTERキー動画用の逆再生制御（seek完了待ち方式）
+        // ENTERキー動画用の逆再生制御（最適化版）
         this.updateVideoTime = () => {
-            if (!this.isPlayingBackward || this.currentTime <= 0) return;
-            if (this.isSeekingBackward) return;
-
-            // 実際の位置を取得（ズレ吸収）
-            if (typeof this.windowVideo.currentTime === 'number') {
-                this.currentTime = this.windowVideo.currentTime;
-            }
-
-            this.isSeekingBackward = true;
-            const step = (1/30) * this.settings.playbackSpeed;
-            const targetTime = Math.max(0, this.currentTime - step);
-
-            const handleSeeked = () => {
-                this.windowVideo.removeEventListener('seeked', handleSeeked);
-                this.currentTime = this.windowVideo.currentTime;
-                this.isSeekingBackward = false;
-
-                // 再生方向が切り替わっていたら何もしない
-                if (!this.isPlayingBackward) {
-                    return;
-                }
-
-                if (this.currentTime > 0) {
+            if (this.isPlayingBackward && this.currentTime > 0) {
+                // フレームレートを30FPSに制限してパフォーマンスを向上
+                const deltaTime = (1/30) * this.settings.playbackSpeed;
+                this.currentTime -= deltaTime;
+                
+                if (this.currentTime < 0) {
+                    this.currentTime = 0;
+                    this.windowVideo.currentTime = 0;
+                    this.stopVideoPlayback();
+                } else {
+                    this.windowVideo.currentTime = this.currentTime;
+                    // setTimeoutを使用してより安定した逆再生を実現
                     this.animationFrame = setTimeout(() => {
                         requestAnimationFrame(this.updateVideoTime);
-                    }, 1000/30);
-                } else {
-                    this.stopVideoPlayback();
+                    }, 1000/30); // 30FPS
                 }
-            };
-
-            this.windowVideo.addEventListener('seeked', handleSeeked, { once: true });
-            this.windowVideo.currentTime = targetTime;
+            }
         };
         
-        // Pキー動画用の逆再生制御（seek完了待ち方式）
+        // Pキー動画用の逆再生制御（最適化版）
         this.updateVideoTimeP = () => {
-            if (!this.isPlayingBackwardP || this.currentTimeP <= 0) return;
-            if (this.isSeekingBackwardP) return;
-
-            if (typeof this.windowVideoP.currentTime === 'number') {
-                this.currentTimeP = this.windowVideoP.currentTime;
-            }
-
-            this.isSeekingBackwardP = true;
-            const step = (1/30) * this.settings.playbackSpeed;
-            const targetTime = Math.max(0, this.currentTimeP - step);
-
-            const handleSeeked = () => {
-                this.windowVideoP.removeEventListener('seeked', handleSeeked);
-                this.currentTimeP = this.windowVideoP.currentTime;
-                this.isSeekingBackwardP = false;
-
-                // 再生方向が切り替わっていたら何もしない
-                if (!this.isPlayingBackwardP) {
-                    return;
-                }
-
-                if (this.currentTimeP > 0) {
+            if (this.isPlayingBackwardP && this.currentTimeP > 0) {
+                // フレームレートを30FPSに制限してパフォーマンスを向上
+                const deltaTime = (1/30) * this.settings.playbackSpeed;
+                this.currentTimeP -= deltaTime; // 재생속도에 응じて 역재생
+                if (this.currentTimeP < 0) {
+                    this.currentTimeP = 0;
+                    this.windowVideoP.currentTime = 0;
+                    this.stopVideoPlaybackP();
+                } else {
+                    this.windowVideoP.currentTime = this.currentTimeP;
+                    // setTimeoutを使用してより安定した逆再生を実現
                     this.animationFrameP = setTimeout(() => {
                         requestAnimationFrame(this.updateVideoTimeP);
-                    }, 1000/30);
-                } else {
-                    this.stopVideoPlaybackP();
+                    }, 1000/30); // 30FPS
                 }
-            };
-
-            this.windowVideoP.addEventListener('seeked', handleSeeked, { once: true });
-            this.windowVideoP.currentTime = targetTime;
+            }
         };
     }
 
@@ -386,17 +402,16 @@ class WindowControl {
         if (this.isWindowChangeEnabled) {
             // ENTERキーの処理
             if (this.isScrolling) {
-                console.log('Enter pressed - playing video forward');
-                this.lastPressedKey = 'enter'; // 最後に押されたキーを更新
-                this.playVideoForward();
-                this.showVideo('enter');
+                // ENTER長押しで300.mp4再生（1秒）
+                this.lastPressedKey = 'enter';
+                this.startEnterLongPressTimer();
             } else {
-                console.log('Enter released - playing video backward');
-                this.playVideoBackward();
+                // 離した時は未発火タイマーのみキャンセル（動画は最後まで再生）
+                this.cancelEnterLongPressTimer();
             }
             
-            // Pキーの処理
-            if (this.isPPressed) {
+        // Pキーの処理（従来どおり）
+        if (this.isPPressed) {
                 console.log('P pressed - playing video P forward');
                 this.lastPressedKey = 'p'; // 最後に押されたキーを更新
                 this.playVideoForwardP();
@@ -406,12 +421,7 @@ class WindowControl {
                 this.playVideoBackwardP();
             }
             
-            // 両方のキーが離されている場合の処理
-            if (!this.isScrolling && !this.isPPressed) {
-                // 最後に押されたキーの動画を表示
-                console.log('Both keys released - showing last pressed key video:', this.lastPressedKey);
-                this.showVideo(this.lastPressedKey);
-            }
+            // 両方のキーが離されている場合の表示は不要（300再生は独立）
         } else {
             console.log('Window control disabled - stopping all videos');
             this.stopVideoPlayback();
@@ -426,10 +436,16 @@ class WindowControl {
         if (videoType === 'enter') {
             this.windowVideo.style.display = 'block';
             this.windowVideoP.style.display = 'none';
+            if (this.windowVideo300 && !this.is300Playing) {
+                this.windowVideo300.style.display = 'none';
+            }
             this.activeVideo = 'enter';
         } else if (videoType === 'p') {
             this.windowVideo.style.display = 'none';
             this.windowVideoP.style.display = 'block';
+            if (this.windowVideo300 && !this.is300Playing) {
+                this.windowVideo300.style.display = 'none';
+            }
             this.activeVideo = 'p';
         }
         console.log('Active video switched to:', this.activeVideo);
@@ -490,7 +506,6 @@ class WindowControl {
         console.log('Stopping video playback');
         this.isPlayingForward = false;
         this.isPlayingBackward = false;
-        this.isSeekingBackward = false;
         
         if (this.windowVideo) {
             this.windowVideo.pause();
@@ -563,7 +578,6 @@ class WindowControl {
         console.log('Stopping video P playback');
         this.isPlayingForwardP = false;
         this.isPlayingBackwardP = false;
-        this.isSeekingBackwardP = false;
         
         if (this.windowVideoP) {
             this.windowVideoP.pause();
@@ -579,6 +593,45 @@ class WindowControl {
             }
             this.animationFrameP = null;
         }
+    }
+
+    // ===== 300.mp4 再生（ENTER長押しで発火） =====
+    startEnterLongPressTimer() {
+        if (this.enterLongPressTimer || this.is300Playing) return;
+        this.enterLongPressTimer = setTimeout(() => {
+            this.enterLongPressTimer = null;
+            this.start300Video();
+        }, this.enterLongPressMs);
+    }
+
+    cancelEnterLongPressTimer() {
+        if (this.enterLongPressTimer) {
+            clearTimeout(this.enterLongPressTimer);
+            this.enterLongPressTimer = null;
+        }
+    }
+
+    start300Video() {
+        if (!this.windowVideo300) return;
+        console.log('Starting 300.mp4 playback due to long press');
+
+        // 100を確実に非表示にし、300を前面に表示
+        if (this.windowVideo) {
+            this.windowVideo.style.display = 'none';
+            this.windowVideo.style.zIndex = '1';
+        }
+        this.windowVideo300.style.display = 'block';
+        this.windowVideo300.style.zIndex = '2';
+
+        // サイズ等はapplySettings/transformで同期済み
+        try {
+            this.windowVideo300.currentTime = 0;
+        } catch (e) {}
+        this.is300Playing = true;
+        this.windowVideo300.play().catch(err => {
+            console.error('Error playing 300.mp4:', err);
+            this.is300Playing = false;
+        });
     }
 
     setupHiddenButtons() {
@@ -839,6 +892,17 @@ class WindowControl {
             video.style.opacity = this.settings.imageOpacity / 100;
             video.style.transformOrigin = 'center center';
         }
+        // 300.mp4 も100.mp4と同じ設定を適用
+        const video300 = this.windowVideo300;
+        if (video300) {
+            video300.style.width = this.settings.imageWidth + '%';
+            video300.style.height = (this.settings.imageHeight * 2) + 'vh';
+            video300.style.top = this.settings.imageTop + 'px';
+            video300.style.left = this.settings.imageLeft + 'px';
+            video300.style.transitionDuration = this.settings.scrollDuration + 's';
+            video300.style.opacity = this.settings.imageOpacity / 100;
+            video300.style.transformOrigin = 'center center';
+        }
         
         // Pキー동영상 설정 적용
         const videoP = this.windowVideoP;
@@ -860,15 +924,24 @@ class WindowControl {
         // ENTERキー동영상 transform 적용
         const video = this.windowVideo;
         if (video) {
-            let transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            video.style.transform = transform;
+            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
+            const translateY = this.settings.scrollDistance;
+            video.style.transform = `${transform} translateY(${translateY}%)`;
+        }
+        // 300.mp4 も同じ transform を適用
+        const video300 = this.windowVideo300;
+        if (video300) {
+            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
+            const translateY = this.settings.scrollDistance;
+            video300.style.transform = `${transform} translateY(${translateY}%)`;
         }
         
         // Pキー동영상 transform 적용
         const videoP = this.windowVideoP;
         if (videoP) {
-            let transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            videoP.style.transform = transform;
+            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
+            const translateY = this.settings.scrollDistance;
+            videoP.style.transform = `${transform} translateY(${translateY}%)`;
         }
     }
 

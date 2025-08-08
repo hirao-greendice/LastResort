@@ -8,6 +8,7 @@ class DoctorControl {
         this.doctorMessage = document.getElementById('doctorMessage');
         this.doctorVideo = document.getElementById('doctorVideo');
         this.fadeOverlay = document.getElementById('fadeOverlay');
+        this.waitingIndicator = document.getElementById('waitingIndicator');
         
         // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
@@ -42,7 +43,9 @@ class DoctorControl {
         this.setupHiddenButtons();
         this.setupControlPanel();
         this.setupFullscreenListener();
+        this.applyInitialFullscreenClass();
         this.setupAudioUnlock();
+        this.setupOfflineTripleTap();
         this.updateStatus();
         
         // 接続状況を定期更新
@@ -124,10 +127,10 @@ class DoctorControl {
             this.isFullscreen = !!document.fullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
-                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
+                document.body.classList.remove('not-fullscreen');
             } else {
                 document.body.classList.remove('fullscreen');
-                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
+                document.body.classList.add('not-fullscreen');
             }
         });
         
@@ -136,12 +139,23 @@ class DoctorControl {
             this.isFullscreen = !!document.webkitFullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
-                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
+                document.body.classList.remove('not-fullscreen');
             } else {
                 document.body.classList.remove('fullscreen');
-                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
+                document.body.classList.add('not-fullscreen');
             }
         });
+    }
+
+    applyInitialFullscreenClass() {
+        const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+        if (isFs) {
+            document.body.classList.add('fullscreen');
+            document.body.classList.remove('not-fullscreen');
+        } else {
+            document.body.classList.remove('fullscreen');
+            document.body.classList.add('not-fullscreen');
+        }
     }
 
     setupFirebaseListener() {
@@ -235,6 +249,8 @@ class DoctorControl {
         // フェード効果をリセット
         this.resetFade();
         this.hasVideoEnded = false;
+        // 待機インジケーター非表示
+        if (this.waitingIndicator) this.waitingIndicator.style.display = 'none';
         
         if (this.doctorVideo) {
             // メッセージを非表示にして動画を表示
@@ -311,10 +327,43 @@ class DoctorControl {
         this.doctorMessage.style.fontSize = '24px';
         this.doctorMessage.style.color = '#00ff00';
         this.doctorMessage.style.textShadow = 'none';
+        // 待機インジケーター表示（待機状態が分かるように）
+        if (this.waitingIndicator) this.waitingIndicator.style.display = 'block';
         
         this.isVideoPlaying = false;
         this.videoStatus = 'waiting';
         this.updateStatus();
+    }
+
+    // ネットワーク不通時のオフライン再生用（中央3回タップ）
+    setupOfflineTripleTap() {
+        let tapCount = 0;
+        let tapTimer = null;
+        const tapArea = this.doctorContent;
+        if (!tapArea) return;
+
+        const resetTap = () => {
+            tapCount = 0;
+            if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
+        };
+
+        const onTap = () => {
+            tapCount += 1;
+            if (tapTimer) clearTimeout(tapTimer);
+            tapTimer = setTimeout(() => { resetTap(); }, 800);
+
+            if (tapCount >= 3) {
+                resetTap();
+                // オフライン再生（doctorVideoをローカルから再生）
+                // Firebase接続の有無に関わらず再生を試みる
+                this.isDoctorVideoEnabled = true; // 強制的にON扱い
+                this.showDoctorVideo();
+            }
+        };
+
+        // クリック/タップの両方に対応
+        tapArea.addEventListener('click', onTap);
+        tapArea.addEventListener('touchstart', onTap);
     }
 
     setupAudioUnlock() {

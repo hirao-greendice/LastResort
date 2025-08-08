@@ -1084,6 +1084,8 @@ function setupConnectionMonitoring() {
 
     // 自分の接続状況を報告
     reportPresence();
+    // RTDB接続状態の監視（切断/再接続を即時UI反映 & 再接続時にpresenceを再登録）
+    setupRealtimeConnectionListener();
     
     // 他の端末の接続状況を監視
     monitorOtherConnections();
@@ -1111,6 +1113,56 @@ function reportPresence() {
                 .catch(error => console.error('Error reporting presence to Firestore:', error));
         }
     } catch (error) { console.error('Error in reportPresence:', error); }
+}
+
+// RTDB接続状態の監視とUI反映、再接続時のpresence再登録
+function setupRealtimeConnectionListener() {
+    if (!window.database || !window.dbRef || !window.dbOnValue) return;
+    try {
+        const connectedRef = window.dbRef(window.database, '.info/connected');
+        window.dbOnValue(connectedRef, (snapshot) => {
+            const connected = !!snapshot.val();
+            updateSelfConnectionUI(connected);
+            updateTopConnectionText(connected);
+            if (connected) {
+                // 再接続時にpresenceを再登録
+                reportPresence();
+            }
+        }, (error) => {
+            console.error('Error monitoring RTDB .info/connected:', error);
+        });
+    } catch (e) {
+        console.error('setupRealtimeConnectionListener failed:', e);
+    }
+}
+
+function updateSelfConnectionUI(connected) {
+    try {
+        const selfItem = document.querySelector('.connection-item.self-status .connection-status');
+        if (selfItem) {
+            if (connected) {
+                selfItem.textContent = 'ONLINE';
+                selfItem.className = 'connection-status status-online';
+            } else {
+                selfItem.textContent = 'OFFLINE';
+                selfItem.className = 'connection-status status-offline';
+            }
+        }
+        // 最終更新時刻の更新
+        updateLastSeen();
+    } catch (e) { console.error('updateSelfConnectionUI error:', e); }
+}
+
+function updateTopConnectionText(connected) {
+    const el = document.getElementById('connectionStatus');
+    if (!el) return;
+    if (connected) {
+        el.textContent = 'Firebase接続状態: Realtime Database接続済み ✓';
+        el.style.color = '#00ff00';
+    } else {
+        el.textContent = 'Firebase接続状態: 切断 ✗';
+        el.style.color = '#ff0000';
+    }
 }
 
 function monitorOtherConnections() {

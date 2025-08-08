@@ -465,6 +465,7 @@ class MysteryMonitor {
     handleOfflineScenario(scenarioId) {
         if (!this.offlineScenarios[scenarioId]) return;
         // シナリオデータをローカルに適用して開始
+        this.disableWindowControlInFirebase();
         this.keepErrorImageOnWaiting = false;
         this.currentScenario = {
             id: scenarioId,
@@ -841,15 +842,18 @@ class MysteryMonitor {
                 const data = snapshot.data();
                 if (data.action === 'reset') {
                     // リセット処理
+                    this.disableWindowControlInFirebase();
                     this.keepErrorImageOnWaiting = false;
                     this.resetMonitor();
                 } else if (data.action === 'reset_with_noise') {
                     // ノイズ画像を表示して待機画面へ
+                    this.disableWindowControlInFirebase();
                     this.keepErrorImageOnWaiting = true;
                     this.resetMonitor();
                     // 待機メッセージ表示後にノイズ画像を出し続ける
                     this.showErrorImage();
                 } else {
+                    this.disableWindowControlInFirebase();
                     this.currentScenario = data;
                     console.log('Starting scenario:', this.currentScenario);
                     this.startScenario();
@@ -873,15 +877,18 @@ class MysteryMonitor {
             if (data) {
                 if (data.action === 'reset') {
                     // リセット処理
+                    this.disableWindowControlInFirebase();
                     this.keepErrorImageOnWaiting = false;
                     this.resetMonitor();
                 } else if (data.action === 'reset_with_noise') {
                     // ノイズ画像を表示して待機画面へ
+                    this.disableWindowControlInFirebase();
                     this.keepErrorImageOnWaiting = true;
                     this.resetMonitor();
                     // 待機メッセージ表示後にノイズ画像を出し続ける
                     this.showErrorImage();
                 } else {
+                    this.disableWindowControlInFirebase();
                     this.currentScenario = data;
                     console.log('Starting scenario:', this.currentScenario);
                     this.startScenario();
@@ -898,6 +905,8 @@ class MysteryMonitor {
 
     resetMonitor() {
         console.log('Resetting monitor...');
+        // リセット時は窓変化を必ずOFFにする
+        this.disableWindowControlInFirebase();
         this.clearAllMessages();
         this.gameState = 'waiting';
         this.currentInput = '';
@@ -1097,7 +1106,8 @@ class MysteryMonitor {
             }
 
             const windowControlData = {
-                enabled: true, // 窓変化は有効として設定
+                // 現在の有効状態を保持（強制ONしない）
+                enabled: !!this.windowControlEnabled,
                 isScrolling: isScrolling,
                 isPPressed: isPPressed,
                 isRightBracketPressed: isRightBracketPressed,
@@ -1134,6 +1144,35 @@ class MysteryMonitor {
             
             this.windowUpdateTimer = null;
         }, 100); // 100ms後に実行
+    }
+
+    // 窓変化の有効/状態をOFFへ明示反映
+    disableWindowControlInFirebase() {
+        // ローカル状態もOFF
+        this.windowControlEnabled = false;
+        this.lastWindowState = null;
+        // Firebase未初期化や接続エラー時は無視（オフライン想定）
+        if (!window.firestore && !window.database) {
+            return;
+        }
+        const data = {
+            enabled: false,
+            isScrolling: false,
+            isPPressed: false,
+            isRightBracketPressed: false,
+            timestamp: Date.now()
+        };
+        try {
+            if (window.useFirestore) {
+                const ref = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+                window.firestoreSetDoc(ref, data).catch(err => console.error('disableWindowControlInFirebase Firestore error:', err));
+            } else {
+                const ref = window.dbRef(window.database, 'windowControl');
+                window.dbSet(ref, data).catch(err => console.error('disableWindowControlInFirebase Database error:', err));
+            }
+        } catch (e) {
+            console.error('disableWindowControlInFirebase error:', e);
+        }
     }
 
     handleTextInput(key) {

@@ -168,6 +168,27 @@ function loadScenariosFromFirestore() {
         console.error('Error monitoring current scenario in Firestore:', error);
         showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
     });
+
+    // 窓変化状態を監視し、ボタンUIをサーバ状態に追従
+    try {
+        const windowControlRef = window.firestoreDoc(window.firestore, 'gameData', 'windowControl');
+        window.firestoreOnSnapshot(windowControlRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                const enabled = !!data.enabled;
+                if (isWindowChangeEnabled !== enabled) {
+                    isWindowChangeEnabled = enabled;
+                    updateWindowToggleButton(isWindowChangeEnabled);
+                    lastWindowControlState = isWindowChangeEnabled;
+                    console.log('Window control state synced (Firestore):', isWindowChangeEnabled);
+                }
+            }
+        }, (error) => {
+            console.error('Error monitoring window control in Firestore:', error);
+        });
+    } catch (e) {
+        console.error('setup window control monitoring (Firestore) failed:', e);
+    }
 }
 
 // Realtime Databaseからシナリオを読み込み
@@ -208,6 +229,27 @@ function loadScenariosFromDatabase() {
         console.error('Error monitoring current scenario in Database:', error);
         showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
     });
+
+    // 窓変化状態を監視し、ボタンUIをサーバ状態に追従
+    try {
+        const windowControlRef = window.dbRef(window.database, 'windowControl');
+        window.dbOnValue(windowControlRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const enabled = !!data.enabled;
+                if (isWindowChangeEnabled !== enabled) {
+                    isWindowChangeEnabled = enabled;
+                    updateWindowToggleButton(isWindowChangeEnabled);
+                    lastWindowControlState = isWindowChangeEnabled;
+                    console.log('Window control state synced (Database):', isWindowChangeEnabled);
+                }
+            }
+        }, (error) => {
+            console.error('Error monitoring window control in Database:', error);
+        });
+    } catch (e) {
+        console.error('setup window control monitoring (Database) failed:', e);
+    }
 }
 
 // 二回タップでシナリオ選択
@@ -380,6 +422,13 @@ function selectScenario(scenarioId) {
     }
 
     try {
+        // シナリオ変更時は窓変化をOFFにする
+        if (isWindowChangeEnabled) {
+            isWindowChangeEnabled = false;
+            updateWindowToggleButton(isWindowChangeEnabled);
+            updateWindowControlInFirebase(isWindowChangeEnabled);
+        }
+
         currentScenario = scenarioId;
         
         // シナリオ2以外の場合はノイズ設定をリセット
@@ -888,6 +937,13 @@ function resetMonitor() {
         return;
     }
 
+    // リセット時は窓変化をOFFにする
+    if (isWindowChangeEnabled) {
+        isWindowChangeEnabled = false;
+        updateWindowToggleButton(isWindowChangeEnabled);
+        updateWindowControlInFirebase(isWindowChangeEnabled);
+    }
+
     const resetData = {
         action: 'reset',
         timestamp: Date.now()
@@ -1028,6 +1084,13 @@ function resetMonitorWithNoise() {
         return;
     }
  
+    // リセット(ノイズ有)時も窓変化をOFFにする
+    if (isWindowChangeEnabled) {
+        isWindowChangeEnabled = false;
+        updateWindowToggleButton(isWindowChangeEnabled);
+        updateWindowControlInFirebase(isWindowChangeEnabled);
+    }
+
     const resetData = {
         action: 'reset_with_noise',
         timestamp: Date.now()

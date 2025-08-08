@@ -30,7 +30,6 @@ class WindowControl {
         this.isEnterPressed = false;
         this.isPPressed = false;
         this.lastPressedKey = 'enter'; // 最後に押されたキーを記録
-        this.isRightBracketPressed = false;
         
         // 隠しボタンの要素
         this.homeButton = document.getElementById('homeButton');
@@ -48,10 +47,10 @@ class WindowControl {
         this.enterLongPressTimer = null;
         this.enterLongPressMs = 1000; // 長押し判定 1秒
         
-        // 400.mp4 再生用フラグ/タイマー（LeftBracket）
+        // 400.mp4 再生用フラグ/タイマー（RightBracket）
         this.is400Playing = false;
-        this.leftBracketLongPressTimer = null;
-        this.leftBracketLongPressMs = 1000; // 長押し判定 1秒
+        this.rightBracketLongPressTimer = null;
+        this.rightBracketLongPressMs = 1000; // 長押し判定 1秒
         
         // 設定値のデフォルト
         this.settings = {
@@ -451,10 +450,10 @@ class WindowControl {
             
             // ]（RightBracket）の処理：長押しで400.mp4
             if (this.isRightBracketPressed) {
-                this.lastPressedKey = 'leftBracket';
-                this.startLeftBracketLongPressTimer();
+                this.lastPressedKey = 'rightBracket';
+                this.startRightBracketLongPressTimer();
             } else {
-                this.cancelLeftBracketLongPressTimer();
+                this.cancelRightBracketLongPressTimer();
             }
 
             // Pキーの処理（従来どおり）
@@ -681,19 +680,19 @@ class WindowControl {
         });
     }
 
-    // ===== 400.mp4 再生（[ 長押しで発火） =====
-    startLeftBracketLongPressTimer() {
-        if (this.leftBracketLongPressTimer || this.is400Playing) return;
-        this.leftBracketLongPressTimer = setTimeout(() => {
-            this.leftBracketLongPressTimer = null;
+    // ===== 400.mp4 再生（] 長押しで発火） =====
+    startRightBracketLongPressTimer() {
+        if (this.rightBracketLongPressTimer || this.is400Playing) return;
+        this.rightBracketLongPressTimer = setTimeout(() => {
+            this.rightBracketLongPressTimer = null;
             this.start400Video();
-        }, this.leftBracketLongPressMs);
+        }, this.rightBracketLongPressMs);
     }
 
-    cancelLeftBracketLongPressTimer() {
-        if (this.leftBracketLongPressTimer) {
-            clearTimeout(this.leftBracketLongPressTimer);
-            this.leftBracketLongPressTimer = null;
+    cancelRightBracketLongPressTimer() {
+        if (this.rightBracketLongPressTimer) {
+            clearTimeout(this.rightBracketLongPressTimer);
+            this.rightBracketLongPressTimer = null;
         }
     }
 
@@ -710,26 +709,12 @@ class WindowControl {
             this.windowVideo300.style.display = 'none';
             this.is300Playing = false;
         }
-        // 再生直前に100.mp4の現在スタイルを400.mp4へ完全同期（位置・サイズ・transformのズレ防止）
-        try {
-            const src = this.windowVideo;
-            const dst = this.windowVideo400;
-            if (src && dst) {
-                const cs = getComputedStyle(src);
-                dst.style.position = 'absolute';
-                dst.style.top = cs.top;
-                dst.style.left = cs.left;
-                dst.style.width = cs.width;
-                dst.style.height = cs.height;
-                dst.style.transform = cs.transform;
-                dst.style.transformOrigin = cs.transformOrigin;
-                dst.style.transitionDuration = cs.transitionDuration;
-                dst.style.opacity = cs.opacity;
-                dst.style.objectFit = cs.objectFit;
-            }
-        } catch (e) { console.warn('sync 400 style failed', e); }
         this.windowVideo400.style.display = 'block';
         this.windowVideo400.style.zIndex = '3'; // 400は最前面
+
+        // 位置・サイズ・transformを最新設定で同期
+        this.applySettings();
+        this.updateVideoTransform();
 
         try { this.windowVideo400.currentTime = 0; } catch (e) {}
         this.is400Playing = true;
@@ -986,86 +971,40 @@ class WindowControl {
     }
 
     applySettings() {
-        // ENTERキー동영상 설정 적용
-        const video = this.windowVideo;
-        if (video) {
-            video.style.width = this.settings.imageWidth + '%';
-            video.style.height = (this.settings.imageHeight * 2) + 'vh';
-            video.style.top = this.settings.imageTop + 'px';
-            video.style.left = this.settings.imageLeft + 'px';
-            video.style.transitionDuration = this.settings.scrollDuration + 's';
-            video.style.opacity = this.settings.imageOpacity / 100;
-            video.style.transformOrigin = 'center center';
-        }
-        // 300.mp4 も100.mp4と同じ設定を適用
-        const video300 = this.windowVideo300;
-        if (video300) {
-            video300.style.width = this.settings.imageWidth + '%';
-            video300.style.height = (this.settings.imageHeight * 2) + 'vh';
-            video300.style.top = this.settings.imageTop + 'px';
-            video300.style.left = this.settings.imageLeft + 'px';
-            video300.style.transitionDuration = this.settings.scrollDuration + 's';
-            video300.style.opacity = this.settings.imageOpacity / 100;
-            video300.style.transformOrigin = 'center center';
-        }
-        // 400.mp4 も100.mp4と同じ設定を適用
-        const video400 = this.windowVideo400;
-        if (video400) {
-            video400.style.width = this.settings.imageWidth + '%';
-            video400.style.height = (this.settings.imageHeight * 2) + 'vh';
-            video400.style.top = this.settings.imageTop + 'px';
-            video400.style.left = this.settings.imageLeft + 'px';
-            video400.style.transitionDuration = this.settings.scrollDuration + 's';
-            video400.style.opacity = this.settings.imageOpacity / 100;
-            video400.style.transformOrigin = 'center center';
-        }
-        
-        // Pキー동영상 설정 적용
-        const videoP = this.windowVideoP;
-        if (videoP) {
-            videoP.style.width = this.settings.imageWidth + '%';
-            videoP.style.height = (this.settings.imageHeight * 2) + 'vh';
-            videoP.style.top = this.settings.imageTop + 'px';
-            videoP.style.left = this.settings.imageLeft + 'px';
-            videoP.style.transitionDuration = this.settings.scrollDuration + 's';
-            videoP.style.opacity = this.settings.imageOpacity / 100;
-            videoP.style.transformOrigin = 'center center';
-        }
+        const applyRect = (el) => {
+            if (!el) return;
+            el.style.width = this.settings.imageWidth + '%';
+            el.style.height = (this.settings.imageHeight * 2) + 'vh';
+            el.style.top = this.settings.imageTop + 'px';
+            el.style.left = this.settings.imageLeft + 'px';
+            el.style.transitionDuration = this.settings.scrollDuration + 's';
+            el.style.opacity = this.settings.imageOpacity / 100;
+            el.style.transformOrigin = 'center center';
+        };
+
+        // 4本すべて同一設定を適用
+        applyRect(this.windowVideo);
+        applyRect(this.windowVideo300);
+        applyRect(this.windowVideo400);
+        applyRect(this.windowVideoP);
         
         // transformを統一的に更新
         this.updateVideoTransform();
     }
 
     updateVideoTransform() {
-        // ENTERキー동영상 transform 적용
-        const video = this.windowVideo;
-        if (video) {
+        const setTransform = (el) => {
+            if (!el) return;
             const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
             const translateY = this.settings.scrollDistance;
-            video.style.transform = `${transform} translateY(${translateY}%)`;
-        }
-        // 300.mp4 も同じ transform を適用
-        const video300 = this.windowVideo300;
-        if (video300) {
-            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            const translateY = this.settings.scrollDistance;
-            video300.style.transform = `${transform} translateY(${translateY}%)`;
-        }
-        // 400.mp4 も同じ transform を適用
-        const video400 = this.windowVideo400;
-        if (video400) {
-            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            const translateY = this.settings.scrollDistance;
-            video400.style.transform = `${transform} translateY(${translateY}%)`;
-        }
-        
-        // Pキー동영상 transform 적용
-        const videoP = this.windowVideoP;
-        if (videoP) {
-            const transform = `rotate(${this.settings.imageRotation}deg) scale(${this.settings.imageZoom / 100})`;
-            const translateY = this.settings.scrollDistance;
-            videoP.style.transform = `${transform} translateY(${translateY}%)`;
-        }
+            el.style.transform = `${transform} translateY(${translateY}%)`;
+        };
+
+        // 4本すべて同一transformを適用
+        setTransform(this.windowVideo);
+        setTransform(this.windowVideo300);
+        setTransform(this.windowVideo400);
+        setTransform(this.windowVideoP);
     }
 
     updateControlValues() {

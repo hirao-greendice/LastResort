@@ -42,6 +42,7 @@ body {
     width: 100%;
     height: 200vh;
     object-fit: cover;
+    object-position: center center;
     position: absolute;
     top: 0;
     left: 0;
@@ -52,6 +53,7 @@ body {
     width: 100%;
     height: 200vh;
     object-fit: cover;
+    object-position: center center;
     position: absolute;
     top: 0;
     left: 0;
@@ -62,16 +64,19 @@ body {
     width: 100%;
     height: 200vh;
     object-fit: cover;
+    object-position: center center;
     position: absolute;
     top: 0;
     left: 0;
     transition: transform 0.3s ease-in-out;
 }
 
+/* 400.mp4 用（] 長押しで前面再生）。他の動画と同一レイアウトにする */
 #windowVideo400 {
     width: 100%;
     height: 200vh;
     object-fit: cover;
+    object-position: center center;
     position: absolute;
     top: 0;
     left: 0;

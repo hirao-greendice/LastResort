@@ -165,3 +165,10 @@
     <script src="monitor.js"></script>
 </body>
 </html> 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./sw.js').catch(function(e){console.error('SW reg failed', e)});
+    });
+  }
+</script>

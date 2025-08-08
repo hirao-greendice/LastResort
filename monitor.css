@@ -386,6 +386,7 @@ body {
 .hidden-button.fullscreen-button {
     bottom: 10px;
     right: 10px;
+    z-index: 100002; /* エラー画像(99999)より前面 */
 }
 
 /* フォントサイズボタン（右上） */
@@ -831,7 +832,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10000;
+    z-index: 100003; /* エラー画像より前面に */
     backdrop-filter: blur(5px);
 }
 

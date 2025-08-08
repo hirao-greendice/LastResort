@@ -347,7 +347,18 @@ class DoctorControl {
             if (tapTimer) { clearTimeout(tapTimer); tapTimer = null; }
         };
 
-        const onTap = () => {
+        const onTap = (evt) => {
+            // 左下領域のみカウント（画面の25%×25%）
+            const bounds = tapArea.getBoundingClientRect();
+            const x = (evt.touches && evt.touches[0] ? evt.touches[0].clientX : evt.clientX) - bounds.left;
+            const y = (evt.touches && evt.touches[0] ? evt.touches[0].clientY : evt.clientY) - bounds.top;
+            const withinLeft = x <= bounds.width * 0.10;
+            const withinBottom = y >= bounds.height * 0.90;
+            if (!withinLeft || !withinBottom) {
+                resetTap();
+                return;
+            }
+
             tapCount += 1;
             if (tapTimer) clearTimeout(tapTimer);
             tapTimer = setTimeout(() => { resetTap(); }, 800);

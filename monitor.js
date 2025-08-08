@@ -143,7 +143,7 @@ class MysteryMonitor {
         
         // 画像位置管理（ピクセル単位）
         this.imagePosition = { x: 0, y: 0 }; // 右上からの相対位置
-        this.positionStep = 10; // 移動ステップ（ピクセル）
+        this.positionStep = 2; // 移動ステップ（ピクセル）
         
         // フィードバック表示用タイマー
         this.feedbackTimer = null;
@@ -195,10 +195,8 @@ class MysteryMonitor {
             this.isFullscreen = !!document.fullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
-                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
-                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
         
@@ -207,10 +205,8 @@ class MysteryMonitor {
             this.isFullscreen = !!document.webkitFullscreenElement;
             if (this.isFullscreen) {
                 document.body.classList.add('fullscreen');
-                this.fullscreenButton.style.display = 'none'; // 全画面時にボタンを隠す
             } else {
                 document.body.classList.remove('fullscreen');
-                this.fullscreenButton.style.display = 'block'; // 通常時にボタンを表示
             }
         });
     }

@@ -710,6 +710,24 @@ class WindowControl {
             this.windowVideo300.style.display = 'none';
             this.is300Playing = false;
         }
+        // 再生直前に100.mp4の現在スタイルを400.mp4へ完全同期（位置・サイズ・transformのズレ防止）
+        try {
+            const src = this.windowVideo;
+            const dst = this.windowVideo400;
+            if (src && dst) {
+                const cs = getComputedStyle(src);
+                dst.style.position = 'absolute';
+                dst.style.top = cs.top;
+                dst.style.left = cs.left;
+                dst.style.width = cs.width;
+                dst.style.height = cs.height;
+                dst.style.transform = cs.transform;
+                dst.style.transformOrigin = cs.transformOrigin;
+                dst.style.transitionDuration = cs.transitionDuration;
+                dst.style.opacity = cs.opacity;
+                dst.style.objectFit = cs.objectFit;
+            }
+        } catch (e) { console.warn('sync 400 style failed', e); }
         this.windowVideo400.style.display = 'block';
         this.windowVideo400.style.zIndex = '3'; // 400は最前面
 

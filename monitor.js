@@ -8,6 +8,10 @@ class MysteryMonitor {
         this.cursor = document.getElementById('cursor');
         
         this.pressedKeys = new Set();
+        // 窓制御用の押下状態を保持（送信用）
+        this.isEnterPressed = false;
+        this.isPPressed = false;
+        this.isRightBracketPressed = false;
         this.longPressTimer = null;
         this.longPressDelay = 400; // 0.4秒で長押し判定
         this.isLongPressing = false; // 長押し中かどうか
@@ -229,8 +233,15 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
-            if (e.key === 'p' || e.key === 'P') {
+            // RightBracketキー（ ] / } ）の処理：長押しで400.mp4（窓画面）
+            if (e.code === 'BracketRight') {
+                // デフォルトの動作は妨げず（コマンド入力の影響なし）
+                this.handleRightBracketPress();
+                // return しない
+            }
+
+            // Pキーの処理（外部キーボードモードOFF時のみ物理Pで処理）
+            if (!this.externalKeyboardMode && (e.key === 'p' || e.key === 'P')) {
                 // コマンド入力中は通常のキー入力として処理
                 if (this.gameState === 'waiting_weak') {
                     // 通常のキー入力処理に進む（returnしない）
@@ -261,6 +272,12 @@ class MysteryMonitor {
                 
                 const mappedKey = this.keyMapping[e.code];
                 if (mappedKey) {
+                    // マッピング後の結果がPの場合、窓制御として処理（BracketRightは除外、コマンド入力中は通常入力）
+                    if (mappedKey === 'P' && e.code !== 'BracketRight' && this.gameState !== 'waiting_weak') {
+                        e.preventDefault();
+                        this.handlePPress();
+                        return;
+                    }
                     e.preventDefault(); // ブラウザのデフォルト動作を防止
                     inputKey = mappedKey;
                     // Key mapped successfully
@@ -315,8 +332,14 @@ class MysteryMonitor {
                 return;
             }
             
-            // Pキーの処理（コマンド入力中は通常のキー入力として処理）
-            if (e.key === 'p' || e.key === 'P') {
+            // RightBracketキー（ ] / } ）の解放処理
+            if (e.code === 'BracketRight') {
+                this.handleRightBracketRelease();
+                // return しない
+            }
+
+            // Pキーの処理（外部キーボードモードOFF時のみ物理Pで処理）
+            if (!this.externalKeyboardMode && (e.key === 'p' || e.key === 'P')) {
                 // コマンド入力中は通常のキー入力として処理
                 if (this.gameState === 'waiting_weak') {
                     // 通常のキー入力処理に進む（returnしない）
@@ -342,6 +365,11 @@ class MysteryMonitor {
             if (this.externalKeyboardMode) {
                 const mappedKey = this.keyMapping[e.code];
                 if (mappedKey) {
+                    // マッピング後の結果がPの場合、窓制御として処理（BracketRightは除外、コマンド入力中は通常入力）
+                    if (mappedKey === 'P' && e.code !== 'BracketRight' && this.gameState !== 'waiting_weak') {
+                        this.handlePRelease();
+                        return;
+                    }
                     inputKey = mappedKey;
                 } else {
                     return;
@@ -899,8 +927,9 @@ class MysteryMonitor {
 
     handleEnterPress() {
         console.log('Enter pressed - window control enabled:', this.windowControlEnabled);
+        this.isEnterPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(true, false);
+            this.updateWindowStateInFirebase(true, this.isPPressed, this.isLeftBracketPressed);
         } else {
             console.log('Window control disabled - ignoring Enter press');
         }
@@ -908,8 +937,9 @@ class MysteryMonitor {
 
     handleEnterRelease() {
         console.log('Enter released - window control enabled:', this.windowControlEnabled);
+        this.isEnterPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false, false);
+            this.updateWindowStateInFirebase(false, this.isPPressed, this.isLeftBracketPressed);
         } else {
             console.log('Window control disabled - ignoring Enter release');
         }
@@ -921,8 +951,9 @@ class MysteryMonitor {
             return;
         }
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
+        this.isPPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false, true);
+            this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isLeftBracketPressed);
         } else {
             console.log('Window control disabled - ignoring P press');
         }
@@ -934,16 +965,37 @@ class MysteryMonitor {
             return;
         }
         console.log('P released - window control enabled:', this.windowControlEnabled);
+        this.isPPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false, false);
+            this.updateWindowStateInFirebase(this.isEnterPressed, false, this.isLeftBracketPressed);
         } else {
             console.log('Window control disabled - ignoring P release');
         }
     }
 
-    updateWindowStateInFirebase(isScrolling, isPPressed) {
+    handleRightBracketPress() {
+        console.log('] pressed - window control enabled:', this.windowControlEnabled);
+        this.isRightBracketPressed = true;
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(this.isEnterPressed, this.isPPressed, true);
+        } else {
+            console.log('Window control disabled - ignoring ] press');
+        }
+    }
+
+    handleRightBracketRelease() {
+        console.log('] released - window control enabled:', this.windowControlEnabled);
+        this.isRightBracketPressed = false;
+        if (this.windowControlEnabled) {
+            this.updateWindowStateInFirebase(this.isEnterPressed, this.isPPressed, false);
+        } else {
+            console.log('Window control disabled - ignoring ] release');
+        }
+    }
+
+    updateWindowStateInFirebase(isScrolling, isPPressed, isRightBracketPressed = false) {
         // 상태가 변하지 않은 경우는 통신하지 않음
-        const currentState = `${isScrolling}-${isPPressed}`;
+        const currentState = `${isScrolling}-${isPPressed}-${isRightBracketPressed}`;
         if (this.lastWindowState === currentState) {
             return;
         }
@@ -963,6 +1015,7 @@ class MysteryMonitor {
                 enabled: true, // 窓変化は有効として設定
                 isScrolling: isScrolling,
                 isPPressed: isPPressed,
+                isRightBracketPressed: isRightBracketPressed,
                 timestamp: Date.now()
             };
 

@@ -335,7 +335,7 @@ class DoctorControl {
         this.updateStatus();
     }
 
-    // ネットワーク不通時のオフライン再生用（中央3回タップ）
+    // ネットワーク不通時のオフライン再生用（赤ランプ付近を3回タップ）
     setupOfflineTripleTap() {
         let tapCount = 0;
         let tapTimer = null;
@@ -348,13 +348,44 @@ class DoctorControl {
         };
 
         const onTap = (evt) => {
-            // 左下領域のみカウント（画面の25%×25%）
+            // 赤ランプ（waitingIndicator）付近のみカウント
             const bounds = tapArea.getBoundingClientRect();
-            const x = (evt.touches && evt.touches[0] ? evt.touches[0].clientX : evt.clientX) - bounds.left;
-            const y = (evt.touches && evt.touches[0] ? evt.touches[0].clientY : evt.clientY) - bounds.top;
-            const withinLeft = x <= bounds.width * 0.10;
-            const withinBottom = y >= bounds.height * 0.90;
-            if (!withinLeft || !withinBottom) {
+            const clientX = (evt.touches && evt.touches[0] ? evt.touches[0].clientX : evt.clientX);
+            const clientY = (evt.touches && evt.touches[0] ? evt.touches[0].clientY : evt.clientY);
+            const x = clientX - bounds.left;
+            const y = clientY - bounds.top;
+
+            // waitingIndicator の実座標（表示中は要素の実座標、非表示時はCSS既定位置で推定）
+            let targetCenterX;
+            let targetCenterY;
+            let targetWidth = 14;  // CSS: width:14px
+            let targetHeight = 14; // CSS: height:14px
+            const indicatorEl = this.waitingIndicator;
+            if (indicatorEl) {
+                const indBounds = indicatorEl.getBoundingClientRect();
+                if (indBounds.width > 0 && indBounds.height > 0) {
+                    // 実表示位置
+                    targetCenterX = (indBounds.left - bounds.left) + indBounds.width / 2;
+                    targetCenterY = (indBounds.top - bounds.top) + indBounds.height / 2;
+                    targetWidth = indBounds.width;
+                    targetHeight = indBounds.height;
+                } else {
+                    // 非表示時はCSS既定値で推定（left:12px, bottom:12px）
+                    targetCenterX = 12 + targetWidth / 2;
+                    targetCenterY = bounds.height - (12 + targetHeight / 2);
+                }
+            } else {
+                // 要素が存在しない場合も左下既定位置を使用
+                targetCenterX = 12 + targetWidth / 2;
+                targetCenterY = bounds.height - (12 + targetHeight / 2);
+            }
+
+            // ヒット判定半径（赤ランプ周辺）
+            const hitRadius = 50; // px
+            const dx = x - targetCenterX;
+            const dy = y - targetCenterY;
+            const distance = Math.hypot(dx, dy);
+            if (distance > hitRadius) {
                 resetTap();
                 return;
             }
@@ -365,10 +396,18 @@ class DoctorControl {
 
             if (tapCount >= 3) {
                 resetTap();
-                // オフライン再生（doctorVideoをローカルから再生）
-                // Firebase接続の有無に関わらず再生を試みる
-                this.isDoctorVideoEnabled = true; // 強制的にON扱い
-                this.showDoctorVideo();
+                // トグル動作：再生中なら終了、未再生なら開始
+                if (this.isVideoPlaying) {
+                    try { this.doctorVideo && this.doctorVideo.pause(); } catch (_) {}
+                    this.isDoctorVideoEnabled = false; // OFF扱い
+                    // 終了演出（暗転）と終了通知
+                    this.onVideoEnded();
+                } else {
+                    // オフライン再生（doctorVideoをローカルから再生）
+                    // Firebase接続の有無に関わらず再生を試みる
+                    this.isDoctorVideoEnabled = true; // 強制的にON扱い
+                    this.showDoctorVideo();
+                }
             }
         };
 

@@ -385,11 +385,15 @@ class MysteryMonitor {
             }
             
             this.pressedKeys.delete(inputKey);
-            if (inputKey.toUpperCase() === 'U') {
-                const hasEnter =
-                  this.pressedKeys.has('ENTER') || this.pressedKeys.has('Enter');
+            // シナリオ6の防衛フェーズ時のみ、Uキー離しでENTER表示/クリアを行う
+            if (
+                inputKey.toUpperCase() === 'U' &&
+                this.gameState === 'waiting_defense' &&
+                this.currentScenario && parseInt(this.currentScenario.id) === 6
+            ) {
+                const hasEnter = this.pressedKeys.has('ENTER') || this.pressedKeys.has('Enter');
                 this.updateInputDisplay(hasEnter ? 'ENTER' : '', hasEnter);
-              }
+            }
               
             
             // 長押し検知の停止

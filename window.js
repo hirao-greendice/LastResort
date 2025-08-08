@@ -58,65 +58,17 @@ class WindowControl {
             imageHeight: 100,
             imageTop: 0,
             imageLeft: 0,
+            imageZoom: 100,
+            // 廃止項目の互換フィールド（内部で固定値に）
             imageRotation: 0,
             imageOpacity: 100,
-            imageZoom: 100,
             scrollDistance: -50,
             scrollDuration: 0.3,
             playbackSpeed: 1.0
         };
 
-        // プリセット定義
-        this.presets = {
-            default: {
-                imageWidth: 100,
-                imageHeight: 100,
-                imageTop: 0,
-                imageLeft: 0,
-                imageRotation: 0,
-                imageOpacity: 100,
-                imageZoom: 100,
-                scrollDistance: -50,
-                scrollDuration: 0.3,
-                playbackSpeed: 1.0
-            },
-            zoom: {
-                imageWidth: 150,
-                imageHeight: 150,
-                imageTop: -100,
-                imageLeft: -100,
-                imageRotation: 0,
-                imageOpacity: 100,
-                imageZoom: 150,
-                scrollDistance: -70,
-                scrollDuration: 0.5,
-                playbackSpeed: 1.0
-            },
-            fullScreen: {
-                imageWidth: 300,
-                imageHeight: 300,
-                imageTop: -200,
-                imageLeft: -200,
-                imageRotation: 0,
-                imageOpacity: 100,
-                imageZoom: 200,
-                scrollDistance: -100,
-                scrollDuration: 0.8,
-                playbackSpeed: 1.0
-            },
-            custom: {
-                imageWidth: 120,
-                imageHeight: 120,
-                imageTop: -50,
-                imageLeft: -50,
-                imageRotation: 15,
-                imageOpacity: 85,
-                imageZoom: 120,
-                scrollDistance: -60,
-                scrollDuration: 0.4,
-                playbackSpeed: 1.0
-            }
-        };
+        // プリセット機能は廃止
+        this.presets = null;
         
         this.init();
     }
@@ -139,10 +91,7 @@ class WindowControl {
         this.setupFullscreenListener();
         this.applyInitialFullscreenClass();
         
-        // デフォルトプリセットを有効にする
-        setTimeout(() => {
-            document.getElementById('presetDefault').classList.add('active');
-        }, 100);
+        // プリセット初期化は廃止
     }
 
     setupFullscreenListener() {
@@ -805,12 +754,7 @@ class WindowControl {
             imageHeight: document.getElementById('imageHeight'),
             imageTop: document.getElementById('imageTop'),
             imageLeft: document.getElementById('imageLeft'),
-            imageRotation: document.getElementById('imageRotation'),
-            imageOpacity: document.getElementById('imageOpacity'),
-            imageZoom: document.getElementById('imageZoom'),
-            scrollDistance: document.getElementById('scrollDistance'),
-            scrollDuration: document.getElementById('scrollDuration'),
-            playbackSpeed: document.getElementById('playbackSpeed')
+            imageZoom: document.getElementById('imageZoom')
         };
         
         const numberInputs = {
@@ -818,12 +762,7 @@ class WindowControl {
             imageHeight: document.getElementById('imageHeightInput'),
             imageTop: document.getElementById('imageTopInput'),
             imageLeft: document.getElementById('imageLeftInput'),
-            imageRotation: document.getElementById('imageRotationInput'),
-            imageOpacity: document.getElementById('imageOpacityInput'),
-            imageZoom: document.getElementById('imageZoomInput'),
-            scrollDistance: document.getElementById('scrollDistanceInput'),
-            scrollDuration: document.getElementById('scrollDurationInput'),
-            playbackSpeed: document.getElementById('playbackSpeedInput')
+            imageZoom: document.getElementById('imageZoomInput')
         };
         
         const values = {
@@ -831,12 +770,7 @@ class WindowControl {
             imageHeight: document.getElementById('imageHeightValue'),
             imageTop: document.getElementById('imageTopValue'),
             imageLeft: document.getElementById('imageLeftValue'),
-            imageRotation: document.getElementById('imageRotationValue'),
-            imageOpacity: document.getElementById('imageOpacityValue'),
-            imageZoom: document.getElementById('imageZoomValue'),
-            scrollDistance: document.getElementById('scrollDistanceValue'),
-            scrollDuration: document.getElementById('scrollDurationValue'),
-            playbackSpeed: document.getElementById('playbackSpeedValue')
+            imageZoom: document.getElementById('imageZoomValue')
         };
         
         // 各コントロールのイベントリスナー（スライダー）
@@ -867,27 +801,7 @@ class WindowControl {
             });
         });
         
-        // プリセットボタン
-        document.getElementById('presetDefault').addEventListener('click', () => {
-            this.applyPreset('default');
-        });
-        
-        document.getElementById('presetZoom').addEventListener('click', () => {
-            this.applyPreset('zoom');
-        });
-        
-        document.getElementById('presetFullScreen').addEventListener('click', () => {
-            this.applyPreset('fullScreen');
-        });
-        
-        document.getElementById('presetCustom').addEventListener('click', () => {
-            this.applyPreset('custom');
-        });
-        
-        // プリセット保存ボタン
-        document.getElementById('savePresetButton').addEventListener('click', () => {
-            this.saveCustomPreset();
-        });
+        // プリセット関連のイベントは廃止
         
         // リセットボタン
         document.getElementById('resetButton').addEventListener('click', () => {
@@ -907,10 +821,7 @@ class WindowControl {
         }
         
         // カスタムプリセットの読み込み
-        const customPreset = localStorage.getItem('windowCustomPreset');
-        if (customPreset) {
-            this.presets.custom = { ...this.presets.custom, ...JSON.parse(customPreset) };
-        }
+        // プリセットは使用しない
         
         this.updateControlValues();
     }
@@ -925,16 +836,10 @@ class WindowControl {
         // 値の表示を更新
         const valueElement = document.getElementById(key + 'Value');
         if (valueElement) {
-            if (key === 'imageWidth' || key === 'imageHeight' || key === 'imageOpacity' || key === 'imageZoom' || key === 'scrollDistance') {
+            if (key === 'imageWidth' || key === 'imageHeight' || key === 'imageZoom') {
                 valueElement.textContent = value + '%';
             } else if (key === 'imageTop' || key === 'imageLeft') {
                 valueElement.textContent = value + 'px';
-            } else if (key === 'imageRotation') {
-                valueElement.textContent = value + '°';
-            } else if (key === 'scrollDuration') {
-                valueElement.textContent = value + 's';
-            } else if (key === 'playbackSpeed') {
-                valueElement.textContent = value + 'x';
             }
         }
         
@@ -942,33 +847,9 @@ class WindowControl {
         this.saveSettings();
     }
 
-    applyPreset(presetName) {
-        if (this.presets[presetName]) {
-            this.settings = { ...this.presets[presetName] };
-            this.updateControlValues();
-            this.applySettings();
-            this.saveSettings();
-            
-            // プリセットボタンの表示を更新
-            document.querySelectorAll('.preset-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById(`preset${presetName.charAt(0).toUpperCase() + presetName.slice(1)}`).classList.add('active');
-        }
-    }
+    // applyPresetは廃止
 
-    saveCustomPreset() {
-        this.presets.custom = { ...this.settings };
-        localStorage.setItem('windowCustomPreset', JSON.stringify(this.presets.custom));
-        
-        // 成功メッセージを表示
-        const saveButton = document.getElementById('savePresetButton');
-        const originalText = saveButton.textContent;
-        saveButton.textContent = '保存済み';
-        setTimeout(() => {
-            saveButton.textContent = originalText;
-        }, 1500);
-    }
+    // saveCustomPresetは廃止
 
     applySettings() {
         const applyRect = (el) => {
@@ -1013,36 +894,21 @@ class WindowControl {
         document.getElementById('imageHeight').value = this.settings.imageHeight;
         document.getElementById('imageTop').value = this.settings.imageTop;
         document.getElementById('imageLeft').value = this.settings.imageLeft;
-        document.getElementById('imageRotation').value = this.settings.imageRotation;
-        document.getElementById('imageOpacity').value = this.settings.imageOpacity;
         document.getElementById('imageZoom').value = this.settings.imageZoom;
-        document.getElementById('scrollDistance').value = this.settings.scrollDistance;
-        document.getElementById('scrollDuration').value = this.settings.scrollDuration;
-        document.getElementById('playbackSpeed').value = this.settings.playbackSpeed;
         
         // 数値入力フィールドを更新
         document.getElementById('imageWidthInput').value = this.settings.imageWidth;
         document.getElementById('imageHeightInput').value = this.settings.imageHeight;
         document.getElementById('imageTopInput').value = this.settings.imageTop;
         document.getElementById('imageLeftInput').value = this.settings.imageLeft;
-        document.getElementById('imageRotationInput').value = this.settings.imageRotation;
-        document.getElementById('imageOpacityInput').value = this.settings.imageOpacity;
         document.getElementById('imageZoomInput').value = this.settings.imageZoom;
-        document.getElementById('scrollDistanceInput').value = this.settings.scrollDistance;
-        document.getElementById('scrollDurationInput').value = this.settings.scrollDuration;
-        document.getElementById('playbackSpeedInput').value = this.settings.playbackSpeed;
         
         // 表示値を更新
         document.getElementById('imageWidthValue').textContent = this.settings.imageWidth + '%';
         document.getElementById('imageHeightValue').textContent = this.settings.imageHeight + '%';
         document.getElementById('imageTopValue').textContent = this.settings.imageTop + 'px';
         document.getElementById('imageLeftValue').textContent = this.settings.imageLeft + 'px';
-        document.getElementById('imageRotationValue').textContent = this.settings.imageRotation + '°';
-        document.getElementById('imageOpacityValue').textContent = this.settings.imageOpacity + '%';
         document.getElementById('imageZoomValue').textContent = this.settings.imageZoom + '%';
-        document.getElementById('scrollDistanceValue').textContent = this.settings.scrollDistance + '%';
-        document.getElementById('scrollDurationValue').textContent = this.settings.scrollDuration + 's';
-        document.getElementById('playbackSpeedValue').textContent = this.settings.playbackSpeed + 'x';
     }
 
     resetSettings() {
@@ -1058,12 +924,6 @@ class WindowControl {
             scrollDuration: 0.3,
             playbackSpeed: 1.0
         };
-        
-        // プリセットボタンの状態をリセット
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        document.getElementById('presetDefault').classList.add('active');
         
         this.updateControlValues();
         this.applySettings();

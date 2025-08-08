@@ -62,28 +62,7 @@ class MysteryMonitor {
             'Period': 'M',        // .キーがM
             'Slash': '?',         // /キーが?
             'IntlRo': 'M',         // ろキーがM
-            // 数字キー（上段）
-            'Digit0': '0',
-            'Digit1': '1',
-            'Digit2': '2',
-            'Digit3': '3',
-            'Digit4': '4',
-            'Digit5': '5',
-            'Digit6': '6',
-            'Digit7': '7',
-            'Digit8': '8',
-            'Digit9': '9',
-            // テンキー
-            'Numpad0': '0',
-            'Numpad1': '1',
-            'Numpad2': '2',
-            'Numpad3': '3',
-            'Numpad4': '4',
-            'Numpad5': '5',
-            'Numpad6': '6',
-            'Numpad7': '7',
-            'Numpad8': '8',
-            'Numpad9': '9'
+            
         };
         
         // 通信最適化用
@@ -154,13 +133,60 @@ class MysteryMonitor {
         
         this.loadImageSettings();
         
-        // オフライン操作用のローカルシナリオ定義
-        this.localScenarios = {
-            1: { id: 1, target: 'アロハみやげ館', command: 'LAND', key: 'A', secondMessage: '<span class="facility-name">【アロハみやげ館】</span>に向けてドリルを発射します。<span class="key-highlight">A</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
-            2: { id: 2, target: 'クイーンズピザ', command: 'FLAG', key: 'Q', secondMessage: '<span class="facility-name">【クイーンズピザ】</span>に向けてドリルを発射します。<span class="key-highlight">Q</span>の長押しで防衛してください', hideCommand: false, hideKey: false },
-            3: { id: 3, target: 'ストリートライブハウス', command: 'EDIT', key: 'S', secondMessage: '<span class="facility-name">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true },
-            4: { id: 4, target: 'ゾンビアトラクション', command: 'UNIT', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true },
-            5: { id: 5, target: 'ゾンビアトラクション', command: 'VIEW', key: 'Z', secondMessage: '<span class="facility-name">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class="key-highlight">##</span>の長押しで防御してください', hideCommand: false, hideKey: true }
+        // オフライン用のデフォルトシナリオ定義（小部屋画面と同等）
+        this.offlineScenarios = {
+            1: {
+                target: "アロハみやげ館",
+                command: "LAND",
+                key: "A",
+                secondMessage: "<span class=\"facility-name\">【アロハみやげ館】</span>に向けてドリルを発射します。<span class=\"key-highlight\">A</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: false
+            },
+            2: {
+                target: "クイーンズピザ",
+                command: "FLAG",
+                key: "Q",
+                secondMessage: "<span class=\"facility-name\">【クイーンズピザ】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Q</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: false
+            },
+            3: {
+                target: "ストリートライブハウス",
+                command: "EDIT",
+                key: "S",
+                secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>に向けてドリルを発射します。<span class=\"key-highlight\">S・#</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: true,
+                completeMessage: "⚠ ドリルにより、アロハみやげ館が破壊されました"
+            },
+            4: {
+                target: "ゾンビアトラクション",
+                command: "UNIT",
+                key: "Z",
+                secondMessage: "<span class=\"facility-name\">【ゾンビアトラクション】</span>に向けてドリルを発射します。<span class=\"key-highlight\">Z</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: true,
+                completeMessage: "⚠ エラー\nドリルが発射されませんでした\n対応表とマップを利用して、別のコマンドを特定してください"
+            },
+            5: {
+                target: "ゾンビアトラクション",
+                command: "VIEW",
+                key: "Z",
+                secondMessage: "<span class=\"facility-name\">【ストリートライブハウス】</span>から南にドリルを発射します。<span class=\"key-highlight\">Z・#</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: true,
+                completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
+            },
+            6: {
+                target: "ゾンビアトラクション",
+                command: "LIVE",
+                key: "U",
+                secondMessage: "<span class=\"facility-name\">【キッチンセンター】</span>から北にドリルを発射します。<span class=\"key-highlight\">I O</span>の長押しで防衛してください",
+                hideCommand: false,
+                hideKey: true,
+                completeMessage: "⚠ ドリルによりエックス線研究所が破壊されました\n⚠ 建物倒壊によりゾンビアトラクションが一部破損しました"
+            }
         };
         
         this.init();
@@ -175,8 +201,6 @@ class MysteryMonitor {
         this.setupImageDisplayListener();
         this.setupHiddenButton();
         this.setupFullscreenListener();
-        // オフラインショートカットを最優先で登録
-        this.setupOfflineShortcuts();
         this.setupKeyMappingListener();
         this.showWaitingMessage();
     }
@@ -217,6 +241,31 @@ class MysteryMonitor {
 
     setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
+            // 数字ショートカット（1〜6: シナリオ開始、0: ノイズ切替、8: リセット、9: ノイズ付きリセット）
+            if (!e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.repeat) {
+                const k = e.key;
+                if (/^[1-6]$/.test(k)) {
+                    e.preventDefault();
+                    this.handleOfflineScenario(parseInt(k, 10));
+                    return;
+                }
+                if (k === '0') {
+                    e.preventDefault();
+                    this.toggleNoiseLocal();
+                    return;
+                }
+                if (k === '8') {
+                    e.preventDefault();
+                    this.offlineReset();
+                    return;
+                }
+                if (k === '9') {
+                    e.preventDefault();
+                    this.offlineResetWithNoise();
+                    return;
+                }
+            }
+
             // ENTERキーの処理（常に動作 - ただしシナリオ6では特別処理）
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -410,6 +459,38 @@ class MysteryMonitor {
                 }
             }
         });
+    }
+
+    // オフライン: シナリオ開始
+    handleOfflineScenario(scenarioId) {
+        if (!this.offlineScenarios[scenarioId]) return;
+        // シナリオデータをローカルに適用して開始
+        this.keepErrorImageOnWaiting = false;
+        this.currentScenario = {
+            id: scenarioId,
+            timestamp: Date.now(),
+            ...this.offlineScenarios[scenarioId]
+        };
+        this.startScenario();
+    }
+
+    // オフライン: ノイズ切替（シナリオ2で効く／3,4,5,6は強制表示）
+    toggleNoiseLocal() {
+        this.imageDisplayEnabled = !this.imageDisplayEnabled;
+        this.updateImageDisplayForCurrentScenario();
+    }
+
+    // オフライン: リセット（ノイズなし）
+    offlineReset() {
+        this.keepErrorImageOnWaiting = false;
+        this.resetMonitor();
+    }
+
+    // オフライン: リセット（ノイズあり）
+    offlineResetWithNoise() {
+        this.keepErrorImageOnWaiting = true;
+        this.resetMonitor();
+        this.showErrorImage();
     }
 
     setupFirebaseListener() {
@@ -2266,46 +2347,7 @@ class MysteryMonitor {
         }, 3000);
     }
 
-    /* ---------------- オフラインショートカット関連 ---------------- */
-    setupOfflineShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            const keyCode = e.code;
-            let num = null;
-            if (/^Digit[0-9]$/.test(keyCode)) {
-                num = keyCode.slice(5);
-            } else if (/^Numpad[0-9]$/.test(keyCode)) {
-                num = keyCode.slice(6);
-            }
-            if (num !== null) {
-                if (num === '0') {
-                    this.toggleErrorImage();
-                } else if (['1','2','3','4','5'].includes(num)) {
-                    this.loadLocalScenario(parseInt(num));
-                }
-            }
-        });
-    }
-
-    loadLocalScenario(id) {
-        const scenario = this.localScenarios[id];
-        if (!scenario) {
-            console.warn('Local scenario not found:', id);
-            return;
-        }
-        console.log('Loading local scenario:', id);
-        this.currentScenario = { ...scenario }; // clone
-        this.startScenario();
-    }
-
-    toggleErrorImage() {
-        if (!this.currentScenario || parseInt(this.currentScenario.id) !== 2) return;
-        const isVisible = this.errorImage && this.errorImage.style.display !== 'none' && this.errorImage.style.opacity !== '0';
-        if (isVisible) {
-            this.hideErrorImage();
-        } else {
-            this.showErrorImage();
-        }
-    }
+    // オフラインショートカット機能は廃止
 
     setupKeyMappingListener() {
         // Firestore が無い環境ではスキップ

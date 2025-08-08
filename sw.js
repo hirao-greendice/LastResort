@@ -3,7 +3,7 @@
 // - Supports Range requests for cached media
 // - Versioned caches; bump CACHE_VERSION when replacing media with same filenames
 
-const CACHE_VERSION = 'v5-20250808';
+const CACHE_VERSION = 'v6-20250808';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const MEDIA_CACHE = `media-${CACHE_VERSION}`;
 

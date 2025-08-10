@@ -581,7 +581,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
             authDomain: "lastr-36807.firebaseapp.com",
-            databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+            databaseURL: "https://lastr-36807-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "lastr-36807",
             storageBucket: "lastr-36807.firebasestorage.app",
             messagingSenderId: "1068261467238",
@@ -596,7 +596,7 @@
             const firestore = getFirestore(app);
             
             // Realtime Database
-            const database = getDatabase(app);
+            const database = getDatabase(app, 'https://lastr-36807-default-rtdb.asia-southeast1.firebasedatabase.app');
 
             // グローバルにエクスポート
             window.firestore = firestore;
@@ -612,37 +612,24 @@
             window.dbOnDisconnect = onDisconnect;
             window.serverTimestamp = () => new Date();
 
-            // 接続テスト（両方を試す）
-            console.log('Testing Firebase connections...');
-            
-            // Firestore接続テスト（読み取り専用）
-            const testFirestoreRef = doc(firestore, 'gameData', 'scenarios');
-            const unsubscribe = onSnapshot(testFirestoreRef, (snapshot) => {
-                console.log('Firestore connection successful');
-                document.getElementById('connectionStatus').textContent = 'Firebase接続状態: Firestore接続済み ✓';
-                document.getElementById('connectionStatus').style.color = '#00ff00';
-                window.useFirestore = true;
-                loadScenarios();
-                unsubscribe(); // 一度テストしたら解除
-            }, (firestoreError) => {
-                console.log('Firestore connection failed:', firestoreError);
-                
-                // Realtime Database接続テスト
-                const testRef = ref(database, '.info/connected');
-                onValue(testRef, (snapshot) => {
-                    const connected = snapshot.val();
-                    if (connected) {
-                        console.log('Realtime Database connection successful');
-                        document.getElementById('connectionStatus').textContent = 'Firebase接続状態: Realtime Database接続済み ✓';
-                        document.getElementById('connectionStatus').style.color = '#00ff00';
-                        window.useFirestore = false;
-                        loadScenarios();
-                    } else {
-                        console.log('Both Firebase services failed');
-                        document.getElementById('connectionStatus').textContent = 'Firebase接続状態: 接続失敗 ✗';
-                        document.getElementById('connectionStatus').style.color = '#ff0000';
-                    }
-                });
+            // Firestoreをデータ操作のデフォルトに設定
+            window.useFirestore = true;
+            // 小部屋UIのデータ（シナリオ/窓/博士制御）は Firestore 使用
+            loadScenarios();
+
+            // RTDBは接続確認専用（.info/connected）
+            console.log('Monitoring Realtime Database connection...');
+            const testRef = ref(database, '.info/connected');
+            onValue(testRef, (snapshot) => {
+                const connected = !!snapshot.val();
+                const el = document.getElementById('connectionStatus');
+                if (connected) {
+                    el.textContent = 'Firebase接続状態: Realtime Database接続済み ✓';
+                    el.style.color = '#00ff00';
+                } else {
+                    el.textContent = 'Firebase接続状態: 切断 ✗';
+                    el.style.color = '#ff0000';
+                }
             });
             
         } catch (error) {

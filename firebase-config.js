@@ -2,7 +2,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
   authDomain: "lastr-36807.firebaseapp.com",
-  databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+  databaseURL: "https://lastr-36807-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "lastr-36807",
   storageBucket: "lastr-36807.firebasestorage.app",
   messagingSenderId: "1068261467238",

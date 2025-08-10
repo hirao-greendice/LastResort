@@ -110,15 +110,9 @@ function loadScenarios() {
     }
 
     try {
-        if (window.useFirestore) {
-            // Firestore使用
-            console.log('Using Firestore');
-            loadScenariosFromFirestore();
-        } else {
-            // Realtime Database使用
-            console.log('Using Realtime Database');
-            loadScenariosFromDatabase();
-        }
+        // Firestoreをデータ操作の既定にする
+        console.log('Using Firestore');
+        loadScenariosFromFirestore();
     } catch (error) {
         console.error('Firebase setup error:', error);
         showNotification('Firebase設定エラー: ' + error.message, 'error');
@@ -210,7 +204,7 @@ function loadScenariosFromFirestore() {
     }
 }
 
-// Realtime Databaseからシナリオを読み込み
+// Realtime Databaseからシナリオを読み込み（RTDB専用）
 function loadScenariosFromDatabase() {
     const scenariosRef = window.dbRef(window.database, 'scenarios');
     window.dbOnValue(scenariosRef, (snapshot) => {
@@ -234,7 +228,7 @@ function loadScenariosFromDatabase() {
         init();
     });
 
-    // 現在のシナリオを監視
+    // 現在のシナリオを監視（RTDB）
     const currentScenarioRef = window.dbRef(window.database, 'currentScenario');
     window.dbOnValue(currentScenarioRef, (snapshot) => {
         console.log('Database current scenario data received:', snapshot.val());
@@ -249,7 +243,7 @@ function loadScenariosFromDatabase() {
         showNotification('現在のシナリオ監視エラー: ' + error.message, 'error');
     });
 
-    // 窓変化状態を監視し、ボタンUIをサーバ状態に追従
+    // 窓変化状態を監視し、ボタンUIをサーバ状態に追従（RTDB）
     try {
         const windowControlRef = window.dbRef(window.database, 'windowControl');
         window.dbOnValue(windowControlRef, (snapshot) => {
@@ -266,7 +260,7 @@ function loadScenariosFromDatabase() {
         }, (error) => {
             console.error('Error monitoring window control in Database:', error);
         });
-        // 博士映像状態を監視し、ボタンUIをサーバ状態に追従
+        // 博士映像状態を監視し、ボタンUIをサーバ状態に追従（RTDB）
         try {
             const doctorControlRef = window.dbRef(window.database, 'doctorControl');
             window.dbOnValue(doctorControlRef, (snapshot) => {
@@ -1197,23 +1191,17 @@ function setupConnectionMonitoring() {
 }
 
 function reportPresence() {
-    if (!window.firestore && !window.database) { return; }
+    if (!window.database) { return; }
     const presenceData = { screen: 'kobeya', timestamp: Date.now(), status: 'online' };
     try {
-        if (window.database) {
-            const presenceRef = window.dbRef(window.database, 'presence/kobeya');
-            window.dbSet(presenceRef, presenceData)
-                .then(() => {
-                    if (window.dbOnDisconnect) {
-                        window.dbOnDisconnect(presenceRef).set({screen:'kobeya',timestamp:Date.now(),status:'offline'});
-                    }
-                })
-                .catch(error => console.error('Error reporting presence to Database:', error));
-        } else if (window.useFirestore) {
-            const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'kobeya');
-            window.firestoreSetDoc(presenceRef, presenceData)
-                .catch(error => console.error('Error reporting presence to Firestore:', error));
-        }
+        const presenceRef = window.dbRef(window.database, 'presence/kobeya');
+        window.dbSet(presenceRef, presenceData)
+            .then(() => {
+                if (window.dbOnDisconnect) {
+                    window.dbOnDisconnect(presenceRef).set({ screen: 'kobeya', timestamp: Date.now(), status: 'offline' });
+                }
+            })
+            .catch(error => console.error('Error reporting presence to Database:', error));
     } catch (error) { console.error('Error in reportPresence:', error); }
 }
 
@@ -1269,26 +1257,17 @@ function updateTopConnectionText(connected) {
 
 function monitorOtherConnections() {
     const terminals = ['window', 'monitor', 'doctor'];
-    
+    if (!window.database) return;
+
     terminals.forEach(terminal => {
         try {
-            if (window.database) {
-                const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
-                window.dbOnValue(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.val());
-                }, (error) => {
-                    console.error(`Error monitoring ${terminal} presence:`, error);
-                    updateConnectionStatus(terminal, null);
-                });
-            } else if (window.useFirestore) {
-                const presenceRef = window.firestoreDoc(window.firestore, 'presence', terminal);
-                window.firestoreOnSnapshot(presenceRef, (snapshot) => {
-                    updateConnectionStatus(terminal, snapshot.exists() ? snapshot.data() : null);
-                }, (error) => {
-                    console.error(`Error monitoring ${terminal} presence:`, error);
-                    updateConnectionStatus(terminal, null);
-                });
-            }
+            const presenceRef = window.dbRef(window.database, `presence/${terminal}`);
+            window.dbOnValue(presenceRef, (snapshot) => {
+                updateConnectionStatus(terminal, snapshot.val());
+            }, (error) => {
+                console.error(`Error monitoring ${terminal} presence:`, error);
+                updateConnectionStatus(terminal, null);
+            });
         } catch (error) {
             console.error(`Error setting up monitoring for ${terminal}:`, error);
         }
@@ -1306,13 +1285,19 @@ function updateConnectionStatus(terminal, data) {
         'doctor': '博士映像'
     };
     
-    if (data && data.timestamp) {
+    // onDisconnect で明示される status を優先
+    if (data && typeof data.status === 'string' && data.status.toLowerCase() === 'offline') {
+        statusElement.textContent = 'OFFLINE';
+        statusElement.className = 'connection-status status-offline';
+    } else if (data && data.timestamp) {
+        // タイムスタンプ鮮度で推定（閾値短縮）
         const timeDiff = Date.now() - data.timestamp;
-        
-        if (timeDiff < 60000) { // 1分以内
+        const ONLINE_THRESHOLD_MS = 10000;   // 10秒以内 → ONLINE
+        const AWAY_THRESHOLD_MS = 60000;     // 60秒以内 → AWAY
+        if (timeDiff <= ONLINE_THRESHOLD_MS) {
             statusElement.textContent = 'ONLINE';
             statusElement.className = 'connection-status status-online';
-        } else if (timeDiff < 300000) { // 5分以内
+        } else if (timeDiff <= AWAY_THRESHOLD_MS) {
             statusElement.textContent = 'AWAY';
             statusElement.className = 'connection-status status-unknown';
         } else {
@@ -1351,29 +1336,15 @@ function setupDoctorVideoMonitoring() {
     }
 
     try {
-        if (window.useFirestore) {
-            // Firestore使用時：博士映像の状態を監視
-            const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
-            window.firestoreOnSnapshot(doctorStatusRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    handleDoctorVideoStatusChange(data);
-                }
-            }, (error) => {
-                console.error('Error monitoring doctor video status in Firestore:', error);
-            });
-        } else {
-            // Realtime Database使用時：博士映像の状態を監視
-            const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
-            window.dbOnValue(doctorStatusRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    handleDoctorVideoStatusChange(data);
-                }
-            }, (error) => {
-                console.error('Error monitoring doctor video status in Database:', error);
-            });
-        }
+        // RTDB（接続確認）とは別に、動画終了検知は Firestore の状態で監視
+        const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+        window.firestoreOnSnapshot(doctorStatusRef, (snapshot) => {
+            if (snapshot.exists()) {
+                handleDoctorVideoStatusChange(snapshot.data());
+            }
+        }, (error) => {
+            console.error('Error monitoring doctor video status in Firestore:', error);
+        });
     } catch (error) {
         console.error('Error setting up doctor video monitoring:', error);
     }

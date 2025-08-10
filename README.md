@@ -151,7 +151,7 @@ Firebase接続に問題がある場合は、以下の手順で確認してくだ
 const firebaseConfig = {
     apiKey: "AIzaSyCMqH0u_bO2knTMMSDjzwKbQBECUdzlwnc",
     authDomain: "lastr-36807.firebaseapp.com",
-    databaseURL: "https://lastr-36807-default-rtdb.firebaseio.com",
+   databaseURL: "https://lastr-36807-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "lastr-36807",
     // ... その他の設定
 };

@@ -2438,6 +2438,12 @@ window.initGame = () => {
                 if(window.dbOnDisconnect){
                     window.dbOnDisconnect(ref).set({screen:'monitor',timestamp:Date.now(),status:'offline'}).catch(e=>console.error('presence onDisconnect',e));
                 }
+                // Heartbeat: 30s interval timestamp update
+                const HEARTBEAT_MS = 30000;
+                const hb = setInterval(()=>{
+                    window.dbSet(ref,{screen:'monitor',timestamp:Date.now(),status:'online'}).catch(()=>{});
+                }, HEARTBEAT_MS);
+                window.addEventListener('beforeunload', ()=>clearInterval(hb));
             }else if(window.useFirestore){
                 const ref=window.firestoreDoc(window.firestore,'presence','monitor');
                 window.firestoreSetDoc(ref,data).catch(e=>console.error('presence firestore',e));

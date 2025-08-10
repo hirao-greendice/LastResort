@@ -696,6 +696,12 @@ class DoctorControl {
                         }
                     })
                     .catch(error => console.error('Error reporting presence to Database:', error));
+                // Heartbeat: 30s interval timestamp update
+                const HEARTBEAT_MS = 30000;
+                const hb = setInterval(() => {
+                    window.dbSet(presenceRef, { screen: 'doctor', timestamp: Date.now(), status: 'online' }).catch(() => {});
+                }, HEARTBEAT_MS);
+                window.addEventListener('beforeunload', () => clearInterval(hb));
             }
             if (window.firestore) {
                 const presenceRefFs = window.firestoreDoc(window.firestore, 'presence', 'doctor');

@@ -165,16 +165,28 @@ class DoctorControl {
             return;
         }
 
+        let anyListenerSet = false;
         try {
-            if (window.useFirestore) {
-                console.log('Using Firestore for doctor control monitoring');
+            if (window.firestore) {
+                console.log('Enabling Firestore listener for doctor control');
                 this.setupFirestoreListener();
-            } else {
-                console.log('Using Realtime Database for doctor control monitoring');
-                this.setupDatabaseListener();
+                anyListenerSet = true;
             }
-        } catch (error) {
-            console.error('Firebase setup error for doctor control:', error);
+        } catch (errorFs) {
+            console.error('Firestore listener setup error for doctor control:', errorFs);
+        }
+
+        try {
+            if (window.database) {
+                console.log('Enabling Realtime Database listener for doctor control');
+                this.setupDatabaseListener();
+                anyListenerSet = true;
+            }
+        } catch (errorDb) {
+            console.error('Database listener setup error for doctor control:', errorDb);
+        }
+
+        if (!anyListenerSet) {
             this.connectionStatus = 'error';
             this.updateStatus();
         }
@@ -663,7 +675,7 @@ class DoctorControl {
     }
 
     reportPresence() {
-        // 接続状況をFirebaseに報告
+        // 接続状況をFirebaseに報告（双方に書き込める場合は両方へ）
         if (!window.firestore && !window.database) {
             return;
         }
@@ -680,13 +692,14 @@ class DoctorControl {
                 window.dbSet(presenceRef, presenceData)
                     .then(() => {
                         if (window.dbOnDisconnect) {
-                            window.dbOnDisconnect(presenceRef).set({screen:'doctor',timestamp:Date.now(),status:'offline'});
+                            window.dbOnDisconnect(presenceRef).set({ screen: 'doctor', timestamp: Date.now(), status: 'offline' });
                         }
                     })
                     .catch(error => console.error('Error reporting presence to Database:', error));
-            } else if (window.useFirestore) {
-                const presenceRef = window.firestoreDoc(window.firestore, 'presence', 'doctor');
-                window.firestoreSetDoc(presenceRef, presenceData)
+            }
+            if (window.firestore) {
+                const presenceRefFs = window.firestoreDoc(window.firestore, 'presence', 'doctor');
+                window.firestoreSetDoc(presenceRefFs, presenceData)
                     .catch(error => console.error('Error reporting presence to Firestore:', error));
             }
         } catch (error) {
@@ -710,24 +723,17 @@ class DoctorControl {
         };
 
         try {
-            if (window.useFirestore) {
-                const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
-                window.firestoreSetDoc(doctorStatusRef, videoStatusData)
-                    .then(() => {
-                        console.log('Video started status successfully sent to Firestore');
-                    })
-                    .catch(error => {
-                        console.error('Error sending video started status to Firestore:', error);
-                    });
-            } else {
-                const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
-                window.dbSet(doctorStatusRef, videoStatusData)
-                    .then(() => {
-                        console.log('Video started status successfully sent to Database');
-                    })
-                    .catch(error => {
-                        console.error('Error sending video started status to Database:', error);
-                    });
+            if (window.firestore) {
+                const doctorStatusRefFs = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+                window.firestoreSetDoc(doctorStatusRefFs, videoStatusData)
+                    .then(() => console.log('Video started status sent to Firestore'))
+                    .catch(error => console.error('Error sending video started status to Firestore:', error));
+            }
+            if (window.database) {
+                const doctorStatusRefDb = window.dbRef(window.database, 'doctorVideoStatus');
+                window.dbSet(doctorStatusRefDb, videoStatusData)
+                    .then(() => console.log('Video started status sent to Database'))
+                    .catch(error => console.error('Error sending video started status to Database:', error));
             }
         } catch (error) {
             console.error('Error in notifyVideoStarted:', error);
@@ -750,24 +756,17 @@ class DoctorControl {
         };
 
         try {
-            if (window.useFirestore) {
-                const doctorStatusRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
-                window.firestoreSetDoc(doctorStatusRef, videoStatusData)
-                    .then(() => {
-                        console.log('Video ended status successfully sent to Firestore');
-                    })
-                    .catch(error => {
-                        console.error('Error sending video ended status to Firestore:', error);
-                    });
-            } else {
-                const doctorStatusRef = window.dbRef(window.database, 'doctorVideoStatus');
-                window.dbSet(doctorStatusRef, videoStatusData)
-                    .then(() => {
-                        console.log('Video ended status successfully sent to Database');
-                    })
-                    .catch(error => {
-                        console.error('Error sending video ended status to Database:', error);
-                    });
+            if (window.firestore) {
+                const doctorStatusRefFs = window.firestoreDoc(window.firestore, 'gameData', 'doctorVideoStatus');
+                window.firestoreSetDoc(doctorStatusRefFs, videoStatusData)
+                    .then(() => console.log('Video ended status sent to Firestore'))
+                    .catch(error => console.error('Error sending video ended status to Firestore:', error));
+            }
+            if (window.database) {
+                const doctorStatusRefDb = window.dbRef(window.database, 'doctorVideoStatus');
+                window.dbSet(doctorStatusRefDb, videoStatusData)
+                    .then(() => console.log('Video ended status sent to Database'))
+                    .catch(error => console.error('Error sending video ended status to Database:', error));
             }
         } catch (error) {
             console.error('Error in notifyVideoEnded:', error);

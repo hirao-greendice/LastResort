@@ -96,7 +96,6 @@ function setupButtons() {
     // Firebaseに初期状態を保存
     updateImageDisplayInFirebase(isImageDisplayEnabled);
     updateWindowControlInFirebase(isWindowChangeEnabled);
-    updateDoctorVideoInFirebase(isDoctorVideoEnabled);
 }
 
 // シナリオをFirebaseから読み込み
@@ -186,6 +185,26 @@ function loadScenariosFromFirestore() {
         }, (error) => {
             console.error('Error monitoring window control in Firestore:', error);
         });
+        // 博士映像状態を監視し、ボタンUIをサーバ状態に追従
+        try {
+            const doctorControlRef = window.firestoreDoc(window.firestore, 'gameData', 'doctorControl');
+            window.firestoreOnSnapshot(doctorControlRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    const enabled = !!data.enabled;
+                    if (isDoctorVideoEnabled !== enabled) {
+                        isDoctorVideoEnabled = enabled;
+                        updateDoctorToggleButton(isDoctorVideoEnabled);
+                        lastDoctorVideoState = isDoctorVideoEnabled;
+                        console.log('Doctor video state synced (Firestore):', isDoctorVideoEnabled);
+                    }
+                }
+            }, (error) => {
+                console.error('Error monitoring doctor control in Firestore:', error);
+            });
+        } catch (e) {
+            console.error('setup doctor control monitoring (Firestore) failed:', e);
+        }
     } catch (e) {
         console.error('setup window control monitoring (Firestore) failed:', e);
     }
@@ -247,6 +266,26 @@ function loadScenariosFromDatabase() {
         }, (error) => {
             console.error('Error monitoring window control in Database:', error);
         });
+        // 博士映像状態を監視し、ボタンUIをサーバ状態に追従
+        try {
+            const doctorControlRef = window.dbRef(window.database, 'doctorControl');
+            window.dbOnValue(doctorControlRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    const enabled = !!data.enabled;
+                    if (isDoctorVideoEnabled !== enabled) {
+                        isDoctorVideoEnabled = enabled;
+                        updateDoctorToggleButton(isDoctorVideoEnabled);
+                        lastDoctorVideoState = isDoctorVideoEnabled;
+                        console.log('Doctor video state synced (Database):', isDoctorVideoEnabled);
+                    }
+                }
+            }, (error) => {
+                console.error('Error monitoring doctor control in Database:', error);
+            });
+        } catch (e) {
+            console.error('setup doctor control monitoring (Database) failed:', e);
+        }
     } catch (e) {
         console.error('setup window control monitoring (Database) failed:', e);
     }

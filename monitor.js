@@ -101,18 +101,18 @@ class MysteryMonitor {
         this.doriruAudio = document.getElementById('doriruAudio');
         this.doriruLoopAudio = document.getElementById('doriruLoopAudio');
         this.noppoAudio = document.getElementById('noppoAudio');
-        this.noppoToieAudio = document.getElementById('noppoToieAudio');
-        this.noppoKakuseiAudio = document.getElementById('noppoKakuseiAudio');
-        // 同期再生用音声（ENTER/P）
-        this.enterAudio = document.getElementById('enterAudio');
-        this.pAudio = document.getElementById('pAudio');
+		this.noppoToieAudio = document.getElementById('noppoToieAudio');
+		this.noppoKakuseiAudio = document.getElementById('noppoKakuseiAudio');
+		// 同期再生用音声（ENTER/P）
+		this.enterAudio = document.getElementById('enterAudio');
+		this.pAudio = document.getElementById('pAudio');
         this.defenseSoundPlayed = false; // 防衛音声再生済みフラグ
         // 途切れ対策用フラグ
-        this.doriruLoopPrestarted = false;
-        this.setupAudioHandlers();
-        // 同期音声のトリガーフラグ（押下→一度だけ再生、離しても停止しない）
-        this.enterSoundTriggered = false;
-        this.pSoundTriggered = false;
+		this.doriruLoopPrestarted = false;
+		this.setupAudioHandlers();
+		// 同期音声のトリガーフラグ（押下→一度だけ再生、離しても停止しない）
+		this.enterSoundTriggered = false;
+		this.pSoundTriggered = false;
         
         // 画像表示制御（シナリオ2用）
         this.imageDisplayEnabled = false;
@@ -1031,11 +1031,11 @@ class MysteryMonitor {
         console.log('Enter pressed - window control enabled:', this.windowControlEnabled);
         this.isEnterPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(true, this.isPPressed, this.isRightBracketPressed);
-            if (!this.enterSoundTriggered) {
-                this.playEnterSyncAudio();
-                this.enterSoundTriggered = true;
-            }
+				this.updateWindowStateInFirebase(true, this.isPPressed, this.isRightBracketPressed);
+				if (!this.enterSoundTriggered) {
+					this.playEnterSyncAudio();
+					this.enterSoundTriggered = true;
+				}
         } else {
             console.log('Window control disabled - ignoring Enter press');
         }
@@ -1045,12 +1045,12 @@ class MysteryMonitor {
         console.log('Enter released - window control enabled:', this.windowControlEnabled);
         this.isEnterPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false, this.isPPressed, this.isRightBracketPressed);
+				this.updateWindowStateInFirebase(false, this.isPPressed, this.isRightBracketPressed);
         } else {
             console.log('Window control disabled - ignoring Enter release');
         }
-        // 次回押下で再トリガー可能にする（再生は止めない）
-        this.enterSoundTriggered = false;
+			// 次回押下で再トリガー可能にする（再生は止めない）
+			this.enterSoundTriggered = false;
     }
 
     handlePPress() {
@@ -1061,11 +1061,11 @@ class MysteryMonitor {
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
         this.isPPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isRightBracketPressed);
-            if (!this.pSoundTriggered) {
-                this.playPSyncAudio();
-                this.pSoundTriggered = true;
-            }
+				this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isRightBracketPressed);
+				if (!this.pSoundTriggered) {
+					this.playPSyncAudio();
+					this.pSoundTriggered = true;
+				}
         } else {
             console.log('Window control disabled - ignoring P press');
         }
@@ -1079,12 +1079,12 @@ class MysteryMonitor {
         console.log('P released - window control enabled:', this.windowControlEnabled);
         this.isPPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(this.isEnterPressed, false, this.isRightBracketPressed);
+				this.updateWindowStateInFirebase(this.isEnterPressed, false, this.isRightBracketPressed);
         } else {
             console.log('Window control disabled - ignoring P release');
         }
-        // 次回押下で再トリガー可能にする（再生は止めない）
-        this.pSoundTriggered = false;
+			// 次回押下で再トリガー可能にする（再生は止めない）
+			this.pSoundTriggered = false;
     }
 
     handleRightBracketPress() {
@@ -1092,11 +1092,11 @@ class MysteryMonitor {
         this.isRightBracketPressed = true;
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(this.isEnterPressed, this.isPPressed, true);
-            // ']' が実質的に P 役割のケースでも音声を流す
-            if (!this.pSoundTriggered) {
-                this.playPSyncAudio();
-                this.pSoundTriggered = true;
-            }
+				// 物理『]』はPの役割も担うため、P音声もトリガーする
+				if (!this.pSoundTriggered) {
+					this.playPSyncAudio();
+					this.pSoundTriggered = true;
+				}
         } else {
             console.log('Window control disabled - ignoring ] press');
         }
@@ -1110,27 +1110,27 @@ class MysteryMonitor {
         } else {
             console.log('Window control disabled - ignoring ] release');
         }
-        // 次回押下で再トリガー可能にする（再生は止めない）
-        this.pSoundTriggered = false;
+			// 次回押下で再トリガー可能にする（再生は止めない）
+			this.pSoundTriggered = false;
     }
 
-    playEnterSyncAudio() {
-        try {
-            if (this.enterAudio) {
-                this.enterAudio.currentTime = 0;
-                this.enterAudio.play().catch(e => console.error('ENTER audio play error:', e));
-            }
-        } catch (e) { console.error(e); }
-    }
+		playEnterSyncAudio() {
+			try {
+				if (this.enterAudio) {
+					this.enterAudio.currentTime = 0;
+					this.enterAudio.play().catch(e => console.error('ENTER audio play error:', e));
+				}
+			} catch (e) { console.error(e); }
+		}
 
-    playPSyncAudio() {
-        try {
-            if (this.pAudio) {
-                this.pAudio.currentTime = 0;
-                this.pAudio.play().catch(e => console.error('P audio play error:', e));
-            }
-        } catch (e) { console.error(e); }
-    }
+		playPSyncAudio() {
+			try {
+				if (this.pAudio) {
+					this.pAudio.currentTime = 0;
+					this.pAudio.play().catch(e => console.error('P audio play error:', e));
+				}
+			} catch (e) { console.error(e); }
+		}
 
     updateWindowStateInFirebase(isScrolling, isPPressed, isRightBracketPressed = false) {
         // 상태가 변하지 않은 경우는 통신하지 않음
@@ -1700,7 +1700,7 @@ class MysteryMonitor {
                 this.handleDefenseSoundEnded();
             });
         }
-
+        
         // ENTER/P 同期音声の初期化（停止せず最後まで再生の設計）
         if (this.enterAudio) {
             this.enterAudio.volume = 1;

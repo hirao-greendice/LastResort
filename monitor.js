@@ -1031,7 +1031,7 @@ class MysteryMonitor {
         console.log('Enter pressed - window control enabled:', this.windowControlEnabled);
         this.isEnterPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(true, this.isPPressed, this.isLeftBracketPressed);
+            this.updateWindowStateInFirebase(true, this.isPPressed, this.isRightBracketPressed);
             if (!this.enterSoundTriggered) {
                 this.playEnterSyncAudio();
                 this.enterSoundTriggered = true;
@@ -1045,7 +1045,7 @@ class MysteryMonitor {
         console.log('Enter released - window control enabled:', this.windowControlEnabled);
         this.isEnterPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(false, this.isPPressed, this.isLeftBracketPressed);
+            this.updateWindowStateInFirebase(false, this.isPPressed, this.isRightBracketPressed);
         } else {
             console.log('Window control disabled - ignoring Enter release');
         }
@@ -1061,7 +1061,7 @@ class MysteryMonitor {
         console.log('P pressed - window control enabled:', this.windowControlEnabled);
         this.isPPressed = true;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isLeftBracketPressed);
+            this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isRightBracketPressed);
             if (!this.pSoundTriggered) {
                 this.playPSyncAudio();
                 this.pSoundTriggered = true;
@@ -1079,7 +1079,7 @@ class MysteryMonitor {
         console.log('P released - window control enabled:', this.windowControlEnabled);
         this.isPPressed = false;
         if (this.windowControlEnabled) {
-            this.updateWindowStateInFirebase(this.isEnterPressed, false, this.isLeftBracketPressed);
+            this.updateWindowStateInFirebase(this.isEnterPressed, false, this.isRightBracketPressed);
         } else {
             console.log('Window control disabled - ignoring P release');
         }
@@ -1092,6 +1092,11 @@ class MysteryMonitor {
         this.isRightBracketPressed = true;
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(this.isEnterPressed, this.isPPressed, true);
+            // ']' が実質的に P 役割のケースでも音声を流す
+            if (!this.pSoundTriggered) {
+                this.playPSyncAudio();
+                this.pSoundTriggered = true;
+            }
         } else {
             console.log('Window control disabled - ignoring ] press');
         }
@@ -1105,6 +1110,8 @@ class MysteryMonitor {
         } else {
             console.log('Window control disabled - ignoring ] release');
         }
+        // 次回押下で再トリガー可能にする（再生は止めない）
+        this.pSoundTriggered = false;
     }
 
     playEnterSyncAudio() {

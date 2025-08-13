@@ -103,10 +103,16 @@ class MysteryMonitor {
         this.noppoAudio = document.getElementById('noppoAudio');
         this.noppoToieAudio = document.getElementById('noppoToieAudio');
         this.noppoKakuseiAudio = document.getElementById('noppoKakuseiAudio');
+        // 同期再生用音声（ENTER/P）
+        this.enterAudio = document.getElementById('enterAudio');
+        this.pAudio = document.getElementById('pAudio');
         this.defenseSoundPlayed = false; // 防衛音声再生済みフラグ
         // 途切れ対策用フラグ
         this.doriruLoopPrestarted = false;
         this.setupAudioHandlers();
+        // 同期音声のトリガーフラグ（押下→一度だけ再生、離しても停止しない）
+        this.enterSoundTriggered = false;
+        this.pSoundTriggered = false;
         
         // 画像表示制御（シナリオ2用）
         this.imageDisplayEnabled = false;
@@ -114,18 +120,18 @@ class MysteryMonitor {
         // フォントサイズ管理
         this.fontSizes = ['smaller', 'small', 'medium', 'large', 'larger'];
         this.currentFontSizeIndex = 2; // デフォルトはmedium
-        this.customFontScale = 100; // 数値ベースのフォントスケール（％）
-        this.useCustomFontSize = false; // カスタムフォントサイズを使用するか
+        this.customFontScale = 110; // 数値ベースのフォントスケール（％）
+        this.useCustomFontSize = true; // カスタムフォントサイズを使用するか
         this.loadFontSizeSettings();
         
         // 画像サイズ管理（％ベース、30%〜200%を10%刻み）
-        this.imageScale = 100; // デフォルトは100%
+        this.imageScale = 110; // デフォルトは110%
         this.minScale = 30;
         this.maxScale = 200;
         this.scaleStep = 10;
         
         // 画像位置管理（ピクセル単位）
-        this.imagePosition = { x: 0, y: 0 }; // 右上からの相対位置
+        this.imagePosition = { x: 428, y: 52 }; // 右上からの相対位置
         this.positionStep = 2; // 移動ステップ（ピクセル）
         
         // フィードバック表示用タイマー
@@ -1026,6 +1032,10 @@ class MysteryMonitor {
         this.isEnterPressed = true;
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(true, this.isPPressed, this.isLeftBracketPressed);
+            if (!this.enterSoundTriggered) {
+                this.playEnterSyncAudio();
+                this.enterSoundTriggered = true;
+            }
         } else {
             console.log('Window control disabled - ignoring Enter press');
         }
@@ -1039,6 +1049,8 @@ class MysteryMonitor {
         } else {
             console.log('Window control disabled - ignoring Enter release');
         }
+        // 次回押下で再トリガー可能にする（再生は止めない）
+        this.enterSoundTriggered = false;
     }
 
     handlePPress() {
@@ -1050,6 +1062,10 @@ class MysteryMonitor {
         this.isPPressed = true;
         if (this.windowControlEnabled) {
             this.updateWindowStateInFirebase(this.isEnterPressed, true, this.isLeftBracketPressed);
+            if (!this.pSoundTriggered) {
+                this.playPSyncAudio();
+                this.pSoundTriggered = true;
+            }
         } else {
             console.log('Window control disabled - ignoring P press');
         }
@@ -1067,6 +1083,8 @@ class MysteryMonitor {
         } else {
             console.log('Window control disabled - ignoring P release');
         }
+        // 次回押下で再トリガー可能にする（再生は止めない）
+        this.pSoundTriggered = false;
     }
 
     handleRightBracketPress() {
@@ -1087,6 +1105,24 @@ class MysteryMonitor {
         } else {
             console.log('Window control disabled - ignoring ] release');
         }
+    }
+
+    playEnterSyncAudio() {
+        try {
+            if (this.enterAudio) {
+                this.enterAudio.currentTime = 0;
+                this.enterAudio.play().catch(e => console.error('ENTER audio play error:', e));
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    playPSyncAudio() {
+        try {
+            if (this.pAudio) {
+                this.pAudio.currentTime = 0;
+                this.pAudio.play().catch(e => console.error('P audio play error:', e));
+            }
+        } catch (e) { console.error(e); }
     }
 
     updateWindowStateInFirebase(isScrolling, isPPressed, isRightBracketPressed = false) {
@@ -1655,6 +1691,20 @@ class MysteryMonitor {
             // NOPPOkakusei音声終了時の処理
             this.noppoKakuseiAudio.addEventListener('ended', () => {
                 this.handleDefenseSoundEnded();
+            });
+        }
+
+        // ENTER/P 同期音声の初期化（停止せず最後まで再生の設計）
+        if (this.enterAudio) {
+            this.enterAudio.volume = 1;
+            this.enterAudio.addEventListener('error', (e) => {
+                console.error('ENTER audio failed to load:', e);
+            });
+        }
+        if (this.pAudio) {
+            this.pAudio.volume = 1;
+            this.pAudio.addEventListener('error', (e) => {
+                console.error('P audio failed to load:', e);
             });
         }
     }

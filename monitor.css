@@ -609,6 +609,8 @@ body {
 /* グリッチ効果 */
 .glitch-effect {
     animation: glitch 1s ease-in-out;
+    /* ノイズ画像の基準座標がぶれないように固定要素の基準を維持 */
+    transform-origin: top right;
 }
 
 @keyframes glitch {
